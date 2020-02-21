@@ -2,9 +2,6 @@
 # Marcos del Cueto
 # Department of Chemistry and MIF, University of Liverpool
 #################################################################################
-#-21/01/2020
-# Create MLL (Machine Learning Landscapes)
-#################################################################################
 import sys
 import dask
 import random
@@ -28,13 +25,14 @@ from scipy.optimize import differential_evolution
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, RBF
-
 #################################################################################
 ######## START CUSTOMIZABLE PARAMETERS ########
 ### Parallel Computing ###
-is_dask=True                                    # Decide if dask is used
+is_dask = True                                  # Decide if dask is used
+NCPU    = 4                                     # Choose number of CPUs used by dask
 ### Verbose ###
-print_logs=True                                 # Decide if verbose info is written into 'log_grid_l_XXX'
+print_logs = True                               # Decide if verbose info is written into 'log_name'
+log_name = 'log_grid_l'                         # Choose name of log file. The suffix '_XX.log' is added automatically
 ### Landscape parameters ###
 Nspf=200					# Number of different landscapes generate
 S=0.20                                          # Smoothness - minimum width of Gaussian functions
@@ -49,15 +47,15 @@ grid_Delta=0.01 				# Increment of grid in each DOF
 ### Exploration parameters ###
 Nwalkers=10                    		        # Number of walkers per landscape
 adven=[10,20,30,40,50,60,70,80,90,100]          # percentage of special points per walker
-total_time=11                                   # Number of time steps for the walker
+total_time=110                                   # Number of time steps for the walker
 d_threshold=0.05               	                # Threshold maximum distance that at each time step
 steps_unbiased=10                   	        # Number of initial unbiased steps
 initial_sampling='different'                    # Initial points in a grid for different walkers
 ### ML algorithm ###
 ML='kNN'                                        # Choose what ML algorithm is used
 error_metric='rmse'                             # Choose which error metric to analyze
-CV='loo'                                        # Choose cross-validation: 'kf' or 'loo' or 'sort'
-k_fold=10                                       # If CV='kf': number of folds for k-fold cross validation
+CV='loo'                                         # Choose cross-validation: 'kf' or 'loo' or 'sort'
+k_fold=5                                        # If CV='kf': number of folds for k-fold cross validation
 test_last_percentage=0.1                        # If CV='sort': percentage of last points chosen as test
 if ML=='kNN':              		        ### k-Nearest Neighbors (k-NN)
     n_neighbor=3          		        # Number of nearest neighbors consider for kNN regression
@@ -104,7 +102,7 @@ def main(iseed):
             iseed=iseed+l
             provi_result=delayed(MLL)(iseed,l,print_logs)
             results.append(provi_result)
-        final_result=dask.compute(results,scheduler='processes')
+        final_result=dask.compute(results,scheduler='processes',num_workers=NCPU)
         final_result_T=[list(i) for i in zip(*final_result[0])]
     elif is_dask==False:
         for l in range(Nspf):
@@ -129,7 +127,7 @@ def main(iseed):
 def MLL(iseed,l,print_logs):
     error_metric_list=[]
     if print_logs==True:
-        f_out = open('log_grid_l_%s' % l, 'w')
+        f_out = open('%s_%s.log' % (log_name,l), 'w')
     else:
         f_out=None
     dim_list, G_list, Ngrid, max_G = generate_grid(iseed,l,f_out)
