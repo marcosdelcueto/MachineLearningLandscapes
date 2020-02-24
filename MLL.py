@@ -53,10 +53,11 @@ def main(iseed):
         final_result_T=[list(i) for i in zip(*final_result)]
 
     print('--- Final results:',flush=True)
-    for i in range(Nwalkers):
-        print('-- Adventurousness: %6.1f' %(adven[i]),flush=True)
-        print('- RMSE:',final_result_T[i][:],flush=True)
-        print('- Mean: %f' %(statistics.mean(final_result_T[i])),flush=True)
+    if error_metric == 'rmse':
+        for i in range(Nwalkers):
+            print('-- Adventurousness: %6.1f' %(adven[i]),flush=True)
+            print('- RMSE:',final_result_T[i][:],flush=True)
+            print('- Mean: %f' %(statistics.mean(final_result_T[i])),flush=True)
 
     if ML!=None: plot(error_metric,final_result_T)
 ###### END MAIN ######
@@ -152,28 +153,28 @@ def MLL(iseed,l,print_log):
     dim_list, G_list, Ngrid, max_G = generate_grid(iseed,l,f_out)
     for w in range(Nwalkers):
         X,y = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G)
-        if ML=='kNN': error_metric=kNN(X,y,iseed,l,w,f_out)
-        if ML=='GBR': error_metric=GBR(X,y,iseed,l,w,f_out)
-        if ML=='GPR': error_metric=GPR(X,y,iseed,l,w,f_out)
-        if ML=='KRR':
-            #hyperparams=[KRR_alpha,KRR_gamma]
-            hyperparams=KRR_gamma
-            if optimize_gamma == False:
-                error_metric=KRR(hyperparams,X,y,iseed,l,w,f_out,print_log)
-            else:
-                mini_args=(X,y,iseed,l,w,f_out,print_log)
-                #KRR_alpha_lim = (0.1, 100.0)
-                #KRR_gamma_lim = (0.01, 100.0)
-                #bounds = [KRR_alpha_lim] + [KRR_gamma_lim]
-                bounds = [KRR_gamma_lim]
-                solver=differential_evolution(KRR,bounds,args=mini_args,popsize=15,tol=0.01)
-                best_hyperparams = solver.x
-                best_rmse = solver.fun
-                f_out.write("Best hyperparameters: %f \n" %best_hyperparams)
-                f_out.write("Best rmse: %f \n"  %best_rmse)
-                if print_log==True: f_out.flush()
-                error_metric = best_rmse
-        error_metric_list.append(error_metric)
+        if error_metric != None:
+            if ML=='kNN': error_metric_result=kNN(X,y,iseed,l,w,f_out)
+            if ML=='GBR': error_metric_result=GBR(X,y,iseed,l,w,f_out)
+            if ML=='GPR': error_metric_result=GPR(X,y,iseed,l,w,f_out)
+            if ML=='KRR':
+                hyperparams=KRR_gamma
+                if optimize_gamma == False:
+                    error_metric_result=KRR(hyperparams,X,y,iseed,l,w,f_out,print_log)
+                else:
+                    mini_args=(X,y,iseed,l,w,f_out,print_log)
+                    bounds = [KRR_gamma_lim]
+                    solver=differential_evolution(KRR,bounds,args=mini_args,popsize=15,tol=0.01)
+                    best_hyperparams = solver.x
+                    best_rmse = solver.fun
+                    f_out.write("Best hyperparameters: %f \n" %best_hyperparams)
+                    f_out.write("Best rmse: %f \n"  %best_rmse)
+                    if print_log==True: f_out.flush()
+                    error_metric_result = best_rmse
+            error_metric_list.append(error_metric_result)
+            result = error_metric_list
+        else:
+            result = None
     if print_log==True: f_out.close()
     return error_metric_list
 

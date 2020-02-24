@@ -1,13 +1,13 @@
 ### Parallel Computing ###
-is_dask = True                                  # Decide if dask is used
-NCPU    = 4                                     # Choose number of CPUs used by dask
+is_dask = False                                 # Decide if dask is used
+NCPU    = 1                                     # Choose number of CPUs used by dask
 ### Verbose ###
 print_log = True                                # Decide if verbose info is written into 'log_name'
 log_name = 'log_grid_l'                         # Choose name of log file. The suffix '_XX.log' is added automatically
 ### Landscape parameters ###
-Nspf=4                                        # Number of different landscapes generate
+Nspf=2                                          # Number of different landscapes generate
 S=0.20                                          # Smoothness - minimum width of Gaussian functions
-iseed=None                                      # Seed for random number to generate landscape. Default: None
+iseed=238235503                                 # Seed for random number to generate landscape. Default: None
 param=2                                         # Number of descriptors
 center_min=0.00                                 # Minimum value for center of each Gaussian in each DOF
 center_max=1.00                                 # Maximum value for center of each Gaussian in each DOF
@@ -16,35 +16,35 @@ grid_min=0.00                                   # Start point of grid in each DO
 grid_max=1.00                                   # End point of grid in each DOF
 grid_Delta=0.01                                 # Increment of grid in each DOF
 ### Exploration parameters ###
-Nwalkers=10                                     # Number of walkers per landscape
-adven=[10,20,30,40,50,60,70,80,90,100]          # percentage of special points per walker
-total_time=110                                   # Number of time steps for the walker
+Nwalkers=2                                      # Number of walkers per landscape
+adven=[20,100]									            # percentage of special points per walker
+total_time=110                                  # Number of time steps for the walker
 d_threshold=0.05                                # Threshold maximum distance that at each time step
 steps_unbiased=10                               # Number of initial unbiased steps
 initial_sampling='different'                    # Initial points in a grid for different walkers
 ### ML algorithm ###
 ML='kNN'                                        # Choose what ML algorithm is used
-error_metric='rmse'                             # Choose which error metric to analyze
-CV='loo'                                         # Choose cross-validation: 'kf' or 'loo' or 'sort'
+error_metric=None                               # Choose which error metric to analyze
+CV='loo'                                        # Choose cross-validation: 'kf' or 'loo' or 'sort'
 k_fold=5                                        # If CV='kf': number of folds for k-fold cross validation
 test_last_percentage=0.1                        # If CV='sort': percentage of last points chosen as test
-#if ML=='kNN':                                   ### k-Nearest Neighbors (k-NN)
+#if ML=='kNN':                                  ### k-Nearest Neighbors (k-NN)
     n_neighbor=3                                # Number of nearest neighbors consider for kNN regression
     weights='distance'                          # Type of weight used in kNN regression
-#elif ML=='GBR':                                 ### Gradient Boosting Regression (GBR)
+#elif ML=='GBR':                                ### Gradient Boosting Regression (GBR)
     GBR_criterion='friedman_mse'                # function to measure quality of a split
     GBR_n_estimators=100                        # number of boosting stages to perform
     GBR_learning_rate=0.10                      # how much to shrink contribution of each tree
     GBR_max_depth=5                             # limits number of nodes in each tree
     GBR_min_samples_split=2                     # minimum number of samples required to split an internal node
     GBR_min_samples_leaf=2                      # minimum number of samples required to be at a leaf node
-#elif ML=='GPR':                                 ### Gaussian Process Regression (GPR). Kernel: RBF + noise
+#elif ML=='GPR':                                ### Gaussian Process Regression (GPR). Kernel: RBF + noise
     A_RBF=1.0                                   # hyperparameter of RBF kernel
     A_noise=1.0                                 # hyperparameter of noise kernel
     GPR_alpha=0.001                             # parameter of GPR adding extra noise
     kernel_length_scale=1.0                     # hyperparameter length scale of RBF kernel
     kernel_noise_level=1.0                      # hyperparameter noise level of noise kernel
-#elif ML=='KRR':                                 ### Kernel Ridge Regression (GPR). Kernel: RBF
+#elif ML=='KRR':                                ### Kernel Ridge Regression (GPR). Kernel: RBF
     KRR_alpha=1.0                               # regularization value: 0 would be equal to linear least square
     KRR_kernel='rbf'                            # type of kernel (for now, jusr 'rbf' available)
     KRR_gamma=1.0                               # hyperparameter controlling variance of kernel
@@ -54,4 +54,4 @@ test_last_percentage=0.1                        # If CV='sort': percentage of la
 allowed_initial_sampling=['same','different']   # possible values of 'initial_sampling'
 allowed_CV=['kf','loo','sort']                  # possible types of cross-correlation
 allowed_ML=[None,'kNN','GBR','GPR','KRR']       # possible ML algorithms
-allowed_error_metric=['rmse']                   # possible error metrics to analyze
+allowed_error_metric=[None,'rmse']              # possible error metrics to analyze
