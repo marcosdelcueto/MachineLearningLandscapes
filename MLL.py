@@ -101,7 +101,7 @@ def read_initial_values(inp):
     grid_Delta = ast.literal_eval(var_value[var_name.index('grid_Delta')])
     Nwalkers = ast.literal_eval(var_value[var_name.index('Nwalkers')])
     adven = ast.literal_eval(var_value[var_name.index('adven')])
-    total_time = ast.literal_eval(var_value[var_name.index('total_time')])
+    t1_time = ast.literal_eval(var_value[var_name.index('t1_time')])
     d_threshold = ast.literal_eval(var_value[var_name.index('d_threshold')])
     steps_unbiased = ast.literal_eval(var_value[var_name.index('steps_unbiased')])
     initial_sampling = ast.literal_eval(var_value[var_name.index('initial_sampling')])
@@ -132,6 +132,7 @@ def read_initial_values(inp):
     allowed_CV = ast.literal_eval(var_value[var_name.index('allowed_CV')])
     allowed_ML = ast.literal_eval(var_value[var_name.index('allowed_ML')])
     allowed_error_metric = ast.literal_eval(var_value[var_name.index('allowed_error_metric')])
+    t2_time = ast.literal_eval(var_value[var_name.index('t2_time')])
 
     width_min=S                                     # Minimum width of each Gaussian function
     width_max=1.0/3.0                               # Maximum width of each Gaussian function
@@ -141,7 +142,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (is_dask,NCPU,print_log,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,total_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N)
+    return (is_dask,NCPU,print_log,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time)
 
 def MLL(iseed,l,print_log):
     # open log file to write intermediate information
@@ -151,8 +152,11 @@ def MLL(iseed,l,print_log):
         f_out=None
     error_metric_list=[]
     dim_list, G_list, Ngrid, max_G = generate_grid(iseed,l,f_out)
+    # For each walker
     for w in range(Nwalkers):
-        X,y = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G)
+        # Perform t1 exploration
+        X,y = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,steps_unbiased,t1_time,0,None,None)
+        # If we want error_metric
         if error_metric != None:
             if ML=='kNN': error_metric_result=kNN(X,y,iseed,l,w,f_out)
             if ML=='GBR': error_metric_result=GBR(X,y,iseed,l,w,f_out)
@@ -173,7 +177,15 @@ def MLL(iseed,l,print_log):
                     error_metric_result = best_rmse
             error_metric_list.append(error_metric_result)
             result = error_metric_list
+        # If we do not want error_metric
         else:
+            # Perform t2 exploration
+            #print('I am in error metric None')
+            if print_log==True: f_out.write("TEST before t2 X: %s \n" %(str(X)))
+            if print_log==True: f_out.write("TEST before t2 y: %s \n" %(str(y)))
+            X2,y2 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,t1_time,t2_time,X,y)
+            if print_log==True: f_out.write("TEST after t2 X2: %s \n" %(str(X2)))
+            if print_log==True: f_out.write("TEST after t2 y2: %s \n" %(str(y2)))
             result = None
     if print_log==True: f_out.close()
     return error_metric_list
@@ -404,7 +416,7 @@ def check_input_values():
     print('# Exploration parameters #',flush=True)
     print('Nwalkers:',Nwalkers,flush=True)
     print('adven:',adven,flush=True)
-    print('total_time:',total_time,flush=True)
+    print('t1_time:',t1_time,flush=True)
     print('d_threshold:',d_threshold,flush=True)
     print('steps_unbiased:',steps_unbiased,flush=True)
     print('initial_sampling:',initial_sampling,flush=True)
@@ -418,6 +430,8 @@ def check_input_values():
     print('CV:',CV,flush=True)
     print('k_fold:',k_fold,flush=True)
     print('test_last_percentage:',test_last_percentage,flush=True)
+
+    print('t2_time:',t2_time,flush=True)
 
     if ML=='kNN':
         print('n_neighbor:',n_neighbor,flush=True)
@@ -449,7 +463,7 @@ def check_input_values():
     print('#### END PRINT INPUT ####',flush=True)
     print("\n",flush=True)
 
-def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G):
+def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi):
     walker_x       = []
     path_x         = [[] for i in range(param)]
     path_G         = []
@@ -457,17 +471,18 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G):
     prob           = []
     neighbor_walker= [[] for i in range(param)]
     neighbor_G     = []
-    # START UNBIASED SWARM #
+    # print header
     if print_log==True: f_out.write('## Start: "explore_landscape" function \n')
     if print_log==True: f_out.write("############# \n")
-    if print_log==True: f_out.write("Start swarm %i \n" % (w))
+    if print_log==True: f_out.write("Start explorer %i \n" % (w))
     if print_log==True: f_out.write("Adventurousness: %f \n" % (adven[w]))
     if print_log==True: f_out.write("############# \n")
     Nx=((grid_max-grid_min)/grid_Delta)+1
     if print_log==True: f_out.write("Number of points per dimension: %i \n" %Nx)
     if print_log==True: f_out.write("Testing w: %i, iseed: %i \n" % (w,iseed))
     if print_log==True: f_out.flush()
-    for t in range(steps_unbiased):
+    # START UNBIASED RANDOM EXPLORATION #
+    for t in range(t0):
         for i in range(param):
             if initial_sampling=='different': iseed=iseed+w+l+i+t
             if initial_sampling=='same':      iseed=iseed+1
@@ -491,16 +506,28 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G):
         if param==4 and print_log==True: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],"",G_list[num_in_grid]))
         if param==5 and print_log==True: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],walker_x[4],"",G_list[num_in_grid]))
         if print_log==True: f_out.flush()
-    # CONTINUE BIASED SWARM #
-    nfile='landscape'+str(l)+'_swarm'+str(w)
+    if t2==0: # Set values for t1 exploration, after t0 exploration
+        t_ini=t0
+        t_fin=t1+t0
+        for i in range(param): # set walker_x to last path_x
+            walker_x[i]=path_x[i][-1]
+            #walker_x[i]=path_x[i][t0-1]
+            #del path_x[i][t0:]
+        #del path_G[t0:]
+        #del list_t[t0:]
+    elif t0==0: # Set values for t2 exploration
+        t_ini=0
+        t_fin=t2
+        for t in range(t1): # copy Xi and yi to path_x and path_G
+            for i in range(param):
+                path_x[i].append(Xi[t][i])
+            path_G.append(yi[t])
+        for i in range(param): # set walker_x to last path_x
+            walker_x.append(Xi[-1][i])
+    # CONTINUE BIASED RANDOM EXPLORATION #
     x_param=[[] for j in range(param)]
     y=[]
-    for i in range(param):
-        walker_x[i]=path_x[i][steps_unbiased-1]
-        del path_x[i][steps_unbiased:]
-    del path_G[steps_unbiased:]
-    del list_t[steps_unbiased:]
-    for t in range(steps_unbiased,total_time):
+    for t in range(t_ini,t_fin):
         del prob[:]
         del neighbor_walker[:][:]
         del neighbor_G[:]
@@ -526,11 +553,11 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G):
             if param==3 and print_log==True: f_out.write("%i %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_G[i]))
             if param==4 and print_log==True: f_out.write("%i %6.2f %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_x[3][i],minimum_path_G[i]))
             if param==5 and print_log==True: f_out.write("%i %6.2f %6.2f %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_x[3][i],minimum_path_x[4][i],minimum_path_G[i]))
-            if param==1 and print_log==True: f_out.write("Selected point draw: %f %f \n" % (minimum_path_x[0][draw],minimum_path_G[draw]))
-            if param==2 and print_log==True: f_out.write("Selected point draw: %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_G[draw]))
-            if param==3 and print_log==True: f_out.write("Selected point draw: %f %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_x[2][draw],minimum_path_G[draw]))
-            if param==4 and print_log==True: f_out.write("Selected point draw: %f %f %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_x[2][draw],minimum_path_x[3][draw],minimum_path_G[draw]))
-            if param==5 and print_log==True: f_out.write("Selected point draw: %f %f %f %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_x[2][draw],minimum_path_x[3][draw],minimum_path_x[4][draw],minimum_path_G[draw]))
+        if param==1 and print_log==True: f_out.write("Selected point draw: %f %f \n" % (minimum_path_x[0][draw],minimum_path_G[draw]))
+        if param==2 and print_log==True: f_out.write("Selected point draw: %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_G[draw]))
+        if param==3 and print_log==True: f_out.write("Selected point draw: %f %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_x[2][draw],minimum_path_G[draw]))
+        if param==4 and print_log==True: f_out.write("Selected point draw: %f %f %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_x[2][draw],minimum_path_x[3][draw],minimum_path_G[draw]))
+        if param==5 and print_log==True: f_out.write("Selected point draw: %f %f %f %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_x[2][draw],minimum_path_x[3][draw],minimum_path_x[4][draw],minimum_path_G[draw]))
         for i in range(param):
             if minimum_path_x[i][draw] != dim_list[i][draw_in_grid]:
                 if print_log==True: f_out.write("STOP - ERROR: minimum_path not equal to dum_list (maybe more than 1 point with that value in grid) \n")
@@ -1132,7 +1159,7 @@ def plot(flag,final_result_T):
 ##### END OTHER FUNCTIONS ######
 ################################################################################
 start = time()
-(is_dask,NCPU,print_log,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,total_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N) = read_initial_values(input_file_name)
+(is_dask,NCPU,print_log,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time) = read_initial_values(input_file_name)
 main(iseed)
 time_taken = time()-start
 print ('Process took %0.2f seconds' %time_taken)
