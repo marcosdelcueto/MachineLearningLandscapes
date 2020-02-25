@@ -5,7 +5,7 @@
 is_dask = False                                 # Decide if dask is used
 NCPU    = 1                                     # Choose number of CPUs used by dask
 ### Verbose ###
-verbose_level = 1                               # Decide what level of verbosity is printed to 'log_name' file (Recommended: 1)
+verbose_level = 2                               # Decide what level of verbosity is printed to 'log_name' file (Recommended: 1)
 allowed_verbosity_level=[0,1,2]   					# possible values of verbosity
 log_name = 'log_grid_l'                         # Choose name of log file. The suffix '_XX.log' is added automatically
 ### Landscape parameters ###

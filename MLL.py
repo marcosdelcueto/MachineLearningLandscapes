@@ -184,18 +184,14 @@ def MLL(iseed,l,verbose_level):
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("## t1 exploration: \n")
             if verbose_level>=1: f_out.write("Last value: X: %s, y: %s\n" %(str(X[-1]),str(y[-1])))
-            #if verbose_level>=1: f_out.write("Last value: y: %s\n" %(str(y[-1])))
             if verbose_level>=1: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y)-1))
             if verbose_level>=1: f_out.write("Minimum value: X: %s, y: %s\n" %(str(X[np.where(y == np.min(y))][0]),str(min(y))))
-            #if verbose_level>=1: f_out.write("Minimum value: y: %s\n" %(str(min(y))))
             if verbose_level>=1: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y == np.min(y))[0][0])))
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("## t2 exploration: \n")
             if verbose_level>=1: f_out.write("Last value: X2: %s, y2: %s\n" %(str(X2[-1]),str(y2[-1])))
-            #if verbose_level>=1: f_out.write("Last value: y2: %s\n" %(str(y2[-1])))
             if verbose_level>=1: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y2)-1))
             if verbose_level>=1: f_out.write("Minimum value: X2: %s, y2: %s\n" %(str(X2[np.where(y2 == np.min(y2))][0]),str(min(y2))))
-            #if verbose_level>=1: f_out.write("Minimum value: y2: %s\n" %(str(min(y2))))
             if verbose_level>=1: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y2 == np.min(y2))[0][0])))
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.flush()
@@ -379,10 +375,26 @@ def generate_grid(iseed,l,f_out):
     Ngrid=int((grid_max/grid_Delta+1)**param)   # calculate number of grid points
     max_G=max(G_list)
     min_G=min(G_list)
-    if verbose_level>=1: f_out.write("Number of grid points: %i \n" %Ngrid)
-    if verbose_level>=1: f_out.write("Maximum value of grid: %f \n" %max_G)
-    if verbose_level>=1: f_out.write("Minimum value of grid: %f \n" %min_G)
-    if verbose_level>=1: f_out.flush()
+    if verbose_level>=1:
+        max_G_index=int(np.where(G_list == np.max(G_list))[0])
+        min_G_index=int(np.where(G_list == np.min(G_list))[0])
+        f_out.write("Number of grid points: %i \n" %Ngrid)
+        if param==1:
+            f_out.write("Maximum value of grid: %f %f  \n" %(dim_list[0][max_G_index], max_G))
+            f_out.write("Minimum value of grid: %f %f  \n" %(dim_list[0][min_G_index], min_G))
+        if param==2:
+            f_out.write("Maximum value of grid: %f %f %f \n" %(dim_list[0][max_G_index], dim_list[1][max_G_index], max_G))
+            f_out.write("Minimum value of grid: %f %f %f \n" %(dim_list[0][min_G_index], dim_list[1][min_G_index], min_G))
+        if param==3:
+            f_out.write("Maximum value of grid: %f %f %f %f \n" %(dim_list[0][max_G_index], dim_list[1][max_G_index], dim_list[2][max_G_index], max_G))
+            f_out.write("Minimum value of grid: %f %f %f %f \n" %(dim_list[0][min_G_index], dim_list[1][min_G_index], dim_list[2][min_G_index], min_G))
+        if param==4:
+            f_out.write("Maximum value of grid: %f %f %f %f %f \n" %(dim_list[0][max_G_index], dim_list[1][max_G_index], dim_list[2][max_G_index], dim_list[3][max_G_index], max_G))
+            f_out.write("Minimum value of grid: %f %f %f %f %f \n" %(dim_list[0][min_G_index], dim_list[1][min_G_index], dim_list[2][min_G_index], dim_list[3][min_G_index], min_G))
+        if param==5:
+            f_out.write("Maximum value of grid: %f %f %f %f %f %f \n" %(dim_list[0][max_G_index], dim_list[1][max_G_index], dim_list[2][max_G_index], dim_list[3][max_G_index], dim_list[4][max_G_index], max_G))
+            f_out.write("Minimum value of grid: %f %f %f %f %f %f \n" %(dim_list[0][min_G_index], dim_list[1][min_G_index], dim_list[2][min_G_index], dim_list[3][min_G_index], dim_list[4][min_G_index], min_G))
+        f_out.flush()
     return dim_list, G_list, Ngrid, max_G
 
 def check_input_values():
