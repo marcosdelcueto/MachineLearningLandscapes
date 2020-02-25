@@ -154,10 +154,10 @@ def MLL(iseed,l,print_log):
     dim_list, G_list, Ngrid, max_G = generate_grid(iseed,l,f_out)
     # For each walker
     for w in range(Nwalkers):
-        # Perform t1 exploration
-        X,y = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,steps_unbiased,t1_time,0,None,None)
-        # If we want error_metric
+        # Step 1) Perform t1 exploration
+        X,y,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,steps_unbiased,t1_time,0,None,None)
         if error_metric != None:
+        # Step 2.A) Calculate error_metric
             if ML=='kNN': error_metric_result=kNN(X,y,iseed,l,w,f_out)
             if ML=='GBR': error_metric_result=GBR(X,y,iseed,l,w,f_out)
             if ML=='GPR': error_metric_result=GPR(X,y,iseed,l,w,f_out)
@@ -177,15 +177,27 @@ def MLL(iseed,l,print_log):
                     error_metric_result = best_rmse
             error_metric_list.append(error_metric_result)
             result = error_metric_list
-        # If we do not want error_metric
         else:
-            # Perform t2 exploration
-            #print('I am in error metric None')
-            if print_log==True: f_out.write("TEST before t2 X: %s \n" %(str(X)))
-            if print_log==True: f_out.write("TEST before t2 y: %s \n" %(str(y)))
-            X2,y2 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,t1_time,t2_time,X,y)
-            if print_log==True: f_out.write("TEST after t2 X2: %s \n" %(str(X2)))
-            if print_log==True: f_out.write("TEST after t2 y2: %s \n" %(str(y2)))
+            # Step 2.B.1) Perform t2 exploration with random biased explorer
+            X2,y2,unique_t2 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y)
+            if print_log==True: f_out.write("################ \n")
+            if print_log==True: f_out.write("t1 exploration: \n")
+            if print_log==True: f_out.write("Last value: X: %s, y: %s\n" %(str(X[-1]),str(y[-1])))
+            #if print_log==True: f_out.write("Last value: y: %s\n" %(str(y[-1])))
+            if print_log==True: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y)-1))
+            if print_log==True: f_out.write("Minimum value: X: %s, y: %s\n" %(str(X[np.where(y == np.min(y))][0]),str(min(y))))
+            #if print_log==True: f_out.write("Minimum value: y: %s\n" %(str(min(y))))
+            if print_log==True: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y == np.min(y))[0][0])))
+            if print_log==True: f_out.write("################ \n")
+            if print_log==True: f_out.write("t2 exploration: \n")
+            if print_log==True: f_out.write("Last value: X2: %s, y2: %s\n" %(str(X2[-1]),str(y2[-1])))
+            #if print_log==True: f_out.write("Last value: y2: %s\n" %(str(y2[-1])))
+            if print_log==True: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y2)-1))
+            if print_log==True: f_out.write("Minimum value: X2: %s, y2: %s\n" %(str(X2[np.where(y2 == np.min(y2))][0]),str(min(y2))))
+            #if print_log==True: f_out.write("Minimum value: y2: %s\n" %(str(min(y2))))
+            if print_log==True: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y2 == np.min(y2))[0][0])))
+            if print_log==True: f_out.write("################ \n")
+
             result = None
     if print_log==True: f_out.close()
     return error_metric_list
@@ -368,7 +380,7 @@ def generate_grid(iseed,l,f_out):
     min_G=min(G_list)
     if print_log==True: f_out.write("Number of grid points: %i \n" %Ngrid)
     if print_log==True: f_out.write("Maximum value of grid: %f \n" %max_G)
-    if print_log==True: f_out.write("Maximum value of grid: %f \n" %min_G)
+    if print_log==True: f_out.write("Minimum value of grid: %f \n" %min_G)
     if print_log==True: f_out.flush()
     return dim_list, G_list, Ngrid, max_G
 
@@ -482,7 +494,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     if print_log==True: f_out.write("Testing w: %i, iseed: %i \n" % (w,iseed))
     if print_log==True: f_out.flush()
     # START UNBIASED RANDOM EXPLORATION #
-    for t in range(t0):
+    for t in range(t0): # Perform t0 exploration
         for i in range(param):
             if initial_sampling=='different': iseed=iseed+w+l+i+t
             if initial_sampling=='same':      iseed=iseed+1
@@ -717,36 +729,36 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     if param==1:
         zippedList = list(zip(x_param[0],y))
         df=pd.DataFrame(zippedList,columns=['x_param[0]','y'])
-        #df2=df.drop_duplicates(subset='y', keep="last")
-        df2=df
+        df2=df.drop_duplicates(subset='y', keep="last")
+        #df2=df
         df_X=df2[['x_param[0]']]
         df_y=df2['y']
     elif param==2:
         zippedList = list(zip(x_param[0],x_param[1],y))
         df=pd.DataFrame(zippedList,columns=['x_param[0]','x_param[1]','y'])
-        #df2=df.drop_duplicates(subset='y', keep="last")
-        df2=df
+        df2=df.drop_duplicates(subset='y', keep="last")
+        #df2=df
         df_X=df2[['x_param[0]','x_param[1]']]
         df_y=df2['y']
     elif param==3:
         zippedList = list(zip(x_param[0],x_param[1],x_param[2],y))
         df=pd.DataFrame(zippedList,columns=['x_param[0]','x_param[1]','x_param[2]','y'])
-        #df2=df.drop_duplicates(subset='y', keep="last")
-        df2=df
+        df2=df.drop_duplicates(subset='y', keep="last")
+        #df2=df
         df_X=df2[['x_param[0]','x_param[1]','x_param[2]']]
         df_y=df2['y']
     elif param==4:
         zippedList = list(zip(x_param[0],x_param[1],x_param[2],x_param[3],y))
         df=pd.DataFrame(zippedList,columns=['x_param[0]','x_param[1]','x_param[2]','x_param[3]','y'])
-        #df2=df.drop_duplicates(subset='y', keep="last")
-        df2=df
+        df2=df.drop_duplicates(subset='y', keep="last")
+        #df2=df
         df_X=df2[['x_param[0]','x_param[1]','x_param[2]','x_param[3]']]
         df_y=df2['y']
     elif param==5:
         zippedList = list(zip(x_param[0],x_param[1],x_param[2],x_param[3],x_param[4],y))
         df=pd.DataFrame(zippedList,columns=['x_param[0]','x_param[1]','x_param[2]','x_param[3]','x_param[4]','y'])
-        #df2=df.drop_duplicates(subset='y', keep="last")
-        df2=df
+        df2=df.drop_duplicates(subset='y', keep="last")
+        #df2=df
         df_X=df2[['x_param[0]','x_param[1]','x_param[2]','x_param[3]','x_param[3]']]
         df_y=df2['y']
     X=df_X.to_numpy()
@@ -756,7 +768,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     if print_log==True: f_out.write("## y: \n")
     if print_log==True: f_out.write("%s \n" % (str(y)))
     if print_log==True: f_out.flush()
-    return X,y
+    return X,y,len(y)
 
 
 # CALCULATE k-NN #
