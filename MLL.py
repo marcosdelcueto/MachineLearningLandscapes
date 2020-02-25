@@ -156,7 +156,7 @@ def MLL(iseed,l,verbose_level):
     # For each walker
     for w in range(Nwalkers):
         # Step 1) Perform t1 exploration
-        X,y,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,steps_unbiased,t1_time,0,None,None)
+        X,y,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,steps_unbiased,t1_time,0,None,None,False)
         if error_metric != None:
         # Step 2.A) Calculate error_metric
             if ML=='kNN': error_metric_result=kNN(X,y,iseed,l,w,f_out)
@@ -180,7 +180,10 @@ def MLL(iseed,l,verbose_level):
             result = error_metric_list
         else:
             # Step 2.B.1) Perform t2 exploration with random biased explorer
-            X2,y2,unique_t2 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y)
+            X2,y2,unique_t2 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y,False)
+            # Step 2.B.2) Perform t2 exploration with ML explorer
+            X3,y3,unique_t3 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y,True)
+            #########################
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("## t1 exploration: \n")
             if verbose_level>=1: f_out.write("Last value: X: %s, y: %s\n" %(str(X[-1]),str(y[-1])))
@@ -489,7 +492,7 @@ def check_input_values():
     print('#### END PRINT INPUT ####',flush=True)
     print("\n",flush=True)
 
-def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi):
+def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_explore):
     walker_x       = []
     path_x         = [[] for i in range(param)]
     path_G         = []
@@ -508,7 +511,8 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     if verbose_level>=1: f_out.write("Testing w: %i, iseed: %i \n" % (w,iseed))
     if verbose_level>=1: f_out.flush()
     # START UNBIASED RANDOM EXPLORATION #
-    for t in range(t0): # Perform t0 exploration
+    # Perform t0 exploration
+    for t in range(t0):
         for i in range(param):
             if initial_sampling=='different': iseed=iseed+w+l+i+t
             if initial_sampling=='same':      iseed=iseed+1
@@ -531,16 +535,14 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
         if param==3 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],walker_x[2],"",G_list[num_in_grid]))
         if param==4 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],"",G_list[num_in_grid]))
         if param==5 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],walker_x[4],"",G_list[num_in_grid]))
-    if t2==0: # Set values for t1 exploration, after t0 exploration
+    # Set values for t1 exploration
+    if t2==0:
         t_ini=t0
         t_fin=t1+t0
         for i in range(param): # set walker_x to last path_x
             walker_x[i]=path_x[i][-1]
-            #walker_x[i]=path_x[i][t0-1]
-            #del path_x[i][t0:]
-        #del path_G[t0:]
-        #del list_t[t0:]
-    elif t0==0: # Set values for t2 exploration
+    # Set values for t2 exploration
+    elif t0==0:
         t_ini=0
         t_fin=t2
         for t in range(t1): # copy Xi and yi to path_x and path_G
@@ -549,198 +551,237 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             path_G.append(yi[t])
         for i in range(param): # set walker_x to last path_x
             walker_x.append(Xi[-1][i])
-    # CONTINUE BIASED RANDOM EXPLORATION #
     x_param=[[] for j in range(param)]
     y=[]
-    for t in range(t_ini,t_fin):
-        del prob[:]
-        del neighbor_walker[:][:]
-        del neighbor_G[:]
-        prob_sum=0.0
-        # Calculate number of special points
-        minimum_path_G = []
-        minimum_path_E = []
-        minimum_path_x = [[] for i in range(param)]
-        for i in np.argsort(path_G):
-            for j in range(param):
-                minimum_path_x[j].append(path_x[j][i])
-            minimum_path_G.append(path_G[i])
-        minimum_path_E=[abs(E-max_G) for E in minimum_path_G]
-        special_points=int(round(adven[w]/100*len(minimum_path_G)))
-        if special_points<1: special_points=1
-        draw=random.choice(range(special_points))
-        draw_in_grid=G_list.index(minimum_path_G[draw])
-        draw_in_grid_list=[i for i, e in enumerate(G_list) if e == minimum_path_G[draw] ]
-        if verbose_level>=2: f_out.write("Special points: %i \n" % (special_points))
-        for i in range(special_points):
-            if param==1 and verbose_level>=2: f_out.write("%i %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_G[i]))
-            if param==2 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_G[i]))
-            if param==3 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_G[i]))
-            if param==4 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_x[3][i],minimum_path_G[i]))
-            if param==5 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_x[3][i],minimum_path_x[4][i],minimum_path_G[i]))
-        for i in range(param):
-            if minimum_path_x[i][draw] != dim_list[i][draw_in_grid]:
-                print("STOP - ERROR: minimum_path not equal to dum_list (maybe more than 1 point with that value in grid)")
-                print("Selected point draw:", minimum_path_x[:][draw],minimum_path_G[draw])
-                print("Selected point draw in grid:", dim_list[:][draw_in_grid],G_list[draw_in_grid])
-                #if param==1 and verbose_level>=1: f_out.write("Selected point draw: %f %f \n" % (minimum_path_x[0][draw],minimum_path_G[draw]))
-                #if param==2 and verbose_level>=1: f_out.write("Selected point draw: %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_G[draw]))
-                #if param==3 and verbose_level>=1: f_out.write("Selected point draw: %f %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_x[2][draw],minimum_path_G[draw]))
-                #if param==4 and verbose_level>=1: f_out.write("Selected point draw: %f %f %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_x[2][draw],minimum_path_x[3][draw],minimum_path_G[draw]))
-                #if param==5 and verbose_level>=1: f_out.write("Selected point draw: %f %f %f %f %f %f \n" % (minimum_path_x[0][draw],minimum_path_x[1][draw],minimum_path_x[2][draw],minimum_path_x[3][draw],minimum_path_x[4][draw],minimum_path_G[draw]))
-                #if param==1 and verbose_level>=1: f_out.write("Selected point draw in grid: %f %f \n" % (dim_list[0][draw_in_grid],G_list[draw_in_grid]))
-                #if param==2 and verbose_level>=1: f_out.write("Selected point draw in grid: %f %f %f \n" % (dim_list[0][draw_in_grid],dim_list[1][draw_in_grid],G_list[draw_in_grid]))
-                #if param==3 and verbose_level>=1: f_out.write("Selected point draw in grid: %f %f %f %f \n" % (dim_list[0][draw_in_grid],dim_list[1][draw_in_grid],dim_list[2][draw_in_grid],G_list[draw_in_grid]))
-                #if param==4 and verbose_level>=1: f_out.write("Selected point draw in grid: %f %f %f %f %f \n" % (dim_list[0][draw_in_grid],dim_list[1][draw_in_grid],dim_list[2][draw_in_grid],dim_list[3][draw_in_grid],G_list[draw_in_grid]))
-                #if param==5 and verbose_level>=1: f_out.write("Selected point draw in grid: %f %f %f %f %f %f \n" % (dim_list[0][draw_in_grid],dim_list[1][draw_in_grid],dim_list[2][draw_in_grid],dim_list[3][draw_in_grid],dim_list[4][draw_in_grid],G_list[draw_in_grid]))
-                sys.exit()
-        if verbose_level>=1: f_out.flush()
-        P=int(round(d_threshold/grid_Delta + 1))
-        if verbose_level>=2: f_out.write("Consider nearby points: \n")
-        if verbose_level>=1: f_out.flush()
-        counter3=0
-        for i in range((P*2+1)**param):
-                prob.append(0.0)
-                neighbor_G.append(0.0)
+    # CONTINUE BIASED RANDOM EXPLORATION #
+    if ML_explore == False:
+        if verbose_level>=1: f_out.write("TEST: in regular exploration\n" %())
+        for t in range(t_ini,t_fin):
+            del prob[:]
+            del neighbor_walker[:][:]
+            del neighbor_G[:]
+            prob_sum=0.0
+            # Calculate number of special points
+            minimum_path_G = []
+            minimum_path_E = []
+            minimum_path_x = [[] for i in range(param)]
+            for i in np.argsort(path_G):
                 for j in range(param):
-                    neighbor_walker[j].append(0.0)
-        if param==1:
-            if verbose_level>=2: f_out.write("%6s %5s %11s %11s %13s \n" % ("i","x","G","Prob","distance"))
-            for i1 in range(-P,P+1):
-                try:
-                    index0=int(round(draw_in_grid-i1))
-                    indexG=int(round(draw_in_grid-i1))
-                    d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2)),6)
-                    if d_ij < d_threshold and d_ij > 0.0:
-                        neighbor_walker[0][counter3]=dim_list[0][index0]
-                        neighbor_G[counter3]=G_list[indexG]
-                        prob[counter3]=1.0
-                        prob_sum=prob_sum+prob[counter3]
-                    if verbose_level>=2: f_out.write("%6i %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],"",G_list[indexG],"",prob[counter3],"",d_ij))
-                except:
-                    pass
-                counter3=counter3+1
-        elif param==2:
-            if verbose_level>=2: f_out.write("%6s %8s %15s %11s %13s \n" % ("i","x","G","Prob","distance"))
-            for i2 in range(-P,P+1):
+                    minimum_path_x[j].append(path_x[j][i])
+                minimum_path_G.append(path_G[i])
+            minimum_path_E=[abs(E-max_G) for E in minimum_path_G]
+            special_points=int(round(adven[w]/100*len(minimum_path_G)))
+            if special_points<1: special_points=1
+            draw=random.choice(range(special_points))
+            draw_in_grid=G_list.index(minimum_path_G[draw])
+            draw_in_grid_list=[i for i, e in enumerate(G_list) if e == minimum_path_G[draw] ]
+            if verbose_level>=2: f_out.write("Special points: %i \n" % (special_points))
+            for i in range(special_points):
+                if param==1 and verbose_level>=2: f_out.write("%i %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_G[i]))
+                if param==2 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_G[i]))
+                if param==3 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_G[i]))
+                if param==4 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_x[3][i],minimum_path_G[i]))
+                if param==5 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_x[3][i],minimum_path_x[4][i],minimum_path_G[i]))
+            for i in range(param):
+                if minimum_path_x[i][draw] != dim_list[i][draw_in_grid]:
+                    print("STOP - ERROR: minimum_path not equal to dum_list (maybe more than 1 point with that value in grid)")
+                    print("Selected point draw:", minimum_path_x[:][draw],minimum_path_G[draw])
+                    print("Selected point draw in grid:", dim_list[:][draw_in_grid],G_list[draw_in_grid])
+                    sys.exit()
+            if verbose_level>=1: f_out.flush()
+            P=int(round(d_threshold/grid_Delta + 1))
+            if verbose_level>=2: f_out.write("Consider nearby points: \n")
+            if verbose_level>=1: f_out.flush()
+            counter3=0
+            for i in range((P*2+1)**param):
+                    prob.append(0.0)
+                    neighbor_G.append(0.0)
+                    for j in range(param):
+                        neighbor_walker[j].append(0.0)
+            if param==1:
+                if verbose_level>=2: f_out.write("%6s %5s %11s %11s %13s \n" % ("i","x","G","Prob","distance"))
                 for i1 in range(-P,P+1):
                     try:
-                        index0=int(round(draw_in_grid-Nx*i2))
-                        index1=int(round(draw_in_grid-i1))
-                        indexG=int(round(draw_in_grid-Nx*i2-i1))
-                        d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2+(minimum_path_x[1][draw]-dim_list[1][index1])**2)),6)
+                        index0=int(round(draw_in_grid-i1))
+                        indexG=int(round(draw_in_grid-i1))
+                        d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2)),6)
                         if d_ij < d_threshold and d_ij > 0.0:
                             neighbor_walker[0][counter3]=dim_list[0][index0]
-                            neighbor_walker[1][counter3]=dim_list[1][index1]
                             neighbor_G[counter3]=G_list[indexG]
                             prob[counter3]=1.0
                             prob_sum=prob_sum+prob[counter3]
-                        if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],"",G_list[indexG],"",prob[counter3],"",d_ij))
+                        if verbose_level>=2: f_out.write("%6i %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],"",G_list[indexG],"",prob[counter3],"",d_ij))
                     except:
                         pass
                     counter3=counter3+1
-        elif param==3:
-            if verbose_level>=2: f_out.write("%6s %11s %19s %12s %12s \n" % ("i","x","G","Prob","distance"))
-            for i3 in range(-P,P+1):
+            elif param==2:
+                if verbose_level>=2: f_out.write("%6s %8s %15s %11s %13s \n" % ("i","x","G","Prob","distance"))
                 for i2 in range(-P,P+1):
                     for i1 in range(-P,P+1):
                         try:
-                            index0=int(round(draw_in_grid-Nx*Nx*i3))
-                            index1=int(round(draw_in_grid-Nx*i2))
-                            index2=int(round(draw_in_grid-i1))
-                            indexG=int(round(draw_in_grid-Nx*Nx*i3-Nx*i2-i1))
-                            d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2+(minimum_path_x[1][draw]-dim_list[1][index1])**2+(minimum_path_x[2][draw]-dim_list[2][index2])**2)),6)
+                            index0=int(round(draw_in_grid-Nx*i2))
+                            index1=int(round(draw_in_grid-i1))
+                            indexG=int(round(draw_in_grid-Nx*i2-i1))
+                            d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2+(minimum_path_x[1][draw]-dim_list[1][index1])**2)),6)
                             if d_ij < d_threshold and d_ij > 0.0:
                                 neighbor_walker[0][counter3]=dim_list[0][index0]
                                 neighbor_walker[1][counter3]=dim_list[1][index1]
-                                neighbor_walker[2][counter3]=dim_list[2][index2]
                                 neighbor_G[counter3]=G_list[indexG]
                                 prob[counter3]=1.0
                                 prob_sum=prob_sum+prob[counter3]
-                            if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],dim_list[2][index2],"",G_list[indexG],"",prob[counter3],"",d_ij))
+                            if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],"",G_list[indexG],"",prob[counter3],"",d_ij))
                         except:
                             pass
                         counter3=counter3+1
-        elif param==4:
-            if verbose_level>=2: f_out.write("%6s %15s %22s %12s %12s \n" % ("i","x","G","Prob","distance"))
-            for i4 in range(-P,P+1):
+            elif param==3:
+                if verbose_level>=2: f_out.write("%6s %11s %19s %12s %12s \n" % ("i","x","G","Prob","distance"))
                 for i3 in range(-P,P+1):
                     for i2 in range(-P,P+1):
                         for i1 in range(-P,P+1):
                             try:
-                                index0=int(round(draw_in_grid-Nx*Nx*Nx*i4))
-                                index1=int(round(draw_in_grid-Nx*Nx*i3))
-                                index2=int(round(draw_in_grid-Nx*i2))
-                                index3=int(round(draw_in_grid-i1))
-                                indexG=int(round(draw_in_grid-Nx*Nx*Nx*i4-Nx*Nx*i3-Nx*i2-i1))
-                                d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2+(minimum_path_x[1][draw]-dim_list[1][index1])**2+(minimum_path_x[2][draw]-dim_list[2][index2])**2+(minimum_path_x[3][draw]-dim_list[3][index3])**2)),6)
+                                index0=int(round(draw_in_grid-Nx*Nx*i3))
+                                index1=int(round(draw_in_grid-Nx*i2))
+                                index2=int(round(draw_in_grid-i1))
+                                indexG=int(round(draw_in_grid-Nx*Nx*i3-Nx*i2-i1))
+                                d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2+(minimum_path_x[1][draw]-dim_list[1][index1])**2+(minimum_path_x[2][draw]-dim_list[2][index2])**2)),6)
                                 if d_ij < d_threshold and d_ij > 0.0:
                                     neighbor_walker[0][counter3]=dim_list[0][index0]
                                     neighbor_walker[1][counter3]=dim_list[1][index1]
                                     neighbor_walker[2][counter3]=dim_list[2][index2]
-                                    neighbor_walker[3][counter3]=dim_list[3][index3]
                                     neighbor_G[counter3]=G_list[indexG]
                                     prob[counter3]=1.0
                                     prob_sum=prob_sum+prob[counter3]
-                                if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],dim_list[2][index2],dim_list[3][index3],"",G_list[indexG],"",prob[counter3],"",d_ij))
+                                if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],dim_list[2][index2],"",G_list[indexG],"",prob[counter3],"",d_ij))
                             except:
                                 pass
                             counter3=counter3+1
-        elif param==5:
-            if verbose_level>=2: f_out.write("%6s %19s %25s %12s %12s \n" % ("i","x","G","Prob","distance"))
-            for i5 in range(-P,P+1):
+            elif param==4:
+                if verbose_level>=2: f_out.write("%6s %15s %22s %12s %12s \n" % ("i","x","G","Prob","distance"))
                 for i4 in range(-P,P+1):
                     for i3 in range(-P,P+1):
                         for i2 in range(-P,P+1):
                             for i1 in range(-P,P+1):
                                 try:
-                                    index0=int(round(draw_in_grid-Nx*Nx*Nx*Nx*i5))
-                                    index1=int(round(draw_in_grid-Nx*Nx*Nx*i4))
-                                    index2=int(round(draw_in_grid-Nx*Nx*i3))
-                                    index3=int(round(draw_in_grid-Nx*i2))
-                                    index4=int(round(draw_in_grid-i1))
-                                    indexG=int(round(draw_in_grid-Nx*Nx*Nx*Nx*i5-Nx*Nx*Nx*i4-Nx*Nx*i3-Nx*i2-i1))
-                                    d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2+(minimum_path_x[1][draw]-dim_list[1][index1])**2+(minimum_path_x[2][draw]-dim_list[2][index2])**2+(minimum_path_x[3][draw]-dim_list[3][index3])**2+(minimum_path_x[4][draw]-dim_list[4][index4])**2)),6)
+                                    index0=int(round(draw_in_grid-Nx*Nx*Nx*i4))
+                                    index1=int(round(draw_in_grid-Nx*Nx*i3))
+                                    index2=int(round(draw_in_grid-Nx*i2))
+                                    index3=int(round(draw_in_grid-i1))
+                                    indexG=int(round(draw_in_grid-Nx*Nx*Nx*i4-Nx*Nx*i3-Nx*i2-i1))
+                                    d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2+(minimum_path_x[1][draw]-dim_list[1][index1])**2+(minimum_path_x[2][draw]-dim_list[2][index2])**2+(minimum_path_x[3][draw]-dim_list[3][index3])**2)),6)
                                     if d_ij < d_threshold and d_ij > 0.0:
                                         neighbor_walker[0][counter3]=dim_list[0][index0]
                                         neighbor_walker[1][counter3]=dim_list[1][index1]
                                         neighbor_walker[2][counter3]=dim_list[2][index2]
                                         neighbor_walker[3][counter3]=dim_list[3][index3]
-                                        neighbor_walker[4][counter3]=dim_list[4][index4]
                                         neighbor_G[counter3]=G_list[indexG]
                                         prob[counter3]=1.0
                                         prob_sum=prob_sum+prob[counter3]
-                                    if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],dim_list[2][index2],dim_list[3][index3],dim_list[4][index4],"",G_list[indexG],"",prob[counter3],"",d_ij))
+                                    if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],dim_list[2][index2],dim_list[3][index3],"",G_list[indexG],"",prob[counter3],"",d_ij))
                                 except:
                                     pass
                                 counter3=counter3+1
-        if verbose_level>=1: f_out.flush()
-        if len(range((P*2+1)**param)) != len(prob):
-            print("STOP - ERROR: Problem with number of nearby points considered for next step",flush=True)
-            sys.exit()
-        if verbose_level>=2: f_out.write("Number of points considered: %i \n" % (len(range((P*2+1)**param))))
-        if verbose_level>=2: f_out.write("Points within threshold: %f \n" % int(round((prob_sum))))
-        if verbose_level>=1: f_out.flush()
-
-        for i in range(counter3):
-            prob[i]=prob[i]/prob_sum
-        draw=int(choice(range((P*2+1)**param),size=1,p=prob))
-        for i in range(param):
-            walker_x[i]=neighbor_walker[i][draw]
-            path_x[i].append(walker_x[i])
-        path_G.append(neighbor_G[draw])
-        list_t.append(t)
-        if verbose_level>=2: f_out.write("We draw neighbor no.: %6i\n" % (draw))
-        if verbose_level>=1: f_out.flush()
-        if param==1 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %2s %10.6f\n" % (t,"",walker_x[0],"",neighbor_G[draw]))
-        if param==2 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],"",neighbor_G[draw]))
-        if param==3 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],"",neighbor_G[draw]))
-        if param==4 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],"",neighbor_G[draw]))
-        if param==5 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],walker_x[4],"",neighbor_G[draw]))
-        if verbose_level>=1: f_out.flush()
-        for i in range(param):
-            x_param[i].append(walker_x[i])
-        y.append(neighbor_G[draw])
+            elif param==5:
+                if verbose_level>=2: f_out.write("%6s %19s %25s %12s %12s \n" % ("i","x","G","Prob","distance"))
+                for i5 in range(-P,P+1):
+                    for i4 in range(-P,P+1):
+                        for i3 in range(-P,P+1):
+                            for i2 in range(-P,P+1):
+                                for i1 in range(-P,P+1):
+                                    try:
+                                        index0=int(round(draw_in_grid-Nx*Nx*Nx*Nx*i5))
+                                        index1=int(round(draw_in_grid-Nx*Nx*Nx*i4))
+                                        index2=int(round(draw_in_grid-Nx*Nx*i3))
+                                        index3=int(round(draw_in_grid-Nx*i2))
+                                        index4=int(round(draw_in_grid-i1))
+                                        indexG=int(round(draw_in_grid-Nx*Nx*Nx*Nx*i5-Nx*Nx*Nx*i4-Nx*Nx*i3-Nx*i2-i1))
+                                        d_ij=round((math.sqrt((minimum_path_x[0][draw]-dim_list[0][index0])**2+(minimum_path_x[1][draw]-dim_list[1][index1])**2+(minimum_path_x[2][draw]-dim_list[2][index2])**2+(minimum_path_x[3][draw]-dim_list[3][index3])**2+(minimum_path_x[4][draw]-dim_list[4][index4])**2)),6)
+                                        if d_ij < d_threshold and d_ij > 0.0:
+                                            neighbor_walker[0][counter3]=dim_list[0][index0]
+                                            neighbor_walker[1][counter3]=dim_list[1][index1]
+                                            neighbor_walker[2][counter3]=dim_list[2][index2]
+                                            neighbor_walker[3][counter3]=dim_list[3][index3]
+                                            neighbor_walker[4][counter3]=dim_list[4][index4]
+                                            neighbor_G[counter3]=G_list[indexG]
+                                            prob[counter3]=1.0
+                                            prob_sum=prob_sum+prob[counter3]
+                                        if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],dim_list[2][index2],dim_list[3][index3],dim_list[4][index4],"",G_list[indexG],"",prob[counter3],"",d_ij))
+                                    except:
+                                        pass
+                                    counter3=counter3+1
+            if verbose_level>=1: f_out.flush()
+            if len(range((P*2+1)**param)) != len(prob):
+                print("STOP - ERROR: Problem with number of nearby points considered for next step",flush=True)
+                sys.exit()
+            if verbose_level>=2: f_out.write("Number of points considered: %i \n" % (len(range((P*2+1)**param))))
+            if verbose_level>=2: f_out.write("Points within threshold: %f \n" % int(round((prob_sum))))
+            if verbose_level>=1: f_out.flush()
+    
+            for i in range(counter3):
+                prob[i]=prob[i]/prob_sum
+            draw=int(choice(range((P*2+1)**param),size=1,p=prob))
+            for i in range(param):
+                walker_x[i]=neighbor_walker[i][draw]
+                path_x[i].append(walker_x[i])
+            path_G.append(neighbor_G[draw])
+            list_t.append(t)
+            if verbose_level>=2: f_out.write("We draw neighbor no.: %6i\n" % (draw))
+            if verbose_level>=1: f_out.flush()
+            if param==1 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %2s %10.6f\n" % (t,"",walker_x[0],"",neighbor_G[draw]))
+            if param==2 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],"",neighbor_G[draw]))
+            if param==3 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],"",neighbor_G[draw]))
+            if param==4 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],"",neighbor_G[draw]))
+            if param==5 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],walker_x[4],"",neighbor_G[draw]))
+            if verbose_level>=1: f_out.flush()
+            for i in range(param):
+                x_param[i].append(walker_x[i])
+            y.append(neighbor_G[draw])
+    # CONTINUE ML EXPLORATION #
+    if ML_explore == True:
+        if verbose_level>=1: f_out.write("TEST: in ML exploration\n" %())
+        P=int(round(d_threshold/grid_Delta + 1))
+        # For each point in Xi
+        for k in range(len(path_G)):
+            counter3=0
+            del prob[:]
+            del neighbor_walker[:][:]
+            del neighbor_G[:]
+            prob_sum=0.0
+            k_in_grid=G_list.index(path_G[k])
+            # initialize neighbor_G and neighbor_walker[j]
+            for i in range((P*2+1)**param):
+                    prob.append(0.0)
+                    neighbor_G.append(0.0)
+                    for j in range(param):
+                        neighbor_walker[j].append(0.0)
+            # Check points within threshold
+            if param==2:
+                if verbose_level>=1: f_out.write("Check around point: %f %f %f\n" %(path_x[0][k], path_x[1][k], path_G[k]))
+                #if verbose_level>=1: f_out.write("\n" %())
+                #if verbose_level>=1: f_out.write("\n" %())
+                #if verbose_level>=1: f_out.write("\n" %())
+                #if verbose_level>=1: f_out.write("\n" %())
+                if verbose_level>=1: f_out.write("%6s %8s %15s %11s %13s \n" % ("i","x","G","Prob","distance"))
+                for i2 in range(-P,P+1):
+                    for i1 in range(-P,P+1):
+                        #try:
+                        index0=int(round(k_in_grid-Nx*i2))
+                        index1=int(round(k_in_grid-i1))
+                        indexG=int(round(k_in_grid-Nx*i2-i1))
+                        d_ij=round((math.sqrt((path_x[0][k]-dim_list[0][index0])**2+(path_x[1][k]-dim_list[1][index1])**2)),6)
+                        if d_ij < d_threshold and d_ij > 0.0:
+                            neighbor_walker[0][counter3]=dim_list[0][index0]
+                            neighbor_walker[1][counter3]=dim_list[1][index1]
+                            neighbor_G[counter3]=G_list[indexG]
+                            prob[counter3]=1.0
+                            if verbose_level>=1: f_out.write("I am inside distance, %i, %f\n" %(counter3, prob[counter3]))
+                            prob_sum=prob_sum+prob[counter3]
+                            #for j in range(param):
+                                #x_param[i].append(neighbor_walker[i][counter3])
+                        if verbose_level>=1: f_out.write("%6i %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],"",G_list[indexG],"",prob[counter3],"",d_ij))
+                        #except:
+                            #pass
+                        counter3=counter3+1
+    # CREATE X AND y #
     if param==1:
         zippedList = list(zip(x_param[0],y))
         df=pd.DataFrame(zippedList,columns=['x_param[0]','y'])
