@@ -5,7 +5,7 @@
 is_dask = False                                 # Decide if dask is used
 NCPU    = 1                                     # Choose number of CPUs used by dask
 ### Verbose ###
-verbose_level = 2                               # Decide what level of verbosity is printed to 'log_name' file (Recommended: 1)
+verbose_level = 1                               # Decide what level of verbosity is printed to 'log_name' file (Recommended: 1)
 allowed_verbosity_level=[0,1,2]   					# possible values of verbosity
 log_name = 'log_grid_l'                         # Choose name of log file. The suffix '_XX.log' is added automatically
 ### Landscape parameters ###
@@ -26,7 +26,7 @@ Nwalkers=1                                      # Number of walkers per landscap
 adven=[50]									            # percentage of special points per walker
 t1_time=40                                      # Number of time steps for the walker
 d_threshold=0.04                                # Threshold maximum distance that at each time step
-steps_unbiased=5                               # Number of initial unbiased steps
+t0_time = 5 		                              # Number of initial unbiased steps
 initial_sampling='different'                    # Initial points in a grid for different walkers
 allowed_initial_sampling=['same','different']   # possible values of 'initial_sampling'
 ##############################

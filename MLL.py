@@ -103,7 +103,7 @@ def read_initial_values(inp):
     adven = ast.literal_eval(var_value[var_name.index('adven')])
     t1_time = ast.literal_eval(var_value[var_name.index('t1_time')])
     d_threshold = ast.literal_eval(var_value[var_name.index('d_threshold')])
-    steps_unbiased = ast.literal_eval(var_value[var_name.index('steps_unbiased')])
+    t0_time = ast.literal_eval(var_value[var_name.index('t0_time')])
     initial_sampling = ast.literal_eval(var_value[var_name.index('initial_sampling')])
     ML = ast.literal_eval(var_value[var_name.index('ML')])
     error_metric = ast.literal_eval(var_value[var_name.index('error_metric')])
@@ -145,7 +145,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML)
+    return (is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML)
 
 def MLL(iseed,l,verbose_level):
     # open log file to write intermediate information
@@ -158,18 +158,18 @@ def MLL(iseed,l,verbose_level):
     # For each walker
     for w in range(Nwalkers):
         # Step 1) Perform t1 exploration
-        X,y,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,steps_unbiased,t1_time,0,None,None,False)
+        X1,y1,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,t1_time,0,None,None,False)
         if error_metric != None:
-        # Step 2.A) Calculate error_metric
-            if ML=='kNN': error_metric_result=kNN(X,y,iseed,l,w,f_out,None,None,1)
-            if ML=='GBR': error_metric_result=GBR(X,y,iseed,l,w,f_out)
-            if ML=='GPR': error_metric_result=GPR(X,y,iseed,l,w,f_out,None,None,1)
+        # Step 2A) Calculate error_metric
+            if ML=='kNN': error_metric_result=kNN(X1,y1,iseed,l,w,f_out,None,None,1)
+            if ML=='GBR': error_metric_result=GBR(X1,y1,iseed,l,w,f_out)
+            if ML=='GPR': error_metric_result=GPR(X1,y1,iseed,l,w,f_out,None,None,1)
             if ML=='KRR':
                 hyperparams=KRR_gamma
                 if optimize_gamma == False:
-                    error_metric_result=KRR(hyperparams,X,y,iseed,l,w,f_out,verbose_level)
+                    error_metric_result=KRR(hyperparams,X1,y1,iseed,l,w,f_out,verbose_level)
                 else:
-                    mini_args=(X,y,iseed,l,w,f_out,verbose_level)
+                    mini_args=(X1,y1,iseed,l,w,f_out,verbose_level)
                     bounds = [KRR_gamma_lim]
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=15,tol=0.01)
                     best_hyperparams = solver.x
@@ -180,34 +180,57 @@ def MLL(iseed,l,verbose_level):
                     error_metric_result = best_rmse
             error_metric_list.append(error_metric_result)
             result = error_metric_list
+        # Step 2B) Perform t2 exploration
         else:
             # Step 2.B.1) Perform t2 exploration with random biased explorer
-            X2a,y2a,unique_t2a = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y,False)
+            X2a,y2a,unique_t2a = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,False)
             # Step 2.B.2) Perform t2 exploration with ML explorer
-            X2b,y2b,unique_t2b = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y,True)
-            #########################
+            X2b,y2b,unique_t2b = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,True)
+            x_last=[]
+            k_in_grid_2 = [i for i, x in enumerate(dim_list[0]) if x == X2b[np.where(y2b == np.min(y2b))][0][0]]
+            k_in_grid_3 = [i for i, x in enumerate(dim_list[1]) if x == X2b[np.where(y2b == np.min(y2b))][0][1]]
+            if verbose_level>=1: f_out.write("value of k_in_grid_2 is: %s\n" %(str(k_in_grid_2)))
+            if verbose_level>=1: f_out.write("value of k_in_grid_3 is: %s\n" %(str(k_in_grid_3)))
+            for i in k_in_grid_2:
+                if i in k_in_grid_3:
+                    k_in_grid=i
+            if verbose_level>=1: f_out.write("new value of k_in_grid is: %s\n" %(str(k_in_grid)))
+            x_last.append(dim_list[0][k_in_grid])
+            x_last.append(dim_list[1][k_in_grid])
+            y_last=G_list[k_in_grid]
+            # Print t2 exploration results
+            if verbose_level>=1: f_out.write("################ \n")
+            if verbose_level>=1: f_out.write("## Initial random exploration: \n")
+            if verbose_level>=1: f_out.write("t0 = %i \n" %(t0_time))
+            if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("## t1 exploration: \n")
-            if verbose_level>=1: f_out.write("Last value: X: %s, y: %s\n" %(str(X[-1]),str(y[-1])))
-            if verbose_level>=1: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y)-1))
-            if verbose_level>=1: f_out.write("Minimum value: X: %s, y: %s\n" %(str(X[np.where(y == np.min(y))][0]),str(min(y))))
-            if verbose_level>=1: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y == np.min(y))[0][0])))
+            if verbose_level>=1: f_out.write("t1 = %i \n" %(t1_time))
+            if verbose_level>=1: f_out.write("Last value: X1 index (unique timestep): %i\n" %(len(y1)-1))
+            if verbose_level>=1: f_out.write("Last value: X1: %s, y: %s\n" %(str(X1[-1]),str(y1[-1])))
+            if verbose_level>=1: f_out.write("Minimum value: X1 index (unique timestep): %s\n" %(str(np.where(y1 == np.min(y1))[0][0])))
+            if verbose_level>=1: f_out.write("Minimum value: X1: %s, y: %s\n" %(str(X1[np.where(y1 == np.min(y1))][0]),str(min(y1))))
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("## t2 standard exploration: \n")
+            if verbose_level>=1: f_out.write("t2 = %i \n" %(t2_time))
+            if verbose_level>=1: f_out.write("Last value: X2a index (unique timestep): %i\n" %(len(y2a)-1))
             if verbose_level>=1: f_out.write("Last value: X2a: %s, y2a: %s\n" %(str(X2a[-1]),str(y2a[-1])))
-            if verbose_level>=1: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y2a)-1))
             if verbose_level>=1: f_out.write("Minimum value: X2a: %s, y2a: %s\n" %(str(X2a[np.where(y2a == np.min(y2a))][0]),str(min(y2a))))
-            if verbose_level>=1: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y2a == np.min(y2a))[0][0])))
+            if verbose_level>=1: f_out.write("Minimum value: X2a index (unique timestep): %s\n" %(str(np.where(y2a == np.min(y2a))[0][0])))
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("## t2 ML exploration: \n")
+            if verbose_level>=1: f_out.write("t2 = %i \n" %(t2_time))
+            if verbose_level>=1: f_out.write("Last value: X2b index (unique timestep): %i\n" %(len(y2b)-1))
             if verbose_level>=1: f_out.write("Last value: X2b: %s, y2b: %s\n" %(str(X2b[-1]),str(y2b[-1])))
-            if verbose_level>=1: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y2b)-1))
-            if verbose_level>=1: f_out.write("Minimum value: X2b: %s, y2b: %s\n" %(str(X2b[np.where(y2b == np.min(y2b))][0]),str(min(y2b))))
-            if verbose_level>=1: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y2b == np.min(y2b))[0][0])))
+            if verbose_level>=1: f_out.write("Minimum value: X2b index (unique timestep): %s\n" %(str(np.where(y2b == np.min(y2b))[0][0])))
+            if verbose_level>=1: f_out.write("Minimum predicted value: X2b: %s, y2b: %s\n" %(str(X2b[np.where(y2b == np.min(y2b))][0]),str(min(y2b))))
+            if verbose_level>=1: f_out.write("Minimum real value: X2b: %s, y2b: %s\n" %(str(x_last),str(y_last)))
+
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.flush()
             result = None
+            #
     if verbose_level>=1: f_out.close()
     return error_metric_list
 
@@ -459,7 +482,7 @@ def check_input_values():
     print('adven:',adven,flush=True)
     print('t1_time:',t1_time,flush=True)
     print('d_threshold:',d_threshold,flush=True)
-    print('steps_unbiased:',steps_unbiased,flush=True)
+    print('t0_time:',t0_time,flush=True)
     print('initial_sampling:',initial_sampling,flush=True)
     print('allowed_initial_sampling:',allowed_initial_sampling,flush=True)
     print('# ML algorithm #',flush=True)
@@ -549,6 +572,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
         if param==3 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],walker_x[2],"",G_list[num_in_grid]))
         if param==4 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],"",G_list[num_in_grid]))
         if param==5 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],walker_x[4],"",G_list[num_in_grid]))
+        if verbose_level>=1: f_out.flush()
     x_param=[[] for j in range(param)]
     y=[]
     # Set values for t1 exploration
@@ -569,7 +593,8 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             walker_x.append(Xi[-1][i])
     # CONTINUE BIASED RANDOM EXPLORATION #
     if ML_explore == False:
-        if verbose_level>=1: f_out.write("TEST: in regular exploration\n" %())
+        if verbose_level>=1: f_out.write("## Start random biased exploration\n" %())
+        if verbose_level>=1: f_out.flush()
         for t in range(t_ini,t_fin):
             del prob[:]
             del neighbor_walker[:][:]
@@ -614,7 +639,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         neighbor_walker[j].append(0.0)
             if param==1:
                 if verbose_level>=2: f_out.write("%6s %5s %11s %11s %13s \n" % ("i","x","G","Prob","distance"))
-                for i1 in range(-P,P+1):
+                for i1 in range(-P+1,P):
                     try:
                         index0=int(round(draw_in_grid-i1))
                         indexG=int(round(draw_in_grid-i1))
@@ -630,8 +655,8 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                     counter3=counter3+1
             elif param==2:
                 if verbose_level>=2: f_out.write("%6s %8s %15s %11s %13s \n" % ("i","x","G","Prob","distance"))
-                for i2 in range(-P,P+1):
-                    for i1 in range(-P,P+1):
+                for i2 in range(-P+1,P):
+                    for i1 in range(-P+1,P):
                         try:
                             index0=int(round(draw_in_grid-Nx*i2))
                             index1=int(round(draw_in_grid-i1))
@@ -649,9 +674,9 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         counter3=counter3+1
             elif param==3:
                 if verbose_level>=2: f_out.write("%6s %11s %19s %12s %12s \n" % ("i","x","G","Prob","distance"))
-                for i3 in range(-P,P+1):
-                    for i2 in range(-P,P+1):
-                        for i1 in range(-P,P+1):
+                for i3 in range(-P+1,P):
+                    for i2 in range(-P+1,P):
+                        for i1 in range(-P+1,P):
                             try:
                                 index0=int(round(draw_in_grid-Nx*Nx*i3))
                                 index1=int(round(draw_in_grid-Nx*i2))
@@ -671,10 +696,10 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                             counter3=counter3+1
             elif param==4:
                 if verbose_level>=2: f_out.write("%6s %15s %22s %12s %12s \n" % ("i","x","G","Prob","distance"))
-                for i4 in range(-P,P+1):
-                    for i3 in range(-P,P+1):
-                        for i2 in range(-P,P+1):
-                            for i1 in range(-P,P+1):
+                for i4 in range(-P+1,P):
+                    for i3 in range(-P+1,P):
+                        for i2 in range(-P+1,P):
+                            for i1 in range(-P+1,P):
                                 try:
                                     index0=int(round(draw_in_grid-Nx*Nx*Nx*i4))
                                     index1=int(round(draw_in_grid-Nx*Nx*i3))
@@ -696,11 +721,11 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                                 counter3=counter3+1
             elif param==5:
                 if verbose_level>=2: f_out.write("%6s %19s %25s %12s %12s \n" % ("i","x","G","Prob","distance"))
-                for i5 in range(-P,P+1):
-                    for i4 in range(-P,P+1):
-                        for i3 in range(-P,P+1):
-                            for i2 in range(-P,P+1):
-                                for i1 in range(-P,P+1):
+                for i5 in range(-P+1,P):
+                    for i4 in range(-P+1,P):
+                        for i3 in range(-P+1,P):
+                            for i2 in range(-P+1,P):
+                                for i1 in range(-P+1,P):
                                     try:
                                         index0=int(round(draw_in_grid-Nx*Nx*Nx*Nx*i5))
                                         index1=int(round(draw_in_grid-Nx*Nx*Nx*i4))
@@ -753,13 +778,11 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     # CONTINUE ML EXPLORATION #
     if ML_explore == True:
         for t in range(t_ini,t_fin):
-            if verbose_level>=1: f_out.write("TEST at the beginning of t=%i, path_x: %s\n" %(t, str(path_x)))
-            if verbose_level>=1: f_out.write("TEST at the beginning of t=%i, path_G: %s\n" %(t, str(path_G)))
             # initialize values
-
             x_bubble=[[] for j in range(param)]
             y_bubble=[]
-            if verbose_level>=1: f_out.write("TEST: in ML exploration\n" %())
+            if verbose_level>=1: f_out.write("## Start ML Exploration\n" %())
+            if verbose_level>=1: f_out.flush()
             P=int(round(d_threshold/grid_Delta + 1))
             # For each point in Xi
             for k in range(len(path_G)):
@@ -768,17 +791,12 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 del neighbor_walker[:][:]
                 del neighbor_G[:]
                 prob_sum=0.0
-                #k_in_grid=G_list.index(path_G[k])
-                #if verbose_level>=1: f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
-                #k_in_grid_2=dim_list[0].index(path_x[0][k])
                 k_in_grid_2 = [i for i, x in enumerate(dim_list[0]) if x == path_x[0][k]]
                 k_in_grid_3 = [i for i, x in enumerate(dim_list[1]) if x == path_x[1][k]]
-                #if verbose_level>=1: f_out.write("value of k_in_grid_2 is: %s\n" %(str(k_in_grid_2)))
-                #if verbose_level>=1: f_out.write("value of k_in_grid_3 is: %s\n" %(str(k_in_grid_3)))
                 for i in k_in_grid_2:
                     if i in k_in_grid_3:
                         k_in_grid=i
-                if verbose_level>=1: f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
+                if verbose_level>=2: f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
                 # initialize neighbor_G and neighbor_walker[j]
                 for i in range((P*2+1)**param):
                     prob.append(0.0)
@@ -787,12 +805,8 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         neighbor_walker[j].append(0.0)
                 # Check points within threshold
                 if param==2:
-                    if verbose_level>=1: f_out.write("Check around point: %f %f %f\n" %(path_x[0][k], path_x[1][k], path_G[k]))
-                    #if verbose_level>=1: f_out.write("\n" %())
-                    #if verbose_level>=1: f_out.write("\n" %())
-                    #if verbose_level>=1: f_out.write("\n" %())
-                    #if verbose_level>=1: f_out.write("\n" %())
-                    if verbose_level>=1: f_out.write("%6s %8s %15s %11s %13s \n" % ("i","x","G","Prob","distance"))
+                    if verbose_level>=2: f_out.write("Check around point: %f %f %f\n" %(path_x[0][k], path_x[1][k], path_G[k]))
+                    if verbose_level>=2: f_out.write("%6s %8s %15s %11s %13s \n" % ("i","x","G","Prob","distance"))
                     for i2 in range(-P+1,P):
                         for i1 in range(-P+1,P):
                             try:
@@ -804,26 +818,24 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                                     use_this_point=True
                                     # need to specify that this point is different than previous points
                                     for i in range(len(path_G)):
-                                        #if verbose_level>=1: f_out.write("Am I %f %f %f, equal to previous point %i: %f %f %f ?\n" %(dim_list[0][index0], dim_list[1][index1], G_list[indexG], i, path_x[0][i], path_x[1][i], path_G[i]))
                                         if dim_list[0][index0] == path_x[0][i] and dim_list[1][index1] == path_x[1][i]:
-                                            #if verbose_level>=1: f_out.write("I am %f %f %f, equal to previous point %i: %f %f %f\n" %(dim_list[0][index0], dim_list[1][index1], G_list[indexG], i, path_x[0][i], path_x[1][i], path_G[i]))
                                             use_this_point=False
                                     if use_this_point==True:
                                         neighbor_walker[0][counter3]=dim_list[0][index0]
                                         neighbor_walker[1][counter3]=dim_list[1][index1]
                                         neighbor_G[counter3]=G_list[indexG]
                                         prob[counter3]=1.0
-                                        #if verbose_level>=1: f_out.write("I am inside distance, %i, %f\n" %(counter3, prob[counter3]))
                                         prob_sum=prob_sum+prob[counter3]
                                     for j in range(param):
                                         x_bubble[j].append(neighbor_walker[j][counter3])
                                     y_bubble.append(neighbor_G[counter3])
-                                if verbose_level>=1: f_out.write("%6i %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],"",G_list[indexG],"",prob[counter3],"",d_ij))
+                                if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],"",G_list[indexG],"",prob[counter3],"",d_ij))
                             except:
                                 pass
                             counter3=counter3+1
-            for j in range(param):
-                if verbose_level>=1: f_out.write("x_bubble[%i]: %s\n" %(j,str(x_bubble[j])))
+            if verbose_level>=2:
+                for j in range(param):
+                    f_out.write("x_bubble[%i]: %s\n" %(j,str(x_bubble[j])))
             # train ML with path_x and path_G
             # predict ML for x_bubble and y_bubble
             path_x,path_G = create_X_and_y(f_out,path_x,path_G)
@@ -831,15 +843,13 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
             if t2_ML=='GPR': min_point=GPR(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
             # select x_bubble corresponding to min(y_bubble)
-            if verbose_level>=1: f_out.write("At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
+            if verbose_level>=1: f_out.write("## At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
             # prepare for next timestep
             path_x=path_x.tolist()
             path_G=path_G.tolist()
             path_x.append(min_point[0:param])
             path_G.append(min_point[param])
             path_x=[list(i) for i in zip(*path_x)]
-            if verbose_level>=1: f_out.write("TEST at the end of t=%i, path_x: %s\n" %(t, str(path_x)))
-            if verbose_level>=1: f_out.write("TEST at the end of t=%i, path_G: %s\n" %(t, str(path_G)))
             # add to final array
             for i in range(param):
                 x_param[i].append(min_point[i])
@@ -893,7 +903,6 @@ def create_X_and_y(f_out,x_param,y):
     if verbose_level>=1: f_out.write("%s \n" % (str(y)))
     if verbose_level>=1: f_out.flush()
     return X,y
-
 
 # CALCULATE k-NN #
 def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
@@ -985,10 +994,10 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         real_y=[]
         predicted_y=[]
         result = []
-        if verbose_level>=1: f_out.write("X_train: %s\n" %(str(X_train)))
-        if verbose_level>=1: f_out.write("y_train: %s\n" %(str(y_train)))
-        if verbose_level>=1: f_out.write("X_test: %s\n" %(str(X_test)))
-        if verbose_level>=1: f_out.write("y_test: %s\n" %(str(y_test)))
+        if verbose_level>=2: f_out.write("X_train: %s\n" %(str(X_train)))
+        if verbose_level>=2: f_out.write("y_train: %s\n" %(str(y_train)))
+        if verbose_level>=2: f_out.write("X_test: %s\n" %(str(X_test)))
+        if verbose_level>=2: f_out.write("y_test: %s\n" %(str(y_test)))
 
         knn = neighbors.KNeighborsRegressor(n_neighbors, weights=weights)
         #y_pred = knn.fit(X_train, y_train).predict(X_test)
@@ -1000,11 +1009,9 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         for i in range(len(y_pred)):
             #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
             predicted_y.append(y_pred[i]) #
-        if verbose_level>=1: f_out.write("real_y: %s\n" %(str(real_y)))
-        if verbose_level>=1: f_out.write("predicted_y: %s\n" %(str(predicted_y)))
         min_index = predicted_y.index(min(predicted_y))
-        if verbose_level>=1: f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
-        if verbose_level>=1: f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
+        if verbose_level>=2: f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
+        if verbose_level>=2: f_out.write("At index %i, 'real' minimum value: %f\n" %(min_index, min(real_y)))
         for j in range(param):
             result.append(X_test[min_index][j])
         result.append(min(predicted_y))
@@ -1247,10 +1254,6 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         real_y=[]
         predicted_y=[]
         result = []
-        if verbose_level>=1: f_out.write("X_train: %s\n" %(str(X_train)))
-        if verbose_level>=1: f_out.write("y_train: %s\n" %(str(y_train)))
-        if verbose_level>=1: f_out.write("X_test: %s\n" %(str(X_test)))
-        if verbose_level>=1: f_out.write("y_test: %s\n" %(str(y_test)))
 
         scaler = preprocessing.StandardScaler().fit(X_train)
         X_train_scaled = scaler.transform(X_train)
@@ -1259,44 +1262,42 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
         GPR.fit(X_train_scaled,y_train)
         y_pred = GPR.predict(X_test_scaled)
-        if verbose_level>=1: f_out.write('TEST X_train: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(X_train)))
-        if verbose_level>=1: f_out.write('TEST y_train: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(y_train)))
-        if verbose_level>=1: f_out.write('TEST X_test: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(X_test)))
-        if verbose_level>=1: f_out.write('TEST y_test: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(y_test)))
+        if verbose_level>=2: f_out.write('TEST X_train: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(X_train)))
+        if verbose_level>=2: f_out.write('TEST y_train: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(y_train)))
+        if verbose_level>=2: f_out.write('TEST X_test: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(X_test)))
+        if verbose_level>=2: f_out.write('TEST y_test: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(y_test)))
         if verbose_level>=1: f_out.write('Converged kernel hyperparameters: %s \n' % (str(GPR.kernel_)))
         if verbose_level>=1: f_out.write('Converged alpha: %s \n' % (str(GPR.alpha_)))
         if verbose_level>=1: f_out.write('Parameters GPR: \n')
         if verbose_level>=1: f_out.write('%s \n' % (str(GPR.get_params(deep=True))))
         if verbose_level>=1: f_out.write('Parameters GPR kernel: \n')
         if verbose_level>=1: f_out.write('%s \n' % (str(GPR.kernel_.get_params(deep=True))))
-        if verbose_level>=1: f_out.write('GPR X_train: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(GPR.X_train_)))
-        if verbose_level>=1: f_out.write('GPR y_train: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(GPR.y_train_)))
-        if verbose_level>=1: f_out.write('TEST X_train_scaled: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(X_train_scaled)))
-        if verbose_level>=1: f_out.write('TEST X_test_scaled: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(X_test_scaled)))
-        if verbose_level>=1: f_out.write('TEST y_test: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(y_test)))
-        if verbose_level>=1: f_out.write('TEST y_pred: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(y_pred)))
-        if verbose_level>=1: f_out.flush()
+        if verbose_level>=2: f_out.write('GPR X_train: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(GPR.X_train_)))
+        if verbose_level>=2: f_out.write('GPR y_train: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(GPR.y_train_)))
+        if verbose_level>=2: f_out.write('TEST X_train_scaled: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(X_train_scaled)))
+        if verbose_level>=2: f_out.write('TEST X_test_scaled: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(X_test_scaled)))
+        if verbose_level>=2: f_out.write('TEST y_test: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(y_test)))
+        if verbose_level>=2: f_out.write('TEST y_pred: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(y_pred)))
+        if verbose_level>=2: f_out.flush()
         for i in range(len(y_test)):
             #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
             real_y.append(y_test[i])
         for i in range(len(y_pred)):
             #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
             predicted_y.append(y_pred[i])
-        if verbose_level>=1: f_out.write("real_y: %s\n" %(str(real_y)))
-        if verbose_level>=1: f_out.write("predicted_y: %s\n" %(str(predicted_y)))
         min_index = predicted_y.index(min(predicted_y))
-        if verbose_level>=1: f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
-        if verbose_level>=1: f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
+        if verbose_level>=2: f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
+        if verbose_level>=2: f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
         for j in range(param):
             result.append(X_test[min_index][j])
         result.append(min(predicted_y))
@@ -1406,7 +1407,7 @@ def plot(flag,final_result_T):
 ##### END OTHER FUNCTIONS ######
 ################################################################################
 start = time()
-(is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML) = read_initial_values(input_file_name)
+(is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML) = read_initial_values(input_file_name)
 main(iseed)
 time_taken = time()-start
 print ('Process took %0.2f seconds' %time_taken)
