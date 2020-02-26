@@ -159,7 +159,7 @@ def MLL(iseed,l,verbose_level):
         X,y,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,steps_unbiased,t1_time,0,None,None,False)
         if error_metric != None:
         # Step 2.A) Calculate error_metric
-            if ML=='kNN': error_metric_result=kNN(X,y,iseed,l,w,f_out)
+            if ML=='kNN': error_metric_result=kNN(X,y,iseed,l,w,f_out,None,None,1)
             if ML=='GBR': error_metric_result=GBR(X,y,iseed,l,w,f_out)
             if ML=='GPR': error_metric_result=GPR(X,y,iseed,l,w,f_out)
             if ML=='KRR':
@@ -180,9 +180,9 @@ def MLL(iseed,l,verbose_level):
             result = error_metric_list
         else:
             # Step 2.B.1) Perform t2 exploration with random biased explorer
-            X2,y2,unique_t2 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y,False)
+            X2a,y2a,unique_t2a = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y,False)
             # Step 2.B.2) Perform t2 exploration with ML explorer
-            X3,y3,unique_t3 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y,True)
+            X2b,y2b,unique_t2b = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X,y,True)
             #########################
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("## t1 exploration: \n")
@@ -191,11 +191,18 @@ def MLL(iseed,l,verbose_level):
             if verbose_level>=1: f_out.write("Minimum value: X: %s, y: %s\n" %(str(X[np.where(y == np.min(y))][0]),str(min(y))))
             if verbose_level>=1: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y == np.min(y))[0][0])))
             if verbose_level>=1: f_out.write("################ \n")
-            if verbose_level>=1: f_out.write("## t2 exploration: \n")
-            if verbose_level>=1: f_out.write("Last value: X2: %s, y2: %s\n" %(str(X2[-1]),str(y2[-1])))
-            if verbose_level>=1: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y2)-1))
-            if verbose_level>=1: f_out.write("Minimum value: X2: %s, y2: %s\n" %(str(X2[np.where(y2 == np.min(y2))][0]),str(min(y2))))
-            if verbose_level>=1: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y2 == np.min(y2))[0][0])))
+            if verbose_level>=1: f_out.write("## t2 standard exploration: \n")
+            if verbose_level>=1: f_out.write("Last value: X2a: %s, y2a: %s\n" %(str(X2a[-1]),str(y2a[-1])))
+            if verbose_level>=1: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y2a)-1))
+            if verbose_level>=1: f_out.write("Minimum value: X2a: %s, y2a: %s\n" %(str(X2a[np.where(y2a == np.min(y2a))][0]),str(min(y2a))))
+            if verbose_level>=1: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y2a == np.min(y2a))[0][0])))
+            if verbose_level>=1: f_out.write("################ \n")
+            if verbose_level>=1: f_out.write("################ \n")
+            if verbose_level>=1: f_out.write("## t2 ML exploration: \n")
+            if verbose_level>=1: f_out.write("Last value: X2b: %s, y2b: %s\n" %(str(X2b[-1]),str(y2b[-1])))
+            if verbose_level>=1: f_out.write("Last value: X index (unique timestep): %i\n" %(len(y2b)-1))
+            if verbose_level>=1: f_out.write("Minimum value: X2b: %s, y2b: %s\n" %(str(X2b[np.where(y2b == np.min(y2b))][0]),str(min(y2b))))
+            if verbose_level>=1: f_out.write("Minimum value: X index (unique timestep): %s\n" %(str(np.where(y2b == np.min(y2b))[0][0])))
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.flush()
             result = None
@@ -487,7 +494,7 @@ def check_input_values():
     print('Calculated width_min:',width_min,flush=True)
     print('Calculated width_max:',width_max,flush=True)
     print('Calculated Amplitude_min:',Amplitude_min,flush=True)
-    print('Calculated Amplitude_max"',Amplitude_max,flush=True)
+    print('Calculated Amplitude_max:',Amplitude_max,flush=True)
     print('Calculated N:',N,flush=True)
     print('#### END PRINT INPUT ####',flush=True)
     print("\n",flush=True)
@@ -535,6 +542,8 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
         if param==3 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],walker_x[2],"",G_list[num_in_grid]))
         if param==4 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],"",G_list[num_in_grid]))
         if param==5 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],walker_x[4],"",G_list[num_in_grid]))
+    x_param=[[] for j in range(param)]
+    y=[]
     # Set values for t1 exploration
     if t2==0:
         t_ini=t0
@@ -551,8 +560,6 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             path_G.append(yi[t])
         for i in range(param): # set walker_x to last path_x
             walker_x.append(Xi[-1][i])
-    x_param=[[] for j in range(param)]
-    y=[]
     # CONTINUE BIASED RANDOM EXPLORATION #
     if ML_explore == False:
         if verbose_level>=1: f_out.write("TEST: in regular exploration\n" %())
@@ -735,53 +742,105 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             for i in range(param):
                 x_param[i].append(walker_x[i])
             y.append(neighbor_G[draw])
+        X,y = create_X_and_y(f_out,x_param,y)
     # CONTINUE ML EXPLORATION #
     if ML_explore == True:
-        if verbose_level>=1: f_out.write("TEST: in ML exploration\n" %())
-        P=int(round(d_threshold/grid_Delta + 1))
-        # For each point in Xi
-        for k in range(len(path_G)):
-            counter3=0
-            del prob[:]
-            del neighbor_walker[:][:]
-            del neighbor_G[:]
-            prob_sum=0.0
-            k_in_grid=G_list.index(path_G[k])
-            # initialize neighbor_G and neighbor_walker[j]
-            for i in range((P*2+1)**param):
+        for t in range(t_ini,t_fin):
+            if verbose_level>=1: f_out.write("TEST at the beginning of t=%i, path_x: %s\n" %(t, str(path_x)))
+            if verbose_level>=1: f_out.write("TEST at the beginning of t=%i, path_G: %s\n" %(t, str(path_G)))
+            # initialize values
+
+            x_bubble=[[] for j in range(param)]
+            y_bubble=[]
+            if verbose_level>=1: f_out.write("TEST: in ML exploration\n" %())
+            P=int(round(d_threshold/grid_Delta + 1))
+            # For each point in Xi
+            for k in range(len(path_G)):
+                counter3=0
+                del prob[:]
+                del neighbor_walker[:][:]
+                del neighbor_G[:]
+                prob_sum=0.0
+                #k_in_grid=G_list.index(path_G[k])
+                #if verbose_level>=1: f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
+                #k_in_grid_2=dim_list[0].index(path_x[0][k])
+                k_in_grid_2 = [i for i, x in enumerate(dim_list[0]) if x == path_x[0][k]]
+                k_in_grid_3 = [i for i, x in enumerate(dim_list[1]) if x == path_x[1][k]]
+                #if verbose_level>=1: f_out.write("value of k_in_grid_2 is: %s\n" %(str(k_in_grid_2)))
+                #if verbose_level>=1: f_out.write("value of k_in_grid_3 is: %s\n" %(str(k_in_grid_3)))
+                for i in k_in_grid_2:
+                    if i in k_in_grid_3:
+                        k_in_grid=i
+                if verbose_level>=1: f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
+                # initialize neighbor_G and neighbor_walker[j]
+                for i in range((P*2+1)**param):
                     prob.append(0.0)
                     neighbor_G.append(0.0)
                     for j in range(param):
                         neighbor_walker[j].append(0.0)
-            # Check points within threshold
-            if param==2:
-                if verbose_level>=1: f_out.write("Check around point: %f %f %f\n" %(path_x[0][k], path_x[1][k], path_G[k]))
-                #if verbose_level>=1: f_out.write("\n" %())
-                #if verbose_level>=1: f_out.write("\n" %())
-                #if verbose_level>=1: f_out.write("\n" %())
-                #if verbose_level>=1: f_out.write("\n" %())
-                if verbose_level>=1: f_out.write("%6s %8s %15s %11s %13s \n" % ("i","x","G","Prob","distance"))
-                for i2 in range(-P,P+1):
-                    for i1 in range(-P,P+1):
-                        #try:
-                        index0=int(round(k_in_grid-Nx*i2))
-                        index1=int(round(k_in_grid-i1))
-                        indexG=int(round(k_in_grid-Nx*i2-i1))
-                        d_ij=round((math.sqrt((path_x[0][k]-dim_list[0][index0])**2+(path_x[1][k]-dim_list[1][index1])**2)),6)
-                        if d_ij < d_threshold and d_ij > 0.0:
-                            neighbor_walker[0][counter3]=dim_list[0][index0]
-                            neighbor_walker[1][counter3]=dim_list[1][index1]
-                            neighbor_G[counter3]=G_list[indexG]
-                            prob[counter3]=1.0
-                            if verbose_level>=1: f_out.write("I am inside distance, %i, %f\n" %(counter3, prob[counter3]))
-                            prob_sum=prob_sum+prob[counter3]
-                            #for j in range(param):
-                                #x_param[i].append(neighbor_walker[i][counter3])
-                        if verbose_level>=1: f_out.write("%6i %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],"",G_list[indexG],"",prob[counter3],"",d_ij))
-                        #except:
-                            #pass
-                        counter3=counter3+1
-    # CREATE X AND y #
+                # Check points within threshold
+                if param==2:
+                    if verbose_level>=1: f_out.write("Check around point: %f %f %f\n" %(path_x[0][k], path_x[1][k], path_G[k]))
+                    #if verbose_level>=1: f_out.write("\n" %())
+                    #if verbose_level>=1: f_out.write("\n" %())
+                    #if verbose_level>=1: f_out.write("\n" %())
+                    #if verbose_level>=1: f_out.write("\n" %())
+                    if verbose_level>=1: f_out.write("%6s %8s %15s %11s %13s \n" % ("i","x","G","Prob","distance"))
+                    for i2 in range(-P+1,P):
+                        for i1 in range(-P+1,P):
+                            try:
+                                index0=int(round(k_in_grid-Nx*i2))
+                                index1=int(round(k_in_grid-i1))
+                                indexG=int(round(k_in_grid-Nx*i2-i1))
+                                d_ij=round((math.sqrt((path_x[0][k]-dim_list[0][index0])**2+(path_x[1][k]-dim_list[1][index1])**2)),6)
+                                if d_ij < d_threshold and d_ij > 0.0:
+                                    use_this_point=True
+                                    # need to specify that this point is different than previous points
+                                    for i in range(len(path_G)):
+                                        #if verbose_level>=1: f_out.write("Am I %f %f %f, equal to previous point %i: %f %f %f ?\n" %(dim_list[0][index0], dim_list[1][index1], G_list[indexG], i, path_x[0][i], path_x[1][i], path_G[i]))
+                                        if dim_list[0][index0] == path_x[0][i] and dim_list[1][index1] == path_x[1][i]:
+                                            #if verbose_level>=1: f_out.write("I am %f %f %f, equal to previous point %i: %f %f %f\n" %(dim_list[0][index0], dim_list[1][index1], G_list[indexG], i, path_x[0][i], path_x[1][i], path_G[i]))
+                                            use_this_point=False
+                                    if use_this_point==True:
+                                        neighbor_walker[0][counter3]=dim_list[0][index0]
+                                        neighbor_walker[1][counter3]=dim_list[1][index1]
+                                        neighbor_G[counter3]=G_list[indexG]
+                                        prob[counter3]=1.0
+                                        #if verbose_level>=1: f_out.write("I am inside distance, %i, %f\n" %(counter3, prob[counter3]))
+                                        prob_sum=prob_sum+prob[counter3]
+                                    for j in range(param):
+                                        x_bubble[j].append(neighbor_walker[j][counter3])
+                                    y_bubble.append(neighbor_G[counter3])
+                                if verbose_level>=1: f_out.write("%6i %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],"",G_list[indexG],"",prob[counter3],"",d_ij))
+                            except:
+                                pass
+                            counter3=counter3+1
+            for j in range(param):
+                if verbose_level>=1: f_out.write("x_bubble[%i]: %s\n" %(j,str(x_bubble[j])))
+            # train ML with path_x and path_G
+            # predict ML for x_bubble and y_bubble
+            path_x,path_G = create_X_and_y(f_out,path_x,path_G)
+            x_bubble,y_bubble = create_X_and_y(f_out,x_bubble,y_bubble)
+            min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
+            # select x_bubble corresponding to min(y_bubble)
+            if verbose_level>=1: f_out.write("At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
+            # prepare for next timestep
+            path_x=path_x.tolist()
+            path_G=path_G.tolist()
+            path_x.append(min_point[0:param])
+            path_G.append(min_point[param])
+            path_x=[list(i) for i in zip(*path_x)]
+            if verbose_level>=1: f_out.write("TEST at the end of t=%i, path_x: %s\n" %(t, str(path_x)))
+            if verbose_level>=1: f_out.write("TEST at the end of t=%i, path_G: %s\n" %(t, str(path_G)))
+            # add to final array
+            for i in range(param):
+                x_param[i].append(min_point[i])
+            y.append(min_point[param])
+        X,y = create_X_and_y(f_out,x_param,y)
+    return X,y,len(y)
+
+# CREATE X AND y #
+def create_X_and_y(f_out,x_param,y):
     if param==1:
         zippedList = list(zip(x_param[0],y))
         df=pd.DataFrame(zippedList,columns=['x_param[0]','y'])
@@ -825,81 +884,122 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     if verbose_level>=1: f_out.write("## y: \n")
     if verbose_level>=1: f_out.write("%s \n" % (str(y)))
     if verbose_level>=1: f_out.flush()
-    return X,y,len(y)
+    return X,y
 
 
 # CALCULATE k-NN #
-def kNN(X,y,iseed,l,w,f_out):
+def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
     iseed=iseed+1
-    if verbose_level>=1: f_out.write('## Start: "kNN" function \n')
-    if verbose_level>=1: f_out.write('-------- \n')
-    if verbose_level>=1: f_out.write('Perform k-NN \n')
-    if verbose_level>=1: f_out.write('k= %i \n' % (n_neighbor))
-    if verbose_level>=1: f_out.write('cross_validation %i - fold \n' % (k_fold))
-    if verbose_level>=1: f_out.write('weights %s \n' % (weights))
-    if verbose_level>=1: f_out.write('iseed %s \n' % (iseed))
-    if verbose_level>=1: f_out.write('-------- \n')
-    if verbose_level>=1: f_out.flush()
-
-    kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
-    n_neighbors = n_neighbor
-    average_r=0.0
-    average_r_pearson=0.0
-    average_rmse=0.0
-    if CV=='kf':
+    # Calculate rmse metric
+    if mode==1:
+        if verbose_level>=1: f_out.write('## Start: "kNN" function \n')
+        if verbose_level>=1: f_out.write('-------- \n')
+        if verbose_level>=1: f_out.write('Perform k-NN \n')
+        if verbose_level>=1: f_out.write('k= %i \n' % (n_neighbor))
+        if verbose_level>=1: f_out.write('cross_validation %i - fold \n' % (k_fold))
+        if verbose_level>=1: f_out.write('weights %s \n' % (weights))
+        if verbose_level>=1: f_out.write('iseed %s \n' % (iseed))
+        if verbose_level>=1: f_out.write('-------- \n')
+        if verbose_level>=1: f_out.flush()
+    
         kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
-        validation=kf.split(X)
-    if CV=='loo':
-        loo = LeaveOneOut()
-        validation=loo.split(X)
-    if CV=='kf' or CV=='loo':
-        counter=0
-        real_y=[]
-        predicted_y=[]
-        for train_index, test_index in validation:
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
+        n_neighbors = n_neighbor
+        average_r=0.0
+        average_r_pearson=0.0
+        average_rmse=0.0
+        if CV=='kf':
+            kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+            validation=kf.split(X)
+        if CV=='loo':
+            loo = LeaveOneOut()
+            validation=loo.split(X)
+        if CV=='kf' or CV=='loo':
+            counter=0
+            real_y=[]
+            predicted_y=[]
+            for train_index, test_index in validation:
+                X_train, X_test = X[train_index], X[test_index]
+                y_train, y_test = y[train_index], y[test_index]
+                knn = neighbors.KNeighborsRegressor(n_neighbors, weights=weights)
+                y_pred = knn.fit(X_train, y_train).predict(X_test)
+                for i in range(len(y_test)):
+                    #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
+                    real_y.append(y_test[i])
+                for i in range(len(y_pred)):
+                    #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
+                    predicted_y.append(y_pred[i]) #
+                if CV=='kf':
+                    r_pearson,_=pearsonr(y_test,y_pred)
+                    mse = mean_squared_error(y_test, y_pred)
+                    rmse = np.sqrt(mse)
+                    if verbose_level>=2: f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
+                    if verbose_level>=2: f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
+                    counter=counter+1
+                    average_r_pearson=average_r_pearson+r_pearson
+                    average_rmse=average_rmse+rmse
+            if CV=='kf':
+                average_r_pearson=average_r_pearson/k_fold
+                average_rmse=average_rmse/k_fold
+                if verbose_level>=2: f_out.write('k-fold average r_pearson score: %f \n' % (average_r_pearson))
+                if verbose_level>=2: f_out.write('k-fold average rmse score: %f \n' % (average_rmse))
+            total_r_pearson,_ = pearsonr(real_y,predicted_y)
+            total_mse = mean_squared_error(real_y, predicted_y)
+            total_rmse = np.sqrt(total_mse)
+        elif CV=='sort':
+            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
             knn = neighbors.KNeighborsRegressor(n_neighbors, weights=weights)
             y_pred = knn.fit(X_train, y_train).predict(X_test)
-            for i in range(len(y_test)):
-                #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
-                real_y.append(y_test[i])
-            for i in range(len(y_pred)):
-                #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
-                predicted_y.append(y_pred[i]) #
-            if CV=='kf':
-                r_pearson,_=pearsonr(y_test,y_pred)
-                mse = mean_squared_error(y_test, y_pred)
-                rmse = np.sqrt(mse)
-                if verbose_level>=2: f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
-                if verbose_level>=2: f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
-                counter=counter+1
-                average_r_pearson=average_r_pearson+r_pearson
-                average_rmse=average_rmse+rmse
-        if CV=='kf':
-            average_r_pearson=average_r_pearson/k_fold
-            average_rmse=average_rmse/k_fold
-            if verbose_level>=2: f_out.write('k-fold average r_pearson score: %f \n' % (average_r_pearson))
-            if verbose_level>=2: f_out.write('k-fold average rmse score: %f \n' % (average_rmse))
-        total_r_pearson,_ = pearsonr(real_y,predicted_y)
-        total_mse = mean_squared_error(real_y, predicted_y)
-        total_rmse = np.sqrt(total_mse)
-    elif CV=='sort':
-        X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
+            total_r_pearson,_=pearsonr(y_test,y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+            total_rmse = np.sqrt(mse)
+            if verbose_level>=1: f_out.write("Train with first %i points \n" % (len(X_train)))
+            if verbose_level>=1: f_out.write("%s \n" % (str(X_train)))
+            if verbose_level>=1: f_out.write("Test with last %i points \n" % (len(X_test)))
+            if verbose_level>=1: f_out.write("%s \n" % (str(X_test)))
+            if verbose_level>=1: f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
+        if verbose_level>=1: f_out.write('Final r_pearson score: %f \n' % (total_r_pearson))
+        if verbose_level>=1: f_out.write('Final rmse score: %f \n' % (total_rmse))
+        if error_metric=='rmse': result=total_rmse
+        if verbose_level>=1: f_out.flush()
+    elif mode==2:
+        if verbose_level>=1: f_out.write('## Start: "kNN" function \n')
+        if verbose_level>=1: f_out.write('-------- \n')
+        if verbose_level>=1: f_out.write('Perform k-NN \n')
+        if verbose_level>=1: f_out.write('k= %i \n' % (n_neighbor))
+        if verbose_level>=1: f_out.write('weights %s \n' % (weights))
+        if verbose_level>=1: f_out.write('iseed %s \n' % (iseed))
+        if verbose_level>=1: f_out.write('-------- \n')
+        if verbose_level>=1: f_out.flush()
+    
+        n_neighbors = n_neighbor
+        X_train, X_test = Xtr, X
+        y_train, y_test = ytr, y
+        real_y=[]
+        predicted_y=[]
+        result = []
+        if verbose_level>=1: f_out.write("X_train: %s\n" %(str(X_train)))
+        if verbose_level>=1: f_out.write("y_train: %s\n" %(str(y_train)))
+        if verbose_level>=1: f_out.write("X_test: %s\n" %(str(X_test)))
+        if verbose_level>=1: f_out.write("y_test: %s\n" %(str(y_test)))
+
         knn = neighbors.KNeighborsRegressor(n_neighbors, weights=weights)
-        y_pred = knn.fit(X_train, y_train).predict(X_test)
-        total_r_pearson,_=pearsonr(y_test,y_pred)
-        mse = mean_squared_error(y_test, y_pred)
-        total_rmse = np.sqrt(mse)
-        if  verbose_level>=1: f_out.write("Train with first %i points \n" % (len(X_train)))
-        if  verbose_level>=1: f_out.write("%s \n" % (str(X_train)))
-        if  verbose_level>=1: f_out.write("Test with last %i points \n" % (len(X_test)))
-        if  verbose_level>=1: f_out.write("%s \n" % (str(X_test)))
-        if verbose_level>=1: f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
-    if verbose_level>=1: f_out.write('Final r_pearson score: %f \n' % (total_r_pearson))
-    if verbose_level>=1: f_out.write('Final rmse score: %f \n' % (total_rmse))
-    if error_metric=='rmse': result=total_rmse
-    if verbose_level>=1: f_out.flush()
+        #y_pred = knn.fit(X_train, y_train).predict(X_test)
+        knn.fit(X_train, y_train)
+        y_pred=knn.predict(X_test)
+        for i in range(len(y_test)):
+            #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
+            real_y.append(y_test[i])
+        for i in range(len(y_pred)):
+            #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
+            predicted_y.append(y_pred[i]) #
+        if verbose_level>=1: f_out.write("real_y: %s\n" %(str(real_y)))
+        if verbose_level>=1: f_out.write("predicted_y: %s\n" %(str(predicted_y)))
+        min_index = predicted_y.index(min(predicted_y))
+        if verbose_level>=1: f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
+        if verbose_level>=1: f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
+        for j in range(param):
+            result.append(X_test[min_index][j])
+        result.append(min(predicted_y))
     return result
 
 # CALCULATE GBR #
