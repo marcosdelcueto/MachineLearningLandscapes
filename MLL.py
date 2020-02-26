@@ -134,6 +134,8 @@ def read_initial_values(inp):
     allowed_error_metric = ast.literal_eval(var_value[var_name.index('allowed_error_metric')])
     t2_time = ast.literal_eval(var_value[var_name.index('t2_time')])
     allowed_verbosity_level = ast.literal_eval(var_value[var_name.index('allowed_verbosity_level')])
+    t2_ML = ast.literal_eval(var_value[var_name.index('t2_ML')])
+    allowed_t2_ML = ast.literal_eval(var_value[var_name.index('allowed_t2_ML')])
 
     width_min=S                                     # Minimum width of each Gaussian function
     width_max=1.0/3.0                               # Maximum width of each Gaussian function
@@ -143,7 +145,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level)
+    return (is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML)
 
 def MLL(iseed,l,verbose_level):
     # open log file to write intermediate information
@@ -161,7 +163,7 @@ def MLL(iseed,l,verbose_level):
         # Step 2.A) Calculate error_metric
             if ML=='kNN': error_metric_result=kNN(X,y,iseed,l,w,f_out,None,None,1)
             if ML=='GBR': error_metric_result=GBR(X,y,iseed,l,w,f_out)
-            if ML=='GPR': error_metric_result=GPR(X,y,iseed,l,w,f_out)
+            if ML=='GPR': error_metric_result=GPR(X,y,iseed,l,w,f_out,None,None,1)
             if ML=='KRR':
                 hyperparams=KRR_gamma
                 if optimize_gamma == False:
@@ -428,6 +430,9 @@ def check_input_values():
         sys.exit()
     if verbose_level not in allowed_verbosity_level:
         print ('INPUT ERROR: verbosity_level needs to be in',allowed_verbosity_level, ', but is:', verbosity_level)
+    if t2_ML not in allowed_t2_ML:
+        print ('INPUT ERROR: ML needs to be in',allowed_t2_ML, ', but is:', t2_ML)
+        sys.exit()
         sys.exit()
     print("\n",flush=True)
     print('### START PRINT INPUT ###',flush=True)
@@ -468,6 +473,8 @@ def check_input_values():
     print('test_last_percentage:',test_last_percentage,flush=True)
 
     print('t2_time:',t2_time,flush=True)
+    print('t2_ML:',t2_ML,flush=True)
+    print('allowed_t2_ML:',allowed_t2_ML,flush=True)
 
     if ML=='kNN':
         print('n_neighbor:',n_neighbor,flush=True)
@@ -821,7 +828,8 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             # predict ML for x_bubble and y_bubble
             path_x,path_G = create_X_and_y(f_out,path_x,path_G)
             x_bubble,y_bubble = create_X_and_y(f_out,x_bubble,y_bubble)
-            min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
+            if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
+            if t2_ML=='GPR': min_point=GPR(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
             # select x_bubble corresponding to min(y_bubble)
             if verbose_level>=1: f_out.write("At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
             # prepare for next timestep
@@ -1080,39 +1088,109 @@ def GBR(X,y,iseed,l,w,f_out):
 
 
 # CALCULATE GPR #
-def GPR(X,y,iseed,l,w,f_out):
+def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
     iseed=iseed+1
-    if verbose_level>=1: f_out.write('## Start: "GPR" function \n')
-    if verbose_level>=1: f_out.write('-------- \n')
-    if verbose_level>=1: f_out.write('Perform GPR\n')
-    if verbose_level>=1: f_out.write('Cross_validation %i - fold\n' % (k_fold))
-    if verbose_level>=1: f_out.write('Initial A_RBF %f: \n' % (A_RBF))
-    if verbose_level>=1: f_out.write('Initial kernel_length_scale: %f: \n' % (kernel_length_scale))
-    if verbose_level>=1: f_out.write('Initial kernel_noise_level: %f: \n' % (kernel_noise_level))
-    if verbose_level>=1: f_out.write('-------- \n')
-    if verbose_level>=1: f_out.flush()
-    average_r=0.0
-    average_r_pearson=0.0
-    average_rmse=0.0
-    if CV=='kf':
-        kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
-        validation=kf.split(X)
-    if CV=='loo':
-        loo = LeaveOneOut()
-        validation=loo.split(X)
-    if CV=='kf' or CV=='loo':
-        real_y=[]
-        predicted_y=[]
-        counter=0
-        for train_index, test_index in validation:
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
+    # Calculate error metric
+    if mode==1:
+        if verbose_level>=1: f_out.write('## Start: "GPR" function \n')
+        if verbose_level>=1: f_out.write('-------- \n')
+        if verbose_level>=1: f_out.write('Perform GPR\n')
+        if verbose_level>=1: f_out.write('Cross_validation %i - fold\n' % (k_fold))
+        if verbose_level>=1: f_out.write('Initial A_RBF %f: \n' % (A_RBF))
+        if verbose_level>=1: f_out.write('Initial kernel_length_scale: %f: \n' % (kernel_length_scale))
+        if verbose_level>=1: f_out.write('Initial kernel_noise_level: %f: \n' % (kernel_noise_level))
+        if verbose_level>=1: f_out.write('-------- \n')
+        if verbose_level>=1: f_out.flush()
+        average_r=0.0
+        average_r_pearson=0.0
+        average_rmse=0.0
+        if CV=='kf':
+            kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+            validation=kf.split(X)
+        if CV=='loo':
+            loo = LeaveOneOut()
+            validation=loo.split(X)
+        if CV=='kf' or CV=='loo':
+            real_y=[]
+            predicted_y=[]
+            counter=0
+            for train_index, test_index in validation:
+                X_train, X_test = X[train_index], X[test_index]
+                y_train, y_test = y[train_index], y[test_index]
+                scaler = preprocessing.StandardScaler().fit(X_train)
+                X_train_scaled = scaler.transform(X_train)
+                X_test_scaled = scaler.transform(X_test)
+                kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
+                GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
+                #y_pred = GPR.fit(X_train, y_train).predict(X_test)
+                y_pred = GPR.fit(X_train_scaled, y_train).predict(X_test_scaled)
+                if verbose_level>=2: f_out.write('TEST X_train: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(X_train)))
+                if verbose_level>=2: f_out.write('TEST y_train: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(y_train)))
+                if verbose_level>=2: f_out.write('TEST X_test: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(X_test)))
+                if verbose_level>=2: f_out.write('TEST y_test: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(y_test)))
+                if verbose_level>=2: f_out.write('Converged kernel hyperparameters: %s \n' % (str(GPR.kernel_)))
+                if verbose_level>=2: f_out.write('Converged alpha: %s \n' % (str(GPR.alpha_)))
+                if verbose_level>=2: f_out.write('Parameters GPR: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(GPR.get_params(deep=True))))
+                if verbose_level>=2: f_out.write('Parameters GPR kernel: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(GPR.kernel_.get_params(deep=True))))
+                if verbose_level>=2: f_out.write('GPR X_train: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(GPR.X_train_)))
+                if verbose_level>=2: f_out.write('GPR y_train: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(GPR.y_train_)))
+                if verbose_level>=2: f_out.write('TEST X_train_scaled: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(X_train_scaled)))
+                if verbose_level>=2: f_out.write('TEST X_test_scaled: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(X_test_scaled)))
+                if verbose_level>=2: f_out.write('TEST y_test: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(y_test)))
+                if verbose_level>=2: f_out.write('TEST y_pred: \n')
+                if verbose_level>=2: f_out.write('%s \n' % (str(y_pred)))
+                if verbose_level>=1: f_out.flush()
+    
+                for i in range(len(y_test)):
+                    #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
+                    real_y.append(y_test[i])
+                for i in range(len(y_pred)):
+                    #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
+                    predicted_y.append(y_pred[i])
+                if CV=='kf':
+                    r_pearson,_=pearsonr(y_test,y_pred)
+                    mse = mean_squared_error(y_test, y_pred)
+                    rmse = np.sqrt(mse)
+                    if verbose_level>=2: f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
+                    if verbose_level>=2: f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
+                    counter=counter+1
+                    average_r_pearson=average_r_pearson+r_pearson
+                    average_rmse=average_rmse+rmse
+                if CV=='kf':
+                    r_pearson,_=pearsonr(y_test,y_pred)
+                    mse = mean_squared_error(y_test, y_pred)
+                    rmse = np.sqrt(mse)
+                    if verbose_level>=2: f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
+                    if verbose_level>=2: f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
+                    counter=counter+1
+                    average_r_pearson=average_r_pearson+r_pearson
+                    average_rmse=average_rmse+rmse
+            if CV=='kf':
+                average_r_pearson=average_r_pearson/k_fold
+                average_rmse=average_rmse/k_fold
+                if verbose_level>=2: f_out.write('k-fold average r_pearson score: %f \n' % (average_r_pearson))
+                if verbose_level>=2: f_out.write('k-fold average rmse score: %f \n' % (average_rmse))
+            total_r_pearson,_ = pearsonr(real_y,predicted_y)
+            total_mse = mean_squared_error(real_y, predicted_y)
+            total_rmse = np.sqrt(total_mse)
+        elif CV=='sort':
+            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
+            kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
+            GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
             scaler = preprocessing.StandardScaler().fit(X_train)
             X_train_scaled = scaler.transform(X_train)
             X_test_scaled = scaler.transform(X_test)
-            kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
-            GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
-            #y_pred = GPR.fit(X_train, y_train).predict(X_test)
             y_pred = GPR.fit(X_train_scaled, y_train).predict(X_test_scaled)
             if verbose_level>=2: f_out.write('TEST X_train: \n')
             if verbose_level>=2: f_out.write('%s \n' % (str(X_train)))
@@ -1141,87 +1219,87 @@ def GPR(X,y,iseed,l,w,f_out):
             if verbose_level>=2: f_out.write('TEST y_pred: \n')
             if verbose_level>=2: f_out.write('%s \n' % (str(y_pred)))
             if verbose_level>=1: f_out.flush()
+    
+            total_r_pearson,_=pearsonr(y_test,y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+            total_rmse = np.sqrt(mse)
+            if  verbose_level>=1: f_out.write("Train with first %i points \n" % (len(X_train)))
+            if  verbose_level>=1: f_out.write("%s \n" % (str(X_train)))
+            if  verbose_level>=1: f_out.write("Test with last %i points \n" % (len(X_test)))
+            if  verbose_level>=1: f_out.write("%s \n" % (str(X_test)))
+            if verbose_level>=1: f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
+        if verbose_level>=1: f_out.write('Final r_pearson score: %f \n' % (total_r_pearson))
+        if verbose_level>=1: f_out.write('Final rmse score: %f \n' % (total_rmse))
+        if verbose_level>=1: f_out.flush()
+        if error_metric=='rmse': result=total_rmse
+    if mode==2:
+        if verbose_level>=1: f_out.write('## Start: "GPR" function \n')
+        if verbose_level>=1: f_out.write('-------- \n')
+        if verbose_level>=1: f_out.write('Perform GPR\n')
+        if verbose_level>=1: f_out.write('Initial A_RBF %f: \n' % (A_RBF))
+        if verbose_level>=1: f_out.write('Initial kernel_length_scale: %f: \n' % (kernel_length_scale))
+        if verbose_level>=1: f_out.write('Initial kernel_noise_level: %f: \n' % (kernel_noise_level))
+        if verbose_level>=1: f_out.write('-------- \n')
+        if verbose_level>=1: f_out.flush()
 
-            for i in range(len(y_test)):
-                #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
-                real_y.append(y_test[i])
-            for i in range(len(y_pred)):
-                #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
-                predicted_y.append(y_pred[i])
-            if CV=='kf':
-                r_pearson,_=pearsonr(y_test,y_pred)
-                mse = mean_squared_error(y_test, y_pred)
-                rmse = np.sqrt(mse)
-                if verbose_level>=2: f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
-                if verbose_level>=2: f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
-                counter=counter+1
-                average_r_pearson=average_r_pearson+r_pearson
-                average_rmse=average_rmse+rmse
-            if CV=='kf':
-                r_pearson,_=pearsonr(y_test,y_pred)
-                mse = mean_squared_error(y_test, y_pred)
-                rmse = np.sqrt(mse)
-                if verbose_level>=2: f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
-                if verbose_level>=2: f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
-                counter=counter+1
-                average_r_pearson=average_r_pearson+r_pearson
-                average_rmse=average_rmse+rmse
-        if CV=='kf':
-            average_r_pearson=average_r_pearson/k_fold
-            average_rmse=average_rmse/k_fold
-            if verbose_level>=2: f_out.write('k-fold average r_pearson score: %f \n' % (average_r_pearson))
-            if verbose_level>=2: f_out.write('k-fold average rmse score: %f \n' % (average_rmse))
-        total_r_pearson,_ = pearsonr(real_y,predicted_y)
-        total_mse = mean_squared_error(real_y, predicted_y)
-        total_rmse = np.sqrt(total_mse)
-    elif CV=='sort':
-        X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
-        kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
-        GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
+        X_train, X_test = Xtr, X
+        y_train, y_test = ytr, y
+        real_y=[]
+        predicted_y=[]
+        result = []
+        if verbose_level>=1: f_out.write("X_train: %s\n" %(str(X_train)))
+        if verbose_level>=1: f_out.write("y_train: %s\n" %(str(y_train)))
+        if verbose_level>=1: f_out.write("X_test: %s\n" %(str(X_test)))
+        if verbose_level>=1: f_out.write("y_test: %s\n" %(str(y_test)))
+
         scaler = preprocessing.StandardScaler().fit(X_train)
         X_train_scaled = scaler.transform(X_train)
         X_test_scaled = scaler.transform(X_test)
-        y_pred = GPR.fit(X_train_scaled, y_train).predict(X_test_scaled)
-        if verbose_level>=2: f_out.write('TEST X_train: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(X_train)))
-        if verbose_level>=2: f_out.write('TEST y_train: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(y_train)))
-        if verbose_level>=2: f_out.write('TEST X_test: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(X_test)))
-        if verbose_level>=2: f_out.write('TEST y_test: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(y_test)))
-        if verbose_level>=2: f_out.write('Converged kernel hyperparameters: %s \n' % (str(GPR.kernel_)))
-        if verbose_level>=2: f_out.write('Converged alpha: %s \n' % (str(GPR.alpha_)))
-        if verbose_level>=2: f_out.write('Parameters GPR: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(GPR.get_params(deep=True))))
-        if verbose_level>=2: f_out.write('Parameters GPR kernel: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(GPR.kernel_.get_params(deep=True))))
-        if verbose_level>=2: f_out.write('GPR X_train: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(GPR.X_train_)))
-        if verbose_level>=2: f_out.write('GPR y_train: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(GPR.y_train_)))
-        if verbose_level>=2: f_out.write('TEST X_train_scaled: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(X_train_scaled)))
-        if verbose_level>=2: f_out.write('TEST X_test_scaled: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(X_test_scaled)))
-        if verbose_level>=2: f_out.write('TEST y_test: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(y_test)))
-        if verbose_level>=2: f_out.write('TEST y_pred: \n')
-        if verbose_level>=2: f_out.write('%s \n' % (str(y_pred)))
+        kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
+        GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
+        GPR.fit(X_train_scaled,y_train)
+        y_pred = GPR.predict(X_test_scaled)
+        if verbose_level>=1: f_out.write('TEST X_train: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(X_train)))
+        if verbose_level>=1: f_out.write('TEST y_train: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(y_train)))
+        if verbose_level>=1: f_out.write('TEST X_test: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(X_test)))
+        if verbose_level>=1: f_out.write('TEST y_test: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(y_test)))
+        if verbose_level>=1: f_out.write('Converged kernel hyperparameters: %s \n' % (str(GPR.kernel_)))
+        if verbose_level>=1: f_out.write('Converged alpha: %s \n' % (str(GPR.alpha_)))
+        if verbose_level>=1: f_out.write('Parameters GPR: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(GPR.get_params(deep=True))))
+        if verbose_level>=1: f_out.write('Parameters GPR kernel: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(GPR.kernel_.get_params(deep=True))))
+        if verbose_level>=1: f_out.write('GPR X_train: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(GPR.X_train_)))
+        if verbose_level>=1: f_out.write('GPR y_train: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(GPR.y_train_)))
+        if verbose_level>=1: f_out.write('TEST X_train_scaled: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(X_train_scaled)))
+        if verbose_level>=1: f_out.write('TEST X_test_scaled: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(X_test_scaled)))
+        if verbose_level>=1: f_out.write('TEST y_test: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(y_test)))
+        if verbose_level>=1: f_out.write('TEST y_pred: \n')
+        if verbose_level>=1: f_out.write('%s \n' % (str(y_pred)))
         if verbose_level>=1: f_out.flush()
-
-        total_r_pearson,_=pearsonr(y_test,y_pred)
-        mse = mean_squared_error(y_test, y_pred)
-        total_rmse = np.sqrt(mse)
-        if  verbose_level>=1: f_out.write("Train with first %i points \n" % (len(X_train)))
-        if  verbose_level>=1: f_out.write("%s \n" % (str(X_train)))
-        if  verbose_level>=1: f_out.write("Test with last %i points \n" % (len(X_test)))
-        if  verbose_level>=1: f_out.write("%s \n" % (str(X_test)))
-        if verbose_level>=1: f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
-    if verbose_level>=1: f_out.write('Final r_pearson score: %f \n' % (total_r_pearson))
-    if verbose_level>=1: f_out.write('Final rmse score: %f \n' % (total_rmse))
-    if verbose_level>=1: f_out.flush()
-    if error_metric=='rmse': result=total_rmse
+        for i in range(len(y_test)):
+            #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
+            real_y.append(y_test[i])
+        for i in range(len(y_pred)):
+            #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
+            predicted_y.append(y_pred[i])
+        if verbose_level>=1: f_out.write("real_y: %s\n" %(str(real_y)))
+        if verbose_level>=1: f_out.write("predicted_y: %s\n" %(str(predicted_y)))
+        min_index = predicted_y.index(min(predicted_y))
+        if verbose_level>=1: f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
+        if verbose_level>=1: f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
+        for j in range(param):
+            result.append(X_test[min_index][j])
+        result.append(min(predicted_y))
     return result
 
 # CALCULATE KRR #
@@ -1328,7 +1406,7 @@ def plot(flag,final_result_T):
 ##### END OTHER FUNCTIONS ######
 ################################################################################
 start = time()
-(is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level) = read_initial_values(input_file_name)
+(is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,steps_unbiased,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML) = read_initial_values(input_file_name)
 main(iseed)
 time_taken = time()-start
 print ('Process took %0.2f seconds' %time_taken)

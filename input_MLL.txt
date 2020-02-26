@@ -67,3 +67,5 @@ test_last_percentage=0.1                        # If CV='sort': percentage of la
 # T2 exploration parameters
 ##############################
 t2_time=10                                     # Number of time steps for the walker
+t2_ML='GPR'												  # Choose what ML algorithm is used
+allowed_t2_ML=[None,'kNN','GBR','GPR','KRR']   # possible ML algorithms
