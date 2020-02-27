@@ -189,8 +189,6 @@ def MLL(iseed,l,verbose_level):
             x_last=[]
             k_in_grid_2 = [i for i, x in enumerate(dim_list[0]) if x == X2b[np.where(y2b == np.min(y2b))][0][0]]
             k_in_grid_3 = [i for i, x in enumerate(dim_list[1]) if x == X2b[np.where(y2b == np.min(y2b))][0][1]]
-            if verbose_level>=1: f_out.write("value of k_in_grid_2 is: %s\n" %(str(k_in_grid_2)))
-            if verbose_level>=1: f_out.write("value of k_in_grid_3 is: %s\n" %(str(k_in_grid_3)))
             for i in k_in_grid_2:
                 if i in k_in_grid_3:
                     k_in_grid=i
@@ -198,6 +196,10 @@ def MLL(iseed,l,verbose_level):
             x_last.append(dim_list[0][k_in_grid])
             x_last.append(dim_list[1][k_in_grid])
             y_last=G_list[k_in_grid]
+            # Calculate ML prediction relative error and MLgain
+            error_ML = abs(( min(y2b) - y_last) / y_last)
+            MLgain_pred = abs(( min(y2b) - min(y2a))/min(y2a))
+            MLgain_real = abs(( y_last - min(y2a))/min(y2a))
             # Print t2 exploration results
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("## Initial random exploration: \n")
@@ -210,6 +212,7 @@ def MLL(iseed,l,verbose_level):
             if verbose_level>=1: f_out.write("Last value: X1: %s, y: %s\n" %(str(X1[-1]),str(y1[-1])))
             if verbose_level>=1: f_out.write("Minimum value: X1 index (unique timestep): %s\n" %(str(np.where(y1 == np.min(y1))[0][0])))
             if verbose_level>=1: f_out.write("Minimum value: X1: %s, y: %s\n" %(str(X1[np.where(y1 == np.min(y1))][0]),str(min(y1))))
+            if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("################ \n")
             if verbose_level>=1: f_out.write("## t2 standard exploration: \n")
             if verbose_level>=1: f_out.write("t2 = %i \n" %(t2_time))
@@ -228,6 +231,13 @@ def MLL(iseed,l,verbose_level):
             if verbose_level>=1: f_out.write("Minimum real value: X2b: %s, y2b: %s\n" %(str(x_last),str(y_last)))
 
             if verbose_level>=1: f_out.write("################ \n")
+            if verbose_level>=1: f_out.write("################ \n")
+            if verbose_level>=1: f_out.write("## ML benefits: \n")
+            if verbose_level>=1: f_out.write("Predicted relative MLgain: %f\n" %(MLgain_pred))
+            if verbose_level>=1: f_out.write("Real relative MLgain: %f\n" %(MLgain_real))
+            if verbose_level>=1: f_out.write("ML prediction relative error: %f\n" %(error_ML))
+            if verbose_level>=1: f_out.write("################ \n")
+
             if verbose_level>=1: f_out.flush()
             result = None
             #
@@ -1271,11 +1281,11 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         if verbose_level>=2: f_out.write('TEST y_test: \n')
         if verbose_level>=2: f_out.write('%s \n' % (str(y_test)))
         if verbose_level>=1: f_out.write('Converged kernel hyperparameters: %s \n' % (str(GPR.kernel_)))
-        if verbose_level>=1: f_out.write('Converged alpha: %s \n' % (str(GPR.alpha_)))
-        if verbose_level>=1: f_out.write('Parameters GPR: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(GPR.get_params(deep=True))))
-        if verbose_level>=1: f_out.write('Parameters GPR kernel: \n')
-        if verbose_level>=1: f_out.write('%s \n' % (str(GPR.kernel_.get_params(deep=True))))
+        if verbose_level>=2: f_out.write('Converged alpha: %s \n' % (str(GPR.alpha_)))
+        if verbose_level>=2: f_out.write('Parameters GPR: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(GPR.get_params(deep=True))))
+        if verbose_level>=2: f_out.write('Parameters GPR kernel: \n')
+        if verbose_level>=2: f_out.write('%s \n' % (str(GPR.kernel_.get_params(deep=True))))
         if verbose_level>=2: f_out.write('GPR X_train: \n')
         if verbose_level>=2: f_out.write('%s \n' % (str(GPR.X_train_)))
         if verbose_level>=2: f_out.write('GPR y_train: \n')
