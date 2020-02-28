@@ -7,9 +7,10 @@ import sys
 import dask
 import random
 import math
+import statistics
 import numpy as np
 import pandas as pd
-import statistics
+import itertools
 import matplotlib.pyplot as plt
 from time import time
 from dask import delayed
@@ -17,12 +18,12 @@ from sklearn import neighbors
 from numpy.random import choice
 from sklearn import preprocessing
 from sklearn.model_selection import KFold
-from sklearn.model_selection import LeaveOneOut
-from sklearn.model_selection import train_test_split
 from scipy.stats import pearsonr, spearmanr
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import LeaveOneOut
 from scipy.optimize import differential_evolution
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, RBF
@@ -874,67 +875,57 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                     for j in range(param):
                         neighbor_walker[j].append(0.0)
                 # Check points within threshold
-                if param==2:
-                    if verbose_level>=2: f_out.write("Check around point: %f %f %f\n" %(path_x[0][k], path_x[1][k], path_G[k]))
-                    if verbose_level>=2: f_out.write("%6s %8s %15s %11s %13s \n" % ("i","x","G","Prob","distance"))
-                    for i2 in range(-P+1,P):
-                        for i1 in range(-P+1,P):
-                            try:
-                                index0=int(round(k_in_grid-Nx*i2))
-                                index1=int(round(k_in_grid-i1))
-                                indexG=int(round(k_in_grid-Nx*i2-i1))
-                                d_ij=round((math.sqrt((path_x[0][k]-dim_list[0][index0])**2+(path_x[1][k]-dim_list[1][index1])**2)),6)
-                                if d_ij < d_threshold and d_ij > 0.0:
-                                    use_this_point=True
-                                    # need to specify that this point is different than previous points
-                                    for i in range(len(path_G)):
-                                        if dim_list[0][index0] == path_x[0][i] and dim_list[1][index1] == path_x[1][i]:
-                                            use_this_point=False
-                                    if use_this_point==True:
-                                        neighbor_walker[0][counter3]=dim_list[0][index0]
-                                        neighbor_walker[1][counter3]=dim_list[1][index1]
-                                        neighbor_G[counter3]=G_list[indexG]
-                                        prob[counter3]=1.0
-                                        prob_sum=prob_sum+prob[counter3]
-                                    for j in range(param):
-                                        x_bubble[j].append(neighbor_walker[j][counter3])
-                                    y_bubble.append(neighbor_G[counter3])
-                                if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],"",G_list[indexG],"",prob[counter3],"",d_ij))
-                            except:
-                                pass
-                            counter3=counter3+1
-                elif param==3:
-                    if verbose_level>=2: f_out.write("Check around point: %f %f %f %f\n" %(path_x[0][k], path_x[1][k], path_x[2][k], path_G[k]))
-                    if verbose_level>=2: f_out.write("%6s %11s %19s %12s %12s \n" % ("i","x","G","Prob","distance"))
-                    for i3 in range(-P+1,P):
-                        for i2 in range(-P+1,P):
-                            for i1 in range(-P+1,P):
-                                try:
-                                    index0=int(round(k_in_grid-Nx*Nx*i3))
-                                    index1=int(round(k_in_grid-Nx*i2))
-                                    index2=int(round(k_in_grid-i1))
-                                    indexG=int(round(k_in_grid-Nx*Nx*i3-Nx*i2-i1))
-                                    d_ij=round((math.sqrt((path_x[0][k]-dim_list[0][index0])**2+(path_x[1][k]-dim_list[1][index1])**2+(path_x[2][k]-dim_list[2][index2])**2)),6)
-                                    if d_ij < d_threshold and d_ij > 0.0:
-                                        use_this_point=True
-                                        # need to specify that this point is different than previous points
-                                        for i in range(len(path_G)):
-                                            if dim_list[0][index0] == path_x[0][i] and dim_list[1][index1] == path_x[1][i] and dim_list[2][index2] == path_x[2][i]:
-                                                use_this_point=False
-                                        if use_this_point==True:
-                                            neighbor_walker[0][counter3]=dim_list[0][index0]
-                                            neighbor_walker[1][counter3]=dim_list[1][index1]
-                                            neighbor_walker[2][counter3]=dim_list[2][index2]
-                                            neighbor_G[counter3]=G_list[indexG]
-                                            prob[counter3]=1.0
-                                            prob_sum=prob_sum+prob[counter3]
-                                        for j in range(param):
-                                            x_bubble[j].append(neighbor_walker[j][counter3])
-                                        y_bubble.append(neighbor_G[counter3])
-                                    if verbose_level>=2: f_out.write("%6i %6.2f %6.2f %6.2f %2s %10.6f %2s %5.1f %2s %10.6f \n" % (counter3,dim_list[0][index0],dim_list[1][index1],dim_list[2][index2],"",G_list[indexG],"",prob[counter3],"",d_ij))
-                                except:
-                                    pass
-                                counter3=counter3+1
+                ####### for any param #######
+                if verbose_level>=2:
+                    line = []
+                    for j in range(param):
+                        line.append(round(path_x[j][k],3))
+                    line.append(round(path_G[k],6))
+                    f_out.write("Check around point: %s\n" %(str(line)))
+                    f_out.write("%6s %20s %11s %13s \n" % ("i","[x, G]","Prob","distance"))
+                for index_i in itertools.product(range(-P+1,P), repeat=param):
+                    try:
+                        index=[]
+                        subs=0.0
+                        for j in range(param):
+                            index.append(k_in_grid - Nx**(param-1-j)*index_i[j])
+                            subs=subs+Nx**(param-1-j)*index_i[j]
+                            index[j]=int(index[j])
+                        index.append(k_in_grid-subs)
+                        index[param]=int(index[param])
+    
+                        dummy_dist = 0.0
+                        for j in range(param):
+                            dummy_dist = dummy_dist + (path_x[j][k]-dim_list[j][index[j]])**2
+                        d_ij = round(math.sqrt(dummy_dist),6)
+    
+                        if d_ij < d_threshold and d_ij > 0.0:
+                            use_this_point=True
+                            # need to specify that this point is different than previous points
+                            for i in range(len(path_G)):
+                                counter_false=0
+                                for j in range(param):
+                                    if dim_list[0][index[j]] == path_x[j][i]: counter_false=counter_false+1
+                                if counter_false==param: use_this_point=False
+                            if use_this_point==True:
+                                for j in range(param):
+                                    neighbor_walker[j][counter3]=dim_list[j][index[j]]
+                                neighbor_G[counter3]=G_list[index[param]]
+                                prob[counter3]=1.0
+                                prob_sum=prob_sum+prob[counter3]
+                            for j in range(param):
+                                x_bubble[j].append(neighbor_walker[j][counter3])
+                            y_bubble.append(neighbor_G[counter3])
+                        if verbose_level>=2:
+                            line = []
+                            for j in range(param):
+                                line.append(round(dim_list[j][index[j]],3))
+                            line.append(round(G_list[index[param]],6))
+                            f_out.write("%6i %s %2s %5.1f %2s %10.6f \n" % (counter3,line,"",prob[counter3],"",d_ij))
+                    except:
+                        pass
+                    counter3=counter3+1
+                #############################
             if verbose_level>=2:
                 for j in range(param):
                     f_out.write("x_bubble[%i]: %s\n" %(j,str(x_bubble[j])))
