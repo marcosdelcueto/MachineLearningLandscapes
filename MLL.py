@@ -36,32 +36,38 @@ input_file_name = 'input_MLL.txt'      # name of input file
 #################################################################################
 ###### START MAIN ######
 def main(iseed):
+    # Check that input values are OK
     check_input_values()
+    # Initialize results array
     results=[]
+    # Calculate results for each landscape (may use dask to run each landscape in a CPU in parallel)
     if is_dask==True:
         for l in range(Nspf):
             iseed=iseed+l
             provi_result=delayed(MLL)(iseed,l,verbose_level)
             results.append(provi_result)
         results_per_Nspf=dask.compute(results,scheduler='processes',num_workers=NCPU)
-        results_per_walker=[list(i) for i in zip(*results_per_Nspf[0])] # transpose
+        results_per_Nspf=results_per_Nspf[0]
     elif is_dask==False:
         for l in range(Nspf):
             iseed=iseed+l
             provi_result=MLL(iseed,l,verbose_level)
             results.append(provi_result)
         results_per_Nspf=results
-        results_per_walker=[list(i) for i in zip(*results_per_Nspf)] # transpose
-
+    # Transpose results_per_Nspf, to get results per walker
+    results_per_walker=[list(i) for i in zip(*results_per_Nspf)]
+    # Print final results
     print('--- Final results:',flush=True)
+    # results if we want error metric after t1
     if error_metric == 'rmse':
         for i in range(Nwalkers):
             print('-- Adventurousness: %6.1f' %(adven[i]),flush=True)
             print('- RMSE:',results_per_walker[i][:],flush=True)
             print('- Mean: %f' %(statistics.mean(results_per_walker[i])),flush=True)
+    # results if we want to calculate MLgain after t2
     else:
         for i in range(Nspf):
-            print('-- Result for landscape %i: %s' %(i,str(results_per_Nspf[0][i])),flush=True)
+            print('-- Result for landscape %i: %s' %(i,str(results_per_Nspf[i])),flush=True)
         print("")
         for i in range(Nwalkers):
             print('-- Adventurousness: %6.1f' %(adven[i]),flush=True)
@@ -383,76 +389,95 @@ def check_input_values():
         print ('INPUT ERROR: ML needs to be in',allowed_t2_ML, ', but is:', t2_ML)
         sys.exit()
         sys.exit()
+    print('')
+    print('')
+    print('')
+    print('')
+    print('')
+    print('')
     print("\n",flush=True)
-    print('### START PRINT INPUT ###',flush=True)
-    print('# Parallel computing #',flush=True)
-    print('is_dask:',is_dask,flush=True)
+    print('##### START PRINT INPUT  #####',flush=True)
+    print('##############################')
+    print('# General Landscape parameters')
+    print('##############################')
+    print('### Parallel computing ###',flush=True)
+    print('is_dask =',is_dask,flush=True)
     print('NCPU',NCPU,flush=True)
-    print('# Verbose #',flush=True)
-    print('verbose_level:',verbose_level,flush=True)
-    print('allowed_verbosity_level:',allowed_verbosity_level,flush=True)
+    print('### Verbose ###',flush=True)
+    print('verbose_level =',verbose_level,flush=True)
+    print('allowed_verbosity_level =',allowed_verbosity_level,flush=True)
     print('log_name',log_name,flush=True)
-    print('# Landscape parameters #',flush=True)
-    print('Nspf:',Nspf,flush=True)
-    print('S:',S,flush=True)
-    print('iseed:',iseed,flush=True)
-    print('param:',param,flush=True)
-    print('center_min:',center_min,flush=True)
-    print('center_max:',center_max,flush=True)
-    print('Grid parameters',flush=True)
-    print('grid_min:',grid_min,flush=True)
-    print('grid_max:',grid_max,flush=True)
-    print('grid_Delta:',grid_Delta,flush=True)
-    print('# Exploration parameters #',flush=True)
-    print('Nwalkers:',Nwalkers,flush=True)
-    print('adven:',adven,flush=True)
-    print('t1_time:',t1_time,flush=True)
-    print('d_threshold:',d_threshold,flush=True)
-    print('t0_time:',t0_time,flush=True)
-    print('initial_sampling:',initial_sampling,flush=True)
-    print('allowed_initial_sampling:',allowed_initial_sampling,flush=True)
-    print('# ML algorithm #',flush=True)
-    print('allowed_ML:',allowed_ML,flush=True)
-    print('allowed_error_metric:',allowed_error_metric,flush=True)
-    print('allowed_CV:',allowed_CV,flush=True)
-    print('ML:',ML,flush=True)
-    print('error_metric:',error_metric,flush=True)
-    print('CV:',CV,flush=True)
-    print('k_fold:',k_fold,flush=True)
-    print('test_last_percentage:',test_last_percentage,flush=True)
-
-    print('t2_time:',t2_time,flush=True)
-    print('t2_ML:',t2_ML,flush=True)
-    print('allowed_t2_ML:',allowed_t2_ML,flush=True)
-
-    if ML=='kNN':
-        print('n_neighbor:',n_neighbor,flush=True)
-        print('weights:',weights,flush=True)
-    if ML=='GBR':
-        print('GBR_criterion:',GBR_criterion,flush=True)
-        print('GBR_n_estimators:',GBR_n_estimators,flush=True)
-        print('GBR_learning_rate:',GBR_learning_rate,flush=True)
-        print('GBR_max_depth:',GBR_max_depth,flush=True)
-        print('GBR_min_samples_split:',GBR_min_samples_split,flush=True)
-        print('GBR_min_samples_leaf:',GBR_min_samples_leaf,flush=True)
-    if ML=='GPR':
-        print('A_RBF:',A_RBF,flush=True)
-        print('A_noise:',A_noise,flush=True)
-        print('GPR_alpha:',GPR_alpha,flush=True)
-        print('kernel_length_scale:',kernel_length_scale,flush=True)
-        print('kernel_noise_level:',kernel_noise_level,flush=True)
-    if ML=='KRR':
-        print('KRR_alpha:',KRR_alpha,flush=True)
-        print('KRR_kernel:',KRR_kernel,flush=True)
-        print('KRR_gamma:',KRR_gamma,flush=True)
-        print('optimize_gamma:',optimize_gamma,flush=True)
-        print('KRR_gamma_lim:',KRR_gamma_lim,flush=True)
-    print('Calculated width_min:',width_min,flush=True)
-    print('Calculated width_max:',width_max,flush=True)
-    print('Calculated Amplitude_min:',Amplitude_min,flush=True)
-    print('Calculated Amplitude_max:',Amplitude_max,flush=True)
-    print('Calculated N:',N,flush=True)
-    print('#### END PRINT INPUT ####',flush=True)
+    print('### Landscape parameters ###',flush=True)
+    print('Nspf =',Nspf,flush=True)
+    print('S =',S,flush=True)
+    print('iseed =',iseed,flush=True)
+    print('param =',param,flush=True)
+    print('center_min =',center_min,flush=True)
+    print('center_max =',center_max,flush=True)
+    print('### Grid parameters ###',flush=True)
+    print('grid_min =',grid_min,flush=True)
+    print('grid_max =',grid_max,flush=True)
+    print('grid_Delta =',grid_Delta,flush=True)
+    print('##############################')
+    print('# T1 exploration parameters')
+    print('##############################')
+    print('Nwalkers =',Nwalkers,flush=True)
+    print('adven =',adven,flush=True)
+    print('t0_time =',t0_time,flush=True)
+    print('t1_time =',t1_time,flush=True)
+    print('d_threshold =',d_threshold,flush=True)
+    print('initial_sampling =',initial_sampling,flush=True)
+    print('allowed_initial_sampling =',allowed_initial_sampling,flush=True)
+    print('##############################')
+    print('# T2 exploration parameters')
+    print('##############################')
+    print('t2_time =',t2_time,flush=True)
+    print('t2_ML =',t2_ML,flush=True)
+    print('allowed_t2_ML =',allowed_t2_ML,flush=True)
+    print('##############################')
+    print('# Error metric parameters')
+    print('##############################')
+    print('error_metric =',error_metric,flush=True)
+    print('allowed_error_metric =',allowed_error_metric,flush=True)
+    print('ML =',ML,flush=True)
+    print('allowed_ML =',allowed_ML,flush=True)
+    print('CV =',CV,flush=True)
+    print('allowed_CV =',allowed_CV,flush=True)
+    print('k_fold =',k_fold,flush=True)
+    print('test_last_percentage =',test_last_percentage,flush=True)
+    if ML= ='kNN':
+        print('### kNN parameters ###')
+        print('n_neighbor =',n_neighbor,flush=True)
+        print('weights =',weights,flush=True)
+    if ML= ='GBR':
+        print('### GBR parameters ###')
+        print('GBR_criterion =',GBR_criterion,flush=True)
+        print('GBR_n_estimators =',GBR_n_estimators,flush=True)
+        print('GBR_learning_rate =',GBR_learning_rate,flush=True)
+        print('GBR_max_depth =',GBR_max_depth,flush=True)
+        print('GBR_min_samples_split =',GBR_min_samples_split,flush=True)
+        print('GBR_min_samples_leaf =',GBR_min_samples_leaf,flush=True)
+    if ML= ='GPR':
+        print('### GPR parameters ###')
+        print('A_RBF =',A_RBF,flush=True)
+        print('A_noise =',A_noise,flush=True)
+        print('GPR_alpha =',GPR_alpha,flush=True)
+        print('kernel_length_scale =',kernel_length_scale,flush=True)
+        print('kernel_noise_level =',kernel_noise_level,flush=True)
+    if ML= ='KRR':
+        print('### KRR parameters ###')
+        print('KRR_alpha =',KRR_alpha,flush=True)
+        print('KRR_kernel =',KRR_kernel,flush=True)
+        print('KRR_gamma =',KRR_gamma,flush=True)
+        print('optimize_gamma =',optimize_gamma,flush=True)
+        print('KRR_gamma_lim =',KRR_gamma_lim,flush=True)
+    print('### Calculated parameters ###')
+    print('width_min =',width_min,flush=True)
+    print('width_max =',width_max,flush=True)
+    print('Amplitude_min =',Amplitude_min,flush=True)
+    print('Amplitude_max =',Amplitude_max,flush=True)
+    print('N =',N,flush=True)
+    print('#####   END PRINT INPUT  #####',flush=True)
     print("\n",flush=True)
 
 def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_explore):
@@ -657,7 +682,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
         # calculate final X and y
         X,y = create_X_and_y(f_out,x_param,y)
     ### Perform t2 ML exploration
-    else == True:
+    else:
         for t in range(t_ini,t_fin):
             # initialize values
             x_bubble=[[] for j in range(param)]
