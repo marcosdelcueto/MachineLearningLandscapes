@@ -198,15 +198,6 @@ def MLL(iseed,l,verbose_level):
             X2b,y2b,unique_t2b = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,True)
             # select coordinates where minimum is predicted with ML
             x_real=[]
-            ## hard coded for 3D ##
-            #k_in_grid_2 = [i for i, x in enumerate(dim_list[0]) if x == X2b[np.where(y2b == np.min(y2b))][0][0]]
-            #k_in_grid_3 = [i for i, x in enumerate(dim_list[1]) if x == X2b[np.where(y2b == np.min(y2b))][0][1]]
-            #k_in_grid_4 = [i for i, x in enumerate(dim_list[2]) if x == X2b[np.where(y2b == np.min(y2b))][0][2]]
-            #for i in k_in_grid_2:
-                #if i in k_in_grid_3 and i in k_in_grid_4:
-                    ##k_in_grid=i
-                    #if verbose_level>=1: f_out.write("former new value of k_in_grid is: %s\n" %(str(i)))
-                    #if verbose_level>=1: f_out.flush()
             ########################
             ##   For any param   ##
             new_k_in_grid=[[] for j in range(param)]
@@ -287,7 +278,6 @@ def generate_grid(iseed,l,f_out):
     Amplitude      = []
     center_N       = [[] for i in range(N)]
     width_N        = [[] for i in range(N)]
-    x_list         = []
     dim_list       = [[] for i in range(param)]
     G_list         = []
     if verbose_level>=1: f_out.write('## Start: "generate_grid" function \n')
@@ -312,148 +302,41 @@ def generate_grid(iseed,l,f_out):
             iseed=iseed+1
             random.seed(iseed)
             width_N[i].append(random.uniform(width_min,width_max))
-    if param==1:
-        if verbose_level>=2: f_out.write("%4s %14s %11s %13s \n" % ("N","Amplitude","Center","Width"))
+    # For any param
+    if verbose_level>=2:
+        f_out.write("%4s %14s %22s %34s \n" % ("N","Amplitude","Center","Width"))
         for i in range(len(Amplitude)):
-            if verbose_level>=2: f_out.write("%4i %2s %10.6f %2s %10.6f %2s %10.6f \n" % (i, "", Amplitude[i],"",center_N[i][0],"",width_N[i][0]))
-    elif param==2:
-        if verbose_level>=2: f_out.write("%4s %14s %22s %35s \n" % ("N","Amplitude","Center","Width"))
-        for i in range(len(Amplitude)):
-            if verbose_level>=2: f_out.write("%4i %2s %10.6f %2s %10.6f %10.6f %2s %10.6f %10.6f \n" % (i, "", Amplitude[i],"",center_N[i][0],center_N[i][1],"",width_N[i][0],width_N[i][1]))
-    elif param==3:
-        if verbose_level>=2: f_out.write("%4s %14s %22s %34s \n" % ("N","Amplitude","Center","Width"))
-        for i in range(len(Amplitude)):
-            if verbose_level>=2: f_out.write("%4i %2s %10.6f %2s %10.6f %10.6f %10.6f %2s %10.6f %10.6f %10.6f \n" % (i, "", Amplitude[i],"",center_N[i][0],center_N[i][1],center_N[i][2],"",width_N[i][0],width_N[i][1],width_N[i][2]))
-    elif param==4:
-        if verbose_level>=2: f_out.write("%4s %14s %28s %45s \n" % ("N","Amplitude","Center","Width"))
-        for i in range(len(Amplitude)):
-            if verbose_level>=2: f_out.write("%4i %2s %10.6f %2s %10.6f %10.6f %10.6f %10.6f %2s %10.6f %10.6f %10.6f %10.6f \n" % (i, "", Amplitude[i],"",center_N[i][0],center_N[i][1],center_N[i][2],center_N[i][3],"",width_N[i][0],width_N[i][1],width_N[i][2],width_N[i][3]))
-    elif param==5:
-        if verbose_level>=2: f_out.write("%4s %14s %33s %57s \n" % ("N","Amplitude","Center","Width"))
-        for i in range(len(Amplitude)):
-            if verbose_level>=2: f_out.write("%4i %2s %10.6f %2s %10.6f %10.6f %10.6f %10.6f %10.6f %2s %10.6f %10.6f %10.6f %10.6f %10.6f \n" % (i, "", Amplitude[i],"",center_N[i][0],center_N[i][1],center_N[i][2],center_N[i][3],center_N[i][4],"",width_N[i][0],width_N[i][1],width_N[i][2],width_N[i][3],width_N[i][4]))
-    if verbose_level>=2: f_out.flush()
+            line1 = []
+            line2 = []
+            for j in range(param):
+                line1.append((center_N[i][j]))
+                line2.append((width_N[i][j]))
+            f_out.write("%4i %2s %10.6f %2s %s %2s %s \n" % (i, "", Amplitude[i],"",str(line1),"",str(line2)))
+        f_out.flush()
 
     # CALCULATE G GRID #
+    # For any param
     counter=0
-    for j in range(param):
-        x_list.append(grid_min)
-    if param==1:
-        if verbose_level>=2: f_out.write("%8s %8s %11s \n" % ("i","x","G"))
-        x_list[0]=grid_min
-        while x_list[0] < grid_max+grid_Delta/2.0:
-            G=0.0
-            dim_list[0].append(round(x_list[0],6))
-            for i in range(N):
-                gauss=0.0
-                for dim in range(param):
-                    gauss=gauss+((dim_list[dim][counter]-center_N[i][dim])**2/(2.0*width_N[i][dim]**2))
-                G = G + Amplitude[i] * math.exp(-gauss)
-            G_list.append(G)
-            if verbose_level>=2: f_out.write("%8i %2s %6.2f %2s %10.6f \n" % (counter,"",dim_list[0][counter],"",G_list[counter]))
-            counter=counter+1
-            x_list[0]=x_list[0]+grid_Delta
-    elif param==2:
-        if verbose_level>=2: f_out.write("%8s %11s %15s \n" % ("i","x","G"))
-        x_list[0]=grid_min
-        while x_list[0] < grid_max+grid_Delta/2.0:
-            x_list[1]=grid_min
-            while x_list[1] < grid_max+grid_Delta/2.0:
-                G=0.0
-                dim_list[0].append(round(x_list[0],6))
-                dim_list[1].append(round(x_list[1],6))
-                for i in range(N):
-                    gauss=0.0
-                    for dim in range(param):
-                        gauss=gauss+((dim_list[dim][counter]-center_N[i][dim])**2/(2.0*width_N[i][dim]**2))
-                    G = G + Amplitude[i] * math.exp(-gauss)
-                G_list.append(G)
-                if verbose_level>=2: f_out.write("%8i %2s %6.2f %6.2f %2s %10.6f \n" % (counter,"",dim_list[0][counter],dim_list[1][counter],"",G_list[counter]))
-                x_list[1]=x_list[1]+grid_Delta
-                counter=counter+1
-            x_list[0]=x_list[0]+grid_Delta
-    elif param==3:
-        if verbose_level>=2: f_out.write("%8s %14s %19s \n" % ("i","x","G"))
-        x_list[0]=grid_min
-        while x_list[0] < grid_max+grid_Delta/2.0:
-            x_list[1]=grid_min
-            while x_list[1] < grid_max+grid_Delta/2.0:
-                x_list[2]=grid_min
-                while x_list[2] < grid_max+grid_Delta/2.0:
-                    G=0.0
-                    dim_list[0].append(round(x_list[0],6))
-                    dim_list[1].append(round(x_list[1],6))
-                    dim_list[2].append(round(x_list[2],6))
-                    for i in range(N):
-                        gauss=0.0
-                        for dim in range(param):
-                            gauss=gauss+((dim_list[dim][counter]-center_N[i][dim])**2/(2.0*width_N[i][dim]**2))
-                        G = G + Amplitude[i] * math.exp(-gauss)
-                    G_list.append(G)
-                    if verbose_level>=2: f_out.write("%8i %2s %6.2f %6.2f %6.2f %2s %10.6f \n" % (counter,"",dim_list[0][counter],dim_list[1][counter],dim_list[2][counter],"",G_list[counter]))
-                    x_list[2]=x_list[2]+grid_Delta
-                    counter=counter+1
-                x_list[1]=x_list[1]+grid_Delta
-            x_list[0]=x_list[0]+grid_Delta
-    elif param==4:
-        if verbose_level>=2: f_out.write("%8s %18s %22s \n" % ("i","x","G"))
-        x_list[0]=grid_min
-        while x_list[0] <= grid_max+grid_Delta/2.0:
-            x_list[1]=grid_min
-            while x_list[1] <= grid_max+grid_Delta/2.0:
-                x_list[2]=grid_min
-                while x_list[2] <= grid_max+grid_Delta/2.0:
-                    x_list[3]=grid_min
-                    while x_list[3] <= grid_max+grid_Delta/2.0:
-                        G=0.0
-                        dim_list[0].append(round(x_list[0],6))
-                        dim_list[1].append(round(x_list[1],6))
-                        dim_list[2].append(round(x_list[2],6))
-                        dim_list[3].append(round(x_list[3],6))
-                        for i in range(N):
-                            gauss=0.0
-                            for dim in range(param):
-                                gauss=gauss+((dim_list[dim][counter]-center_N[i][dim])**2/(2.0*width_N[i][dim]**2))
-                            G = G + Amplitude[i] * math.exp(-gauss)
-                        G_list.append(G)
-                        if verbose_level>=2: f_out.write("%8i %2s %6.2f %6.2f %6.2f %6.2f %2s %10.6f \n" % (counter,"",dim_list[0][counter],dim_list[1][counter],dim_list[2][counter],dim_list[3][counter],"",G_list[counter]))
-                        x_list[3]=x_list[3]+grid_Delta
-                        counter=counter+1
-                    x_list[2]=x_list[2]+grid_Delta
-                x_list[1]=x_list[1]+grid_Delta
-            x_list[0]=x_list[0]+grid_Delta
-    elif param==5:
-        if verbose_level>=2: f_out.write("%8s %22s %25s \n" % ("i","x","G"))
-        x_list[0]=grid_min
-        while x_list[0] <= grid_max+grid_Delta/2.0:
-            x_list[1]=grid_min
-            while x_list[1] <= grid_max+grid_Delta/2.0:
-                x_list[2]=grid_min
-                while x_list[2] <= grid_max+grid_Delta/2.0:
-                    x_list[3]=grid_min
-                    while x_list[3] <= grid_max+grid_Delta/2.0:
-                        x_list[4]=grid_min
-                        while x_list[4] <= grid_max+grid_Delta/2.0:
-                            G=0.0
-                            dim_list[0].append(round(x_list[0],6))
-                            dim_list[1].append(round(x_list[1],6))
-                            dim_list[2].append(round(x_list[2],6))
-                            dim_list[3].append(round(x_list[3],6))
-                            dim_list[4].append(round(x_list[4],6))
-                            for i in range(N):
-                                gauss=0.0
-                                for dim in range(param):
-                                    gauss=gauss+((dim_list[dim][counter]-center_N[i][dim])**2/(2.0*width_N[i][dim]**2))
-                                G = G + Amplitude[i] * math.exp(-gauss)
-                            G_list.append(G)
-                            if verbose_level>=2: f_out.write("%8i %2s %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f \n" % (counter,"",dim_list[0][counter],dim_list[1][counter],dim_list[2][counter],dim_list[3][counter],dim_list[4][counter],"",G_list[counter]))
-                            x_list[4]=x_list[4]+grid_Delta
-                            counter=counter+1
-                        x_list[3]=x_list[3]+grid_Delta
-                    x_list[2]=x_list[2]+grid_Delta
-                x_list[1]=x_list[1]+grid_Delta
-            x_list[0]=x_list[0]+grid_Delta
-    if verbose_level>=1: f_out.flush()
+    if verbose_level>=2: f_out.write("%8s %11s %15s \n" % ("i","x","G"))
+    Nlen=(round(int((grid_max-grid_min)/(grid_Delta)+1)))
+    for index_i in itertools.product(range(Nlen), repeat=param):
+        for j in range(param):
+            dim_list[j].append(index_i[j]*grid_Delta)
+        G=0.0
+        for i in range(N):
+            gauss=0.0
+            for dim in range(param):
+                gauss=gauss+((dim_list[dim][counter]-center_N[i][dim])**2/(2.0*width_N[i][dim]**2))
+            G = G + Amplitude[i] * math.exp(-gauss)
+        G_list.append(G)
+        line = []
+        for j in range(param):
+            line.append((dim_list[j][counter]))
+        line.append(G_list[counter])
+        if verbose_level>=2: f_out.write("%8i %2s %s \n" % (counter,"",str(line)))
+        counter=counter+1
+
+    if verbose_level>=2: f_out.flush()
 
     Ngrid=int((grid_max/grid_Delta+1)**param)   # calculate number of grid points
     max_G=max(G_list)
@@ -462,22 +345,17 @@ def generate_grid(iseed,l,f_out):
         max_G_index=int(np.where(G_list == np.max(G_list))[0])
         min_G_index=int(np.where(G_list == np.min(G_list))[0])
         f_out.write("Number of grid points: %i \n" %Ngrid)
-        if param==1:
-            f_out.write("Maximum value of grid: %f %f  \n" %(dim_list[0][max_G_index], max_G))
-            f_out.write("Minimum value of grid: %f %f  \n" %(dim_list[0][min_G_index], min_G))
-        if param==2:
-            f_out.write("Maximum value of grid: %f %f %f \n" %(dim_list[0][max_G_index], dim_list[1][max_G_index], max_G))
-            f_out.write("Minimum value of grid: %f %f %f \n" %(dim_list[0][min_G_index], dim_list[1][min_G_index], min_G))
-        if param==3:
-            f_out.write("Maximum value of grid: %f %f %f %f \n" %(dim_list[0][max_G_index], dim_list[1][max_G_index], dim_list[2][max_G_index], max_G))
-            f_out.write("Minimum value of grid: %f %f %f %f \n" %(dim_list[0][min_G_index], dim_list[1][min_G_index], dim_list[2][min_G_index], min_G))
-        if param==4:
-            f_out.write("Maximum value of grid: %f %f %f %f %f \n" %(dim_list[0][max_G_index], dim_list[1][max_G_index], dim_list[2][max_G_index], dim_list[3][max_G_index], max_G))
-            f_out.write("Minimum value of grid: %f %f %f %f %f \n" %(dim_list[0][min_G_index], dim_list[1][min_G_index], dim_list[2][min_G_index], dim_list[3][min_G_index], min_G))
-        if param==5:
-            f_out.write("Maximum value of grid: %f %f %f %f %f %f \n" %(dim_list[0][max_G_index], dim_list[1][max_G_index], dim_list[2][max_G_index], dim_list[3][max_G_index], dim_list[4][max_G_index], max_G))
-            f_out.write("Minimum value of grid: %f %f %f %f %f %f \n" %(dim_list[0][min_G_index], dim_list[1][min_G_index], dim_list[2][min_G_index], dim_list[3][min_G_index], dim_list[4][min_G_index], min_G))
+        line1 = []
+        line2 = []
+        for j in range(param):
+            line1.append(dim_list[j][max_G_index])
+            line2.append(dim_list[j][min_G_index])
+        line1.append(max_G)
+        line2.append(min_G)
+        f_out.write("Maximum value of grid: %s \n" %(str(line1)))
+        f_out.write("Minimum value of grid: %s \n" %(str(line2)))
         f_out.flush()
+
     return dim_list, G_list, Ngrid, max_G
 
 def check_input_values():
@@ -615,12 +493,15 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
         num_in_grid=int(round(num_in_grid))
         path_G.append(G_list[num_in_grid])
         list_t.append(t)
-        if param==1 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %2s %10.6f \n" % (t,"",walker_x[0],"",G_list[num_in_grid]))
-        if param==2 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],"",G_list[num_in_grid]))
-        if param==3 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],walker_x[2],"",G_list[num_in_grid]))
-        if param==4 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %2s %10.6f \n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],"",G_list[num_in_grid]))
-        if param==5 and verbose_level>=1: f_out.write("timestep %4i %2s %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],walker_x[4],"",G_list[num_in_grid]))
-        if verbose_level>=1: f_out.flush()
+
+        if verbose_level>=1:
+            line = []
+            for j in range(param):
+                line.append((walker_x[j]))
+            line.append((G_list[num_in_grid]))
+            f_out.write("timestep %4i %2s %s \n" %(t,"",str(line)))
+            f_out.flush()
+
     x_param=[[] for j in range(param)]
     y=[]
     # Set values for t1 exploration
@@ -664,11 +545,15 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             draw_in_grid_list=[i for i, e in enumerate(G_list) if e == minimum_path_G[draw] ]
             if verbose_level>=2: f_out.write("Special points: %i \n" % (special_points))
             for i in range(special_points):
-                if param==1 and verbose_level>=2: f_out.write("%i %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_G[i]))
-                if param==2 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_G[i]))
-                if param==3 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_G[i]))
-                if param==4 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_x[3][i],minimum_path_G[i]))
-                if param==5 and verbose_level>=2: f_out.write("%i %6.2f %6.2f %6.2f %6.2f %6.2f %10.6f \n" % (i,minimum_path_x[0][i],minimum_path_x[1][i],minimum_path_x[2][i],minimum_path_x[3][i],minimum_path_x[4][i],minimum_path_G[i]))
+
+                if verbose_level>=2:
+                    line = []
+                    for j in range(param):
+                        line.append((minimum_path_x[j][i]))
+                    line.append((minimum_path_G[i]))
+                    f_out.write("%i %s \n" % (i,str(line)))
+                    f_out.flush()
+
             for i in range(param):
                 if minimum_path_x[i][draw] != dim_list[i][draw_in_grid]:
                     print("STOP - ERROR: minimum_path not equal to dum_list (maybe more than 1 point with that value in grid)")
@@ -677,8 +562,9 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                     sys.exit()
             if verbose_level>=1: f_out.flush()
             P=int(round(d_threshold/grid_Delta + 1))
-            if verbose_level>=2: f_out.write("Consider nearby points: \n")
-            if verbose_level>=1: f_out.flush()
+            if verbose_level>=2: 
+                f_out.write("Consider nearby points: \n")
+                f_out.flush()
             counter3=0
             for i in range((P*2+1)**param):
                     prob.append(0.0)
@@ -799,9 +685,10 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             if len(range((P*2+1)**param)) != len(prob):
                 print("STOP - ERROR: Problem with number of nearby points considered for next step",flush=True)
                 sys.exit()
-            if verbose_level>=2: f_out.write("Number of points considered: %i \n" % (len(range((P*2+1)**param))))
-            if verbose_level>=2: f_out.write("Points within threshold: %f \n" % int(round((prob_sum))))
-            if verbose_level>=1: f_out.flush()
+            if verbose_level>=2: 
+                f_out.write("Number of points considered: %i \n" % (len(range((P*2+1)**param))))
+                f_out.write("Points within threshold: %f \n" % int(round((prob_sum))))
+                f_out.flush()
     
             for i in range(counter3):
                 prob[i]=prob[i]/prob_sum
@@ -811,14 +698,17 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 path_x[i].append(walker_x[i])
             path_G.append(neighbor_G[draw])
             list_t.append(t)
-            if verbose_level>=2: f_out.write("We draw neighbor no.: %6i\n" % (draw))
-            if verbose_level>=1: f_out.flush()
-            if param==1 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %2s %10.6f\n" % (t,"",walker_x[0],"",neighbor_G[draw]))
-            if param==2 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],"",neighbor_G[draw]))
-            if param==3 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],"",neighbor_G[draw]))
-            if param==4 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],"",neighbor_G[draw]))
-            if param==5 and verbose_level>=1: f_out.write("timestep %6i %2s %6.2f %6.2f %6.2f %6.2f %6.2f %2s %10.6f\n" % (t,"",walker_x[0],walker_x[1],walker_x[2],walker_x[3],walker_x[4],"",neighbor_G[draw]))
-            if verbose_level>=1: f_out.flush()
+            if verbose_level>=2: 
+                f_out.write("We draw neighbor no.: %6i\n" % (draw))
+                f_out.flush()
+            if verbose_level>=1:
+                line = []
+                for j in range(param):
+                    line.append(walker_x[j])
+                line.append(neighbor_G[draw])
+                f_out.write("NEW timestep %6i %2s %s\n" % (t,"",str(line)))
+                f_out.flush()
+
             for i in range(param):
                 x_param[i].append(walker_x[i])
             y.append(neighbor_G[draw])
@@ -829,8 +719,9 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             # initialize values
             x_bubble=[[] for j in range(param)]
             y_bubble=[]
-            if verbose_level>=1: f_out.write("## Start ML Exploration\n" %())
-            if verbose_level>=1: f_out.flush()
+            if verbose_level>=1: 
+                f_out.write("## Start ML Exploration\n" %())
+                f_out.flush()
             P=int(round(d_threshold/grid_Delta + 1))
             # For each point in Xi
             for k in range(len(path_G)):
@@ -839,18 +730,6 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 del neighbor_walker[:][:]
                 del neighbor_G[:]
                 prob_sum=0.0
-                ## hard coded for 3D ##
-                #k_in_grid_2 = [i for i, x in enumerate(dim_list[0]) if x == path_x[0][k]]
-                #k_in_grid_3 = [i for i, x in enumerate(dim_list[1]) if x == path_x[1][k]]
-                #k_in_grid_4 = [i for i, x in enumerate(dim_list[2]) if x == path_x[2][k]]
-                #if verbose_level>=1: f_out.write("k_in_grid_2: %s, length: %i\n" %(str(k_in_grid_2),len(k_in_grid_2)))
-                #if verbose_level>=1: f_out.write("k_in_grid_3: %s, length: %i\n" %(str(k_in_grid_3),len(k_in_grid_3)))
-                #if verbose_level>=1: f_out.write("k_in_grid_4: %s, length: %i\n" %(str(k_in_grid_4),len(k_in_grid_4)))
-                #for i in k_in_grid_2:
-                    #for j in k_in_grid_3:
-                        #if i in k_in_grid_4 and i in k_in_grid_3:
-                            #k_in_grid=i
-                #if verbose_level>=2: f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
                 #######################
                 ##   For any param   ##
                 new_k_in_grid=[[] for j in range(param)]
@@ -863,7 +742,6 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         if new_k_in_grid[0][0][i] in new_k_in_grid[j][0]:
                             counter_k=counter_k+1
                             if counter_k==param-1:
-                                #if verbose_level>=1: f_out.write("new_k_in_grid: %i\n" %(new_k_in_grid[0][0][i]))
                                 k_in_grid=new_k_in_grid[0][0][i]
                 if verbose_level>=2: f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
                 if verbose_level>=2: f_out.flush()
@@ -879,10 +757,11 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 if verbose_level>=2:
                     line = []
                     for j in range(param):
-                        line.append(round(path_x[j][k],3))
-                    line.append(round(path_G[k],6))
+                        line.append((path_x[j][k]))
+                    line.append((path_G[k]))
                     f_out.write("Check around point: %s\n" %(str(line)))
                     f_out.write("%6s %20s %11s %13s \n" % ("i","[x, G]","Prob","distance"))
+                    f_out.flush()
                 for index_i in itertools.product(range(-P+1,P), repeat=param):
                     try:
                         index=[]
@@ -897,7 +776,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         dummy_dist = 0.0
                         for j in range(param):
                             dummy_dist = dummy_dist + (path_x[j][k]-dim_list[j][index[j]])**2
-                        d_ij = round(math.sqrt(dummy_dist),6)
+                        d_ij = (math.sqrt(dummy_dist))
     
                         if d_ij < d_threshold and d_ij > 0.0:
                             use_this_point=True
@@ -919,9 +798,10 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         if verbose_level>=2:
                             line = []
                             for j in range(param):
-                                line.append(round(dim_list[j][index[j]],3))
-                            line.append(round(G_list[index[param]],6))
+                                line.append((dim_list[j][index[j]]))
+                            line.append((G_list[index[param]]))
                             f_out.write("%6i %s %2s %5.1f %2s %10.6f \n" % (counter3,line,"",prob[counter3],"",d_ij))
+                            f_out.flush()
                     except:
                         pass
                     counter3=counter3+1
@@ -929,6 +809,8 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             if verbose_level>=2:
                 for j in range(param):
                     f_out.write("x_bubble[%i]: %s\n" %(j,str(x_bubble[j])))
+                f_out.flush()
+
             # train ML with path_x and path_G
             # predict ML for x_bubble and y_bubble
             path_x,path_G = create_X_and_y(f_out,path_x,path_G)
@@ -936,7 +818,9 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
             if t2_ML=='GPR': min_point=GPR(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
             # select x_bubble corresponding to min(y_bubble)
-            if verbose_level>=1: f_out.write("## At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
+            if verbose_level>=1: 
+                f_out.write("## At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
+                f_out.flush()
             # prepare for next timestep
             path_x=path_x.tolist()
             path_G=path_G.tolist()
