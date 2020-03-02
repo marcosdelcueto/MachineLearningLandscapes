@@ -39,42 +39,50 @@ def main(iseed):
     # Check that input values are OK
     check_input_values()
     # Initialize results array
-    results=[]
+    results_t1_per_Nspf=[]
+    results_t2_per_Nspf=[]
     # Calculate results for each landscape (may use dask to run each landscape in a CPU in parallel)
     if is_dask==True:
         for l in range(Nspf):
             iseed=iseed+l
-            provi_result=delayed(MLL)(iseed,l,verbose_level)
+            (provi_result_t1,provi_result_t2)=delayed(MLL)(iseed,l,verbose_level)
             results.append(provi_result)
-        results_per_Nspf=dask.compute(results,scheduler='processes',num_workers=NCPU)
-        results_per_Nspf=results_per_Nspf[0]
+            results_t1.append(provi_result_t1)
+            results_t2.append(provi_result_t2)
+        results_t1_per_Nspf=dask.compute(results_t1,scheduler='processes',num_workers=NCPU)
+        results_t2_per_Nspf=dask.compute(results_t2,scheduler='processes',num_workers=NCPU)
     elif is_dask==False:
         for l in range(Nspf):
             iseed=iseed+l
-            provi_result=MLL(iseed,l,verbose_level)
-            results.append(provi_result)
-        results_per_Nspf=results
+            (provi_result_t1,provi_result_t2)=MLL(iseed,l,verbose_level)
+            results_t1_per_Nspf.append(provi_result_t1)
+            results_t2_per_Nspf.append(provi_result_t2)
     # Transpose results_per_Nspf, to get results per walker
-    results_per_walker=[list(i) for i in zip(*results_per_Nspf)]
+    if t1_analysis    == True: results_per_walker_t1=[list(i) for i in zip(*results_t1_per_Nspf)]
+    if t2_exploration == True: results_per_walker_t2=[list(i) for i in zip(*results_t2_per_Nspf)]
     # Print final results
-    print('--- Final results:',flush=True)
-    # results if we want error metric after t1
-    if error_metric == 'rmse':
-        for i in range(Nwalkers):
-            print('-- Adventurousness: %6.1f' %(adven[i]),flush=True)
-            print('- RMSE:',results_per_walker[i][:],flush=True)
-            print('- Mean: %f' %(statistics.mean(results_per_walker[i])),flush=True)
-    # results if we want to calculate MLgain after t2
-    else:
-        for i in range(Nspf):
-            print('-- Result for landscape %i: %s' %(i,str(results_per_Nspf[i])),flush=True)
-        print("")
-        for i in range(Nwalkers):
-            print('-- Adventurousness: %6.1f' %(adven[i]),flush=True)
-            print('- Result for Nwalker %i: %s' %(i,str(results_per_walker[i])),flush=True)
-            print("")
+    print('--- Final results ---',flush=True)
+    for i in range(Nwalkers):
+        print('-- Adventurousness: %6.1f --' %(adven[i]),flush=True)
+        if t1_analysis == True:
+            print('-- t1 analysis')
+            print('- RMSE:',results_per_walker_t1[i][:],flush=True)
+            print('- RMSE Mean: %f' %(statistics.mean(results_per_walker_t1[i])),flush=True)
+            print('- RMSE Median: %f' %(statistics.median(results_per_walker_t1[i])),flush=True)
+        if t2_exploration == True:
+            print('-- t2 exploration')
+            print('- [ML_gain_pred, ML_gain_real, error_rel_ML]: %s' %(str(results_per_walker_t2[i])),flush=True)
+            ML_gain_pred = [item[0] for item in results_per_walker_t2[i]]
+            ML_gain_real = [item[1] for item in results_per_walker_t2[i]]
+            error_rel_ML = [item[2] for item in results_per_walker_t2[i]]
+            print('- ML_gain_pred Mean: %f' %(statistics.mean(ML_gain_pred)),flush=True)
+            print('- ML_gain_pred Median: %f' %(statistics.median(ML_gain_pred)),flush=True)
+            print('- ML_gain_real Mean: %f' %(statistics.mean(ML_gain_real)),flush=True)
+            print('- ML_gain_real Median: %f' %(statistics.median(ML_gain_real)),flush=True)
+            print('- error_rel_ML Mean: %f' %(statistics.mean(error_rel_ML)),flush=True)
+            print('- error_rel_ML Median: %f' %(statistics.median(error_rel_ML)),flush=True)
+        print('')
 
-    if error_metric!=None: plot(error_metric,results_per_walker)
 ###### END MAIN ######
 #################################################################################
 
@@ -151,6 +159,8 @@ def read_initial_values(inp):
     allowed_verbosity_level = ast.literal_eval(var_value[var_name.index('allowed_verbosity_level')])
     t2_ML = ast.literal_eval(var_value[var_name.index('t2_ML')])
     allowed_t2_ML = ast.literal_eval(var_value[var_name.index('allowed_t2_ML')])
+    t2_exploration = ast.literal_eval(var_value[var_name.index('t2_exploration')])
+    t1_analysis = ast.literal_eval(var_value[var_name.index('t1_analysis')])
 
     width_min=S                                     # Minimum width of each Gaussian function
     width_max=1.0/3.0                               # Maximum width of each Gaussian function
@@ -160,7 +170,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML)
+    return (is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis)
 
 def MLL(iseed,l,verbose_level):
     # open log file to write intermediate information
@@ -169,6 +179,8 @@ def MLL(iseed,l,verbose_level):
     else:
         f_out=None
     # initialize result arrays
+    result1=None
+    result2=None
     error_metric_list=[]
     ML_benefits_list=[]
     # Generate SPF grid
@@ -177,7 +189,7 @@ def MLL(iseed,l,verbose_level):
     for w in range(Nwalkers):
         # Step 1) Perform t1 exploration
         X1,y1,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,t1_time,0,None,None,False)
-        if error_metric != None:
+        if t1_analysis == True:
         # Step 2A) Calculate error_metric
             if ML=='kNN': error_metric_result=kNN(X1,y1,iseed,l,w,f_out,None,None,1)
             if ML=='GBR': error_metric_result=GBR(X1,y1,iseed,l,w,f_out)
@@ -197,9 +209,9 @@ def MLL(iseed,l,verbose_level):
                     if verbose_level>=1: f_out.flush()
                     error_metric_result = best_rmse
             error_metric_list.append(error_metric_result)
-            result = error_metric_list
+            result1 = error_metric_list
         # Step 2B) Perform t2 exploration
-        else:
+        if t2_exploration == True:
             # Step 2.B.1) Perform t2 exploration with random biased explorer
             X2a,y2a,unique_t2a = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,False)
             # Step 2.B.2) Perform t2 exploration with ML explorer
@@ -275,12 +287,12 @@ def MLL(iseed,l,verbose_level):
             if verbose_level>=1: 
                 f_out.write("For each Nwalker: %s\n" %(str(ML_benefits)))
                 f_out.flush()
-        ML_benefits_list.append(ML_benefits)
-    result=ML_benefits_list
+            ML_benefits_list.append(ML_benefits)
+            result2=ML_benefits_list
     if verbose_level>=1: 
-        f_out.write("I am returning this value: %s\n" %(str(result)))
+        f_out.write("I am returning these values: %s, %s\n" %(str(result1), str(result2)))
         f_out.close()
-    return result
+    return (result1, result2)
 
 def generate_grid(iseed,l,f_out):
     Amplitude      = []
@@ -368,6 +380,11 @@ def check_input_values():
     if type(is_dask) != bool:
         print ('INPUT ERROR: is_dask should be boolean, but is:', is_dask)
         sys.exit()
+    if type(t1_analysis) != bool:
+        print ('INPUT ERROR: t1_analysis should be boolean, but is:', t1_analysis)
+    if type(t2_exploration) != bool:
+        print ('INPUT ERROR: t2_exploration should be boolean, but is:', t2_exploration)
+        sys.exit()
     if Nwalkers != len(adven):
         print ('INPUT ERROR: Nwalkers is %i, but adven has %i elements:' %(Nwalkers, len(adven)))
         sys.exit()
@@ -431,12 +448,14 @@ def check_input_values():
     print('##############################')
     print('# T2 exploration parameters')
     print('##############################')
+    print('t2_exploration =',t2_exploration,flush=True)
     print('t2_time =',t2_time,flush=True)
     print('t2_ML =',t2_ML,flush=True)
     print('allowed_t2_ML =',allowed_t2_ML,flush=True)
     print('##############################')
     print('# Error metric parameters')
     print('##############################')
+    print('t1_analysis =',t1_analysis,flush=True)
     print('error_metric =',error_metric,flush=True)
     print('allowed_error_metric =',allowed_error_metric,flush=True)
     print('ML =',ML,flush=True)
@@ -1360,7 +1379,7 @@ def plot(flag,final_result_T):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML) = read_initial_values(input_file_name)
+(is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,A_RBF,A_noise,GPR_alpha,kernel_length_scale,kernel_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_gamma,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis) = read_initial_values(input_file_name)
 # Run main program
 main(iseed)
 # Measure and print final time
