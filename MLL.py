@@ -445,11 +445,11 @@ def check_input_values():
     print('allowed_CV =',allowed_CV,flush=True)
     print('k_fold =',k_fold,flush=True)
     print('test_last_percentage =',test_last_percentage,flush=True)
-    if ML= ='kNN':
+    if ML=='kNN':
         print('### kNN parameters ###')
         print('n_neighbor =',n_neighbor,flush=True)
         print('weights =',weights,flush=True)
-    if ML= ='GBR':
+    if ML=='GBR':
         print('### GBR parameters ###')
         print('GBR_criterion =',GBR_criterion,flush=True)
         print('GBR_n_estimators =',GBR_n_estimators,flush=True)
@@ -457,14 +457,14 @@ def check_input_values():
         print('GBR_max_depth =',GBR_max_depth,flush=True)
         print('GBR_min_samples_split =',GBR_min_samples_split,flush=True)
         print('GBR_min_samples_leaf =',GBR_min_samples_leaf,flush=True)
-    if ML= ='GPR':
+    if ML=='GPR':
         print('### GPR parameters ###')
         print('A_RBF =',A_RBF,flush=True)
         print('A_noise =',A_noise,flush=True)
         print('GPR_alpha =',GPR_alpha,flush=True)
         print('kernel_length_scale =',kernel_length_scale,flush=True)
         print('kernel_noise_level =',kernel_noise_level,flush=True)
-    if ML= ='KRR':
+    if ML=='KRR':
         print('### KRR parameters ###')
         print('KRR_alpha =',KRR_alpha,flush=True)
         print('KRR_kernel =',KRR_kernel,flush=True)
