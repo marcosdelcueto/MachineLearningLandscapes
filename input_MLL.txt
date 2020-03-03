@@ -2,37 +2,37 @@
 # General Landscape parameters
 ##############################
 ### Parallel Computing ###
-is_dask = False                                 # Decide if dask is used
-NCPU    = 3                                    # Choose number of CPUs used by dask
+is_dask = True                                  # Decide if dask is used
+NCPU    = 12                                    # Choose number of CPUs used by dask
 ### Verbose ###
 verbose_level = 1                               # Decide what level of verbosity is printed to 'log_name' file (Recommended: 1)
 allowed_verbosity_level=[0,1,2]   					# possible values of verbosity
 log_name = 'log_grid_l'                         # Choose name of log file. The suffix '_XX.log' is added automatically
 ### Landscape parameters ###
-Nspf=3                                         # Number of different landscapes generate
-S=0.20                                          # Smoothness - minimum width of Gaussian functions
-iseed=19                                 # Seed for random number to generate landscape. Default: None
+Nspf=24                                        # Number of different landscapes generate
+S=0.05                                          # Smoothness - minimum width of Gaussian functions
+iseed=None 		                                 # Seed for random number to generate landscape. Default: None
 param=2                                         # Number of descriptors
 center_min=0.00                                 # Minimum value for center of each Gaussian in each DOF
 center_max=1.00                                 # Maximum value for center of each Gaussian in each DOF
 ### Grid parameters ###
 grid_min=0.00                                   # Start point of grid in each DOF
 grid_max=1.00                                   # End point of grid in each DOF
-grid_Delta=0.01                                 # Increment of grid in each DOF
+grid_Delta=0.01                                # Increment of grid in each DOF
 ##############################
 # T1 exploration parameters
 ##############################
-Nwalkers = 2                                    # Number of walkers per landscape
-adven = [10,100]								         # percentage of special points per walker
+Nwalkers = 1                                    # Number of walkers per landscape
+adven = [100]								         # percentage of special points per walker
 t0_time = 5 		                              # Number of initial unbiased steps
-t1_time = 50                                  # Number of time steps for the walker
+t1_time = 50                                    # Number of time steps for the walker
 d_threshold = 0.05                              # Threshold maximum distance that at each time step
 initial_sampling = 'different'                  # Initial points in a grid for different walkers
 allowed_initial_sampling = ['same','different'] # possible values of 'initial_sampling'
 ##############################
 # T2 exploration parameters
 ##############################
-t2_exploration = True 
+t2_exploration = False 
 t2_time = 5                                     # Number of time steps for the walker
 t2_ML = 'GPR'												# Choose what ML algorithm is used
 allowed_t2_ML = [None,'kNN','GBR','GPR','KRR']  # possible ML algorithms
@@ -40,13 +40,13 @@ allowed_t2_ML = [None,'kNN','GBR','GPR','KRR']  # possible ML algorithms
 # Error metric parameters
 ##############################
 t1_analysis = True
-error_metric='rmse'                               # Choose which error metric to analyze
-allowed_error_metric=['rmse']              # possible error metrics to analyze
-ML='kNN'                                        # Choose what ML algorithm is used
+error_metric='rmse'                             # Choose which error metric to analyze
+allowed_error_metric=[None,'rmse']              # possible error metrics to analyze
+ML='KRR'                                        # Choose what ML algorithm is used
 allowed_ML=[None,'kNN','GBR','GPR','KRR']       # possible ML algorithms
-CV='kf'                                        # Choose cross-validation: 'kf' or 'loo' or 'sort'
+CV='kf'                                         # Choose cross-validation: 'kf' or 'loo' or 'sort'
 allowed_CV=['kf','loo','sort']                  # possible types of cross-correlation
-k_fold=10                                        # If CV='kf': number of folds for k-fold cross validation
+k_fold=10                                       # If CV='kf': number of folds for k-fold cross validation
 test_last_percentage=0.1                        # If CV='sort': percentage of last points chosen as test
 ###if ML=='kNN':                                ### k-Nearest Neighbors (k-NN)
     n_neighbor=3                                # Number of nearest neighbors consider for kNN regression
@@ -69,4 +69,4 @@ test_last_percentage=0.1                        # If CV='sort': percentage of la
     KRR_kernel='rbf'                            # type of kernel (for now, jusr 'rbf' available)
     KRR_gamma=1.0                               # hyperparameter controlling variance of kernel
     optimize_gamma=True                         # decide whether to optimize KRR_gamma
-    KRR_gamma_lim = (0.01, 100.0)               # interval in which KRR_gamma is allowed to vary
+    KRR_gamma_lim = (0.0000000001, 100.0)   # interval in which KRR_gamma is allowed to vary

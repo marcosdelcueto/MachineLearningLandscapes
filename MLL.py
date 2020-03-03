@@ -39,18 +39,22 @@ def main(iseed):
     # Check that input values are OK
     check_input_values()
     # Initialize results array
+    #results_t1=[]
+    #results_t2=[]
     results_t1_per_Nspf=[]
     results_t2_per_Nspf=[]
     # Calculate results for each landscape (may use dask to run each landscape in a CPU in parallel)
     if is_dask==True:
         for l in range(Nspf):
             iseed=iseed+l
-            (provi_result_t1,provi_result_t2)=delayed(MLL)(iseed,l,verbose_level)
-            results.append(provi_result)
-            results_t1.append(provi_result_t1)
-            results_t2.append(provi_result_t2)
-        results_t1_per_Nspf=dask.compute(results_t1,scheduler='processes',num_workers=NCPU)
-        results_t2_per_Nspf=dask.compute(results_t2,scheduler='processes',num_workers=NCPU)
+            (provi_result_t1,provi_result_t2)=delayed(MLL,nout=2)(iseed,l,verbose_level)
+            #results.append(provi_result)
+            results_t1_per_Nspf.append(provi_result_t1)
+            results_t2_per_Nspf.append(provi_result_t2)
+        results_t1_per_Nspf=dask.compute(results_t1_per_Nspf,scheduler='processes',num_workers=NCPU)
+        results_t2_per_Nspf=dask.compute(results_t2_per_Nspf,scheduler='processes',num_workers=NCPU)
+        results_t1_per_Nspf=results_t1_per_Nspf[0]
+        results_t2_per_Nspf=results_t2_per_Nspf[0]
     elif is_dask==False:
         for l in range(Nspf):
             iseed=iseed+l
@@ -195,16 +199,16 @@ def MLL(iseed,l,verbose_level):
             if ML=='GBR': error_metric_result=GBR(X1,y1,iseed,l,w,f_out)
             if ML=='GPR': error_metric_result=GPR(X1,y1,iseed,l,w,f_out,None,None,1)
             if ML=='KRR':
-                hyperparams=KRR_gamma
+                hyperparams=KRR_gamma,KRR_alpha
                 if optimize_gamma == False:
                     error_metric_result=KRR(hyperparams,X1,y1,iseed,l,w,f_out,verbose_level)
                 else:
                     mini_args=(X1,y1,iseed,l,w,f_out,verbose_level)
-                    bounds = [KRR_gamma_lim]
+                    bounds = [KRR_gamma_lim]+[KRR_gamma_lim]
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=15,tol=0.01)
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
-                    if verbose_level>=1: f_out.write("Best hyperparameters: %f \n" %best_hyperparams)
+                    if verbose_level>=1: f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
                     if verbose_level>=1: f_out.write("Best rmse: %f \n"  %best_rmse)
                     if verbose_level>=1: f_out.flush()
                     error_metric_result = best_rmse
@@ -598,7 +602,14 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         line.append((minimum_path_x[j][i]))
                     line.append((minimum_path_G[i]))
                     f_out.write("%i %s \n" % (i,str(line)))
-                    f_out.flush()
+                line = []
+                for j in range(param):
+                    line.append((minimum_path_x[j][draw]))
+                line.append((minimum_path_G[draw]))
+                f_out.write("Selected point in draw: %i %s \n" % (i,str(line)))
+                f_out.write("Consider nearby points: \n")
+                f_out.write("%6s %11s %19s %12s %12s \n" % ("i","x","G","Prob","distance"))
+                f_out.flush()
             # Check for inconsistencies
             for i in range(param):
                 if minimum_path_x[i][draw] != dim_list[i][draw_in_grid]:
@@ -612,10 +623,6 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                     neighbor_G.append(0.0)
                     for j in range(param):
                         neighbor_walker[j].append(0.0)
-            if verbose_level>=2: 
-                f_out.write("Consider nearby points: \n")
-                f_out.write("%6s %11s %19s %12s %12s \n" % ("i","x","G","Prob","distance"))
-                f_out.flush()
             counter3=0
             # Index_i serves to explore neighbors: from -P+1 to P for each parameter
             for index_i in itertools.product(range(-P+1,P), repeat=param):
@@ -635,7 +642,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         dummy_dist = dummy_dist + (minimum_path_x[j][draw]-dim_list[j][index[j]])**2
                     d_ij = (math.sqrt(dummy_dist))
                     # If distance is within threshold: consider that point
-                    if d_ij < d_threshold and d_ij > 0.0:
+                    if d_ij <= d_threshold and d_ij > 0.0:
                         use_this_point=True
                         # Also check that does not correspond to a point explored previously
                         for i in range(len(path_G)):
@@ -663,6 +670,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             # Check for inconsistencies
             if prob_sum==0.0: 
                 print("STOP - ERROR: No new candidate points found within threshold",flush=True)
+                print("STOP - ERROR: At Nspf:", l, ". Walker:", w, ". Time:", t,flush=True)
                 sys.exit()
 
             if len(range((P*2+1)**param)) != len(prob):
@@ -766,7 +774,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                             dummy_dist = dummy_dist + (path_x[j][k]-dim_list[j][index[j]])**2
                         d_ij = (math.sqrt(dummy_dist))
                         # If distance is within threshold: consider that point
-                        if d_ij < d_threshold and d_ij > 0.0:
+                        if d_ij <= d_threshold and d_ij > 0.0:
                             use_this_point=True
                             # Also check that does not correspond to a point explored previously
                             for i in range(len(path_G)):
@@ -1075,17 +1083,24 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
             real_y=[]
             predicted_y=[]
             counter=0
+            #scaler = preprocessing.StandardScaler().fit(X)
+            #X = scaler.transform(X)
             for train_index, test_index in validation:
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
                 scaler = preprocessing.StandardScaler().fit(X_train)
                 X_train_scaled = scaler.transform(X_train)
                 X_test_scaled = scaler.transform(X_test)
-                kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
-                GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
+                #X_train_scaled = X_train
+                #X_test_scaled = X_test
+                #kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
+
+                kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
+                GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+                #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
                 #y_pred = GPR.fit(X_train, y_train).predict(X_test)
                 y_pred = GPR.fit(X_train_scaled, y_train).predict(X_test_scaled)
-                if verbose_level>=2: 
+                if verbose_level>=1: 
                     f_out.write('TEST X_train: \n')
                     f_out.write('%s \n' % (str(X_train)))
                     f_out.write('TEST y_train: \n')
@@ -1151,8 +1166,10 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
             total_rmse = np.sqrt(total_mse)
         elif CV=='sort':
             X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
-            kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
-            GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
+            #kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
+            kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
+            GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+            #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
             scaler = preprocessing.StandardScaler().fit(X_train)
             X_train_scaled = scaler.transform(X_train)
             X_test_scaled = scaler.transform(X_test)
@@ -1221,11 +1238,13 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         scaler = preprocessing.StandardScaler().fit(X_train)
         X_train_scaled = scaler.transform(X_train)
         X_test_scaled = scaler.transform(X_test)
-        kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
-        GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
+        #kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
+        kernel = A_RBF * RBF(length_scale=kernel_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=kernel_noise_level, noise_level_bounds=(1e-5, 1e+1))
+        GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+        #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
         GPR.fit(X_train_scaled,y_train)
         y_pred = GPR.predict(X_test_scaled)
-        if verbose_level>=2: 
+        if verbose_level>=1: 
             f_out.write('TEST X_train: \n')
             f_out.write('%s \n' % (str(X_train)))
             f_out.write('TEST y_train: \n')
@@ -1271,7 +1290,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
 # CALCULATE KRR #
 def KRR(hyperparams,X,y,iseed,l,w,f_out,verbose_level):
     #KRR_alpha, KRR_gamma = hyperparams
-    KRR_gamma = hyperparams
+    KRR_gamma,KRR_alpha = hyperparams
     iseed=iseed+1
     if verbose_level>=1: 
         f_out.write('## Start: "KRR" function \n')
@@ -1305,25 +1324,27 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,verbose_level):
             #if verbose_level>=1: f_out.write('%s \n' % (str(KRR.get_params(deep=True))))
 
             for i in range(len(y_test)):
-                #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
+                f_out.write("y_test[i], y_pred[i] %s, %s \n" %(str(y_test[i]),str(y_pred[i])))
                 real_y.append(y_test[i])
-            for i in range(len(y_pred)):
-                #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
                 predicted_y.append(y_pred[i]) #
+            #for i in range(len(y_pred)):
+                #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
+                #predicted_y.append(y_pred[i]) #
             if CV=='kf':
                 r_pearson,_=pearsonr(y_test,y_pred)
                 mse = mean_squared_error(y_test, y_pred)
                 rmse = np.sqrt(mse)
-                if verbose_level>=2: 
+                if verbose_level>=1: 
                     f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
                     f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
+                    f_out.write("%i train points: %s \n" % (len(train_index),str(train_index)))
                 counter=counter+1
                 average_r_pearson=average_r_pearson+r_pearson
                 average_rmse=average_rmse+rmse
         if CV=='kf':
             average_r_pearson=average_r_pearson/k_fold
             average_rmse=average_rmse/k_fold
-            if verbose_level>=2: 
+            if verbose_level>=1: 
                 f_out.write('k-fold average r_pearson score: %f \n' % (average_r_pearson))
                 f_out.write('k-fold average rmse score: %f \n' % (average_rmse))
         total_r_pearson,_ = pearsonr(real_y,predicted_y)
