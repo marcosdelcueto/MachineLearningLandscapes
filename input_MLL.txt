@@ -62,16 +62,15 @@ GBR_max_depth=5                                 # limits number of nodes in each
 GBR_min_samples_split=2                         # minimum number of samples required to split an internal node
 GBR_min_samples_leaf=2                          # minimum number of samples required to be at a leaf node
 ### Gaussian Process Regression ('GPR') #########
-A_RBF=1.0                                       # hyperparameter of RBF kernel
-A_noise=1.0                                     # hyperparameter of noise kernel
-GPR_alpha=0.001                                 # parameter of GPR adding extra noise
-kernel_length_scale=1.0                         # hyperparameter length scale of RBF kernel
-kernel_noise_level=1.0                          # hyperparameter noise level of noise kernel
+GPR_A_RBF=1.0                                   # hyperparameter of RBF kernel
+GPR_length_scale=1.0                            # hyperparameter length scale of RBF kernel
+GPR_noise_level=1.0                             # hyperparameter noise level of noise kernel
+optimize_GPR_hyperparams=True                   # decide whether to optimize KRR_gamma
 ### Kernel Ridge Regression ('KRR') #############
 KRR_kernel='rbf'                                # type of kernel (for now, jusr 'rbf' available)
 KRR_alpha=1.0                                   # regularization hyperparameter: 0 equals linear least square
 KRR_gamma=1.0                                   # hyperparameter controlling variance of kernel
 optimize_KRR_hyperparams=True                   # decide whether to optimize KRR_gamma
-KRR_alpha_lim = (0.000001,10.0)   			    	# interval in which KRR_gamma is allowed to vary
+KRR_alpha_lim = (0.000001,10.0)   			    	# interval in which KRR_alpha is allowed to vary
 KRR_gamma_lim = (0.01,100.0)   					   # interval in which KRR_gamma is allowed to vary
 #################################################

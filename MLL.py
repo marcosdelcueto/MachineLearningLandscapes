@@ -45,7 +45,7 @@ def main(iseed):
     if is_dask==True:
         for l in range(Nspf):
             iseed=iseed+l
-            (provi_result_t1,provi_result_t2)=delayed(MLL,nout=2)(iseed,l,verbose_level)
+            (provi_result_t1,provi_result_t2)=delayed(MLL,nout=2)(iseed,l)
             results_t1_per_Nspf.append(provi_result_t1)
             results_t2_per_Nspf.append(provi_result_t2)
         results_t1_per_Nspf=dask.compute(results_t1_per_Nspf,scheduler='processes',num_workers=NCPU)
@@ -55,7 +55,7 @@ def main(iseed):
     elif is_dask==False:
         for l in range(Nspf):
             iseed=iseed+l
-            (provi_result_t1,provi_result_t2)=MLL(iseed,l,verbose_level)
+            (provi_result_t1,provi_result_t2)=MLL(iseed,l)
             results_t1_per_Nspf.append(provi_result_t1)
             results_t2_per_Nspf.append(provi_result_t2)
     # Transpose results_per_Nspf, to get results per walker
@@ -172,7 +172,7 @@ def read_initial_values(inp):
 
     return (is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis)
 
-def MLL(iseed,l,verbose_level):
+def MLL(iseed,lr:
     # open log file to write intermediate information
     if verbose_level>=1:
         f_out = open('%s_%s.log' % (log_name,l), 'w')
@@ -815,7 +815,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 if optimize_KRR_hyperparams == False:
                     min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
                 else:
-                    mini_args=(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,3)
+                    mini_args=(path_x,path_G,iseed,l,w,f_out,None,None,1) # get rmse fitting previous points
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=15,tol=0.01)
                     best_hyperparams = solver.x
@@ -1076,6 +1076,10 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
     real_y=[]
     predicted_y=[]
     counter_split=0
+    if optimize_GPR_hyperparams==True:
+        optimizer_GPR='fmin_l_bfgs_b'
+    else:
+        optimizer_GPR=None
     # CASE1: Calculate error metric
     if mode==1:
         # verbose info
@@ -1083,7 +1087,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
             f_out.write('## Start: "GPR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform GPR\n')
-				f_out.write('Cross_validation: %s\n' % (CV))
+            f_out.write('Cross_validation: %s\n' % (CV))
             f_out.write('Initial GPR_A_RBF %f: \n' % (GPR_A_RBF))
             f_out.write('Initial GPR_noise_level: %f: \n' % (GPR_noise_level))
             f_out.write('-------- \n')
@@ -1110,7 +1114,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
                 #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
                 #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
                 kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
-                GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+                GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
                 y_pred = GPR.fit(X_train_scaled, y_train).predict(X_test_scaled)
                 # add y_test and y_pred values to general real_y and predicted_y
                 for i in range(len(y_test)):
@@ -1172,7 +1176,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
             #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
             #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
             kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
-            GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+            GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
             # scale data
             scaler = preprocessing.StandardScaler().fit(X_train)
             X_train_scaled = scaler.transform(X_train)
@@ -1248,7 +1252,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
         #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
         kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
-        GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+        GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
         y_pred = GPR.fit(X_train_scaled,y_train).predict(X_test_scaled)
         # verbosity info
         if verbose_level>=2: 
@@ -1298,7 +1302,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
 # CALCULATE KRR #
 def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
     # assign hyperparameters
-    KRR_gamma,KRR_alpha = hyperparams
+    KRR_alpha,KRR_gamma = hyperparams
     # initialize values
     iseed=iseed+1
     average_r=0.0
@@ -1307,105 +1311,173 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
     real_y=[]
     predicted_y=[]
     counter_split=0
-    # verbose info
-    if verbose_level>=1: 
-        f_out.write('## Start: "KRR" function \n')
-        f_out.write('-------- \n')
-        f_out.write('Perform KRR\n')
-        f_out.write('Cross_validation %i - fold\n' % (k_fold))
-        f_out.write('KRR alpha %f\n' % (KRR_alpha))
-        f_out.write('KRR gamma %f\n' % (KRR_gamma))
-        f_out.write('KRR kernel %s\n' % (KRR_kernel))
-        f_out.write('-------- \n')
-        f_out.flush()
-    # assign splits for kf and loo
-    if CV=='kf':
-        kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
-        validation=kf.split(X)
-    if CV=='loo':
-        loo = LeaveOneOut()
-        validation=loo.split(X)
-    # For kf and loo
-    if CV=='kf' or CV=='loo':
-        # calculate r and rmse for each split
-        for train_index, test_index in validation:
-            # assign train and test data
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
+    # CASE1: Calculate error metric
+    if mode==1:
+        # verbose info
+        if verbose_level>=1: 
+            f_out.write('## Start: "KRR" function \n')
+            f_out.write('-------- \n')
+            f_out.write('Perform KRR\n')
+            f_out.write('Cross_validation %i - fold\n' % (k_fold))
+            f_out.write('KRR alpha %f\n' % (KRR_alpha))
+            f_out.write('KRR gamma %f\n' % (KRR_gamma))
+            f_out.write('KRR kernel %s\n' % (KRR_kernel))
+            f_out.write('-------- \n')
+            f_out.flush()
+        # assign splits for kf and loo
+        if CV=='kf':
+            kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+            validation=kf.split(X)
+        if CV=='loo':
+            loo = LeaveOneOut()
+            validation=loo.split(X)
+        # For kf and loo
+        if CV=='kf' or CV=='loo':
+            # calculate r and rmse for each split
+            for train_index, test_index in validation:
+                # assign train and test data
+                X_train, X_test = X[train_index], X[test_index]
+                y_train, y_test = y[train_index], y[test_index]
+                # scale data
+                scaler = preprocessing.StandardScaler().fit(X_train)
+                X_train_scaled = scaler.transform(X_train)
+                X_test_scaled = scaler.transform(X_test)
+                # fit KRR with (X_train, y_train), and predict X_test
+                KRR = KernelRidge(alpha=KRR_alpha,kernel=KRR_kernel,gamma=KRR_gamma)
+                y_pred = KRR.fit(X_train_scaled, y_train).predict(X_test_scaled)
+                # add y_test and y_pred values to general real_y and predicted_y
+                for i in range(len(y_test)):
+                    real_y.append(y_test[i])
+                    predicted_y.append(y_pred[i])
+                # if high verbosity, calculate r and rmse at each split. Then print extra info
+                if verbose_level>=2: 
+                    r_pearson,_=pearsonr(y_test,y_pred)
+                    mse = mean_squared_error(y_test, y_pred)
+                    rmse = np.sqrt(mse)
+                    average_r_pearson=average_r_pearson+r_pearson
+                    average_rmse=average_rmse+rmse
+                    f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter_split,r_pearson,rmse))
+                    f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
+                    f_out.write("%i train points: %s \n" % (len(train_index),str(train_index)))
+                    f_out.write('X_train: \n')
+                    f_out.write('%s \n' % (str(X_train)))
+                    f_out.write('y_train: \n')
+                    f_out.write('%s \n' % (str(y_train)))
+                    f_out.write('X_test: \n')
+                    f_out.write('%s \n' % (str(X_test)))
+                    f_out.write('y_test: \n')
+                    f_out.write('%s \n' % (str(y_test)))
+                    f_out.write('Parameters GPR: \n')
+                    f_out.write('%s \n' % (str(KRR.get_params(deep=True))))
+                    f_out.write('X_train_scaled: \n')
+                    f_out.write('%s \n' % (str(X_train_scaled)))
+                    f_out.write('X_test_scaled: \n')
+                    f_out.write('%s \n' % (str(X_test_scaled)))
+                    f_out.write('y_test: \n')
+                    f_out.write('%s \n' % (str(y_test)))
+                    f_out.write('y_pred: \n')
+                    f_out.write('%s \n' % (str(y_pred)))
+                    f_out.flush()
+                counter_split=counter_split+1
+            # verbosity for average of splits
+            if verbose_level>=2: 
+                average_r_pearson=average_r_pearson/counter_split
+                average_rmse=average_rmse/counter_split
+                f_out.write('Splits average r_pearson score: %f \n' % (average_r_pearson))
+                f_out.write('Splits average rmse score: %f \n' % (average_rmse))
+            # calculate final r and rmse
+            total_r_pearson,_ = pearsonr(real_y,predicted_y)
+            total_mse = mean_squared_error(real_y, predicted_y)
+            total_rmse = np.sqrt(total_mse)
+        # For data sorted from old to new
+        elif CV=='sort':
+            # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
+            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
             # scale data
             scaler = preprocessing.StandardScaler().fit(X_train)
             X_train_scaled = scaler.transform(X_train)
             X_test_scaled = scaler.transform(X_test)
             # fit KRR with (X_train, y_train), and predict X_test
             KRR = KernelRidge(alpha=KRR_alpha,kernel=KRR_kernel,gamma=KRR_gamma)
-            y_pred = KRR.fit(X_train, y_train).predict(X_test)
-            # add y_test and y_pred values to general real_y and predicted_y
-            for i in range(len(y_test)):
-                real_y.append(y_test[i])
-                predicted_y.append(y_pred[i])
-            # if high verbosity, calculate r and rmse at each split. Then print extra info
-            if verbose_level>=2: 
-                r_pearson,_=pearsonr(y_test,y_pred)
-                mse = mean_squared_error(y_test, y_pred)
-                rmse = np.sqrt(mse)
-                average_r_pearson=average_r_pearson+r_pearson
-                average_rmse=average_rmse+rmse
-                f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter_split,r_pearson,rmse))
-                f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
-                f_out.write("%i train points: %s \n" % (len(train_index),str(train_index)))
-                f_out.write('X_train: \n')
-                f_out.write('%s \n' % (str(X_train)))
-                f_out.write('y_train: \n')
-                f_out.write('%s \n' % (str(y_train)))
-                f_out.write('X_test: \n')
-                f_out.write('%s \n' % (str(X_test)))
-                f_out.write('y_test: \n')
-                f_out.write('%s \n' % (str(y_test)))
-                f_out.write('Parameters GPR: \n')
-                f_out.write('%s \n' % (str(KRR.get_params(deep=True))))
-                f_out.write('X_train_scaled: \n')
-                f_out.write('%s \n' % (str(X_train_scaled)))
-                f_out.write('X_test_scaled: \n')
-                f_out.write('%s \n' % (str(X_test_scaled)))
-                f_out.write('y_test: \n')
-                f_out.write('%s \n' % (str(y_test)))
-                f_out.write('y_pred: \n')
-                f_out.write('%s \n' % (str(y_pred)))
-                f_out.flush()
-            counter_split=counter_split+1
-        # verbosity for average of splits
-        if verbose_level>=2: 
-            average_r_pearson=average_r_pearson/counter_split
-            average_rmse=average_rmse/counter_split
-            f_out.write('Splits average r_pearson score: %f \n' % (average_r_pearson))
-            f_out.write('Splits average rmse score: %f \n' % (average_rmse))
-        # calculate final r and rmse
-        total_r_pearson,_ = pearsonr(real_y,predicted_y)
-        total_mse = mean_squared_error(real_y, predicted_y)
-        total_rmse = np.sqrt(total_mse)
-    # For data sorted from old to new
-    elif CV=='sort':
-        # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
-        X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
-        # fit KRR with (X_train, y_train), and predict X_test
+            y_pred = KRR.fit(X_train_scaled, y_train).predict(X_test_scaled)
+            # calculate final r and rmse
+            total_r_pearson,_=pearsonr(y_test,y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+            total_rmse = np.sqrt(mse)
+            # print verbose info
+            if  verbose_level>=2: 
+                f_out.write("Train with first %i points \n" % (len(X_train)))
+                f_out.write("%s \n" % (str(X_train)))
+                f_out.write("Test with last %i points \n" % (len(X_test)))
+                f_out.write("%s \n" % (str(X_test)))
+                f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
+        # Print last verbose info for KRR
+        if verbose_level>=1: 
+            f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson, total_rmse))
+            f_out.flush()
+        if error_metric=='rmse': result=total_rmse
+    # CASE 2: Predict minimum
+    if mode==2:
+        # initialize values
+        real_y=[]
+        predicted_y=[]
+        result = []
+        # verbose info
+        if verbose_level>=1:
+            f_out.write('## Start: "KRR" function \n')
+            f_out.write('-------- \n')
+            f_out.write('Perform KRR\n')
+            f_out.write('Cross_validation %i - fold\n' % (k_fold))
+            f_out.write('KRR alpha %f\n' % (KRR_alpha))
+            f_out.write('KRR gamma %f\n' % (KRR_gamma))
+            f_out.write('KRR kernel %s\n' % (KRR_kernel))
+            f_out.write('-------- \n')
+            f_out.flush()
+        # assign train and data tests
+        X_train, X_test = Xtr, X
+        y_train, y_test = ytr, y
+        # scale data
+        scaler = preprocessing.StandardScaler().fit(X_train)
+        X_train_scaled = scaler.transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        # fit GPR with (X_train_scaled, y_train) and predict X_test_scaled
         KRR = KernelRidge(alpha=KRR_alpha,kernel=KRR_kernel,gamma=KRR_gamma)
-        y_pred = KRR.fit(X_train, y_train).predict(X_test)
-        # calculate final r and rmse
-        total_r_pearson,_=pearsonr(y_test,y_pred)
-        mse = mean_squared_error(y_test, y_pred)
-        total_rmse = np.sqrt(mse)
-        # print verbose info
-        if  verbose_level>=2: 
-            f_out.write("Train with first %i points \n" % (len(X_train)))
-            f_out.write("%s \n" % (str(X_train)))
-            f_out.write("Test with last %i points \n" % (len(X_test)))
-            f_out.write("%s \n" % (str(X_test)))
-            f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
-    # Print last verbose info for KRR
-    if verbose_level>=1: 
-        f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson, total_rmse))
-        f_out.flush()
-    if error_metric=='rmse': result=total_rmse
+        y_pred = KRR.fit(X_train_scaled, y_train).predict(X_test_scaled)
+        # verbosity info
+        if verbose_level>=2:
+            f_out.write('X_train: \n')
+            f_out.write('%s \n' % (str(X_train)))
+            f_out.write('y_train: \n')
+            f_out.write('%s \n' % (str(y_train)))
+            f_out.write('X_test: \n')
+            f_out.write('%s \n' % (str(X_test)))
+            f_out.write('y_test: \n')
+            f_out.write('%s \n' % (str(y_test)))
+            f_out.write('Parameters GPR: \n')
+            f_out.write('%s \n' % (str(KRR.get_params(deep=True))))
+            f_out.write('X_train_scaled: \n')
+            f_out.write('%s \n' % (str(X_train_scaled)))
+            f_out.write('X_test_scaled: \n')
+            f_out.write('%s \n' % (str(X_test_scaled)))
+            f_out.write('y_test: \n')
+            f_out.write('%s \n' % (str(y_test)))
+            f_out.write('y_pred: \n')
+            f_out.write('%s \n' % (str(y_pred)))
+            f_out.flush()
+        # add y_test and y_pred values to general real_y and predicted_y
+        for i in range(len(y_test)):
+            real_y.append(y_test[i])
+            predicted_y.append(y_pred[i])
+        # calculate index of minimum predicted value
+        min_index = predicted_y.index(min(predicted_y))
+        # print verbosity
+        if verbose_level>=2:
+            f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
+            f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
+        # add predicted value to result
+        for j in range(param):
+            result.append(X_test[min_index][j])
+        result.append(min(predicted_y))
     return result
 
 # PLOT #
