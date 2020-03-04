@@ -112,7 +112,7 @@ def read_initial_values(inp):
     # assign input variables    
     is_dask = ast.literal_eval(var_value[var_name.index('is_dask')])
     NCPU = ast.literal_eval(var_value[var_name.index('NCPU')])
-    verbose_level = ast.literal_eval(var_value[var_name.index('verbose_level')])
+    verbosity_level = ast.literal_eval(var_value[var_name.index('verbosity_level')])
     log_name = ast.literal_eval(var_value[var_name.index('log_name')])
     Nspf = ast.literal_eval(var_value[var_name.index('Nspf')])
     S = ast.literal_eval(var_value[var_name.index('S')])
@@ -170,11 +170,11 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis)
+    return (is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis)
 
 def MLL(iseed,lr:
     # open log file to write intermediate information
-    if verbose_level>=1:
+    if verbosity_level>=1:
         f_out = open('%s_%s.log' % (log_name,l), 'w')
     else:
         f_out=None
@@ -204,9 +204,9 @@ def MLL(iseed,lr:
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=15,tol=0.01)
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
-                    if verbose_level>=1: f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
-                    if verbose_level>=1: f_out.write("Best rmse: %f \n"  %best_rmse)
-                    if verbose_level>=1: f_out.flush()
+                    if verbosity_level>=1: f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
+                    if verbosity_level>=1: f_out.write("Best rmse: %f \n"  %best_rmse)
+                    if verbosity_level>=1: f_out.flush()
                     error_metric_result = best_rmse
             error_metric_list.append(error_metric_result)
             result1 = error_metric_list
@@ -229,7 +229,7 @@ def MLL(iseed,lr:
                         counter_k=counter_k+1
                         if counter_k==param-1:
                             k_in_grid=new_k_in_grid[0][0][i]
-            if verbose_level>=2: 
+            if verbosity_level>=2: 
                 f_out.write("new value of k_in_grid is: %i\n" %(k_in_grid))
                 f_out.flush()
             # calculate real value of predicted coordinates
@@ -241,7 +241,7 @@ def MLL(iseed,lr:
             MLgain_pred = ( min(y2a) - min(y2b))/abs(min(y2a))
             MLgain_real = ( min(y2a) - y_real)/abs(min(y2a))
             # Print t2 exploration results
-            if verbose_level>=1: 
+            if verbosity_level>=1: 
                 f_out.write("################ \n")
                 f_out.write("## Initial random exploration: \n")
                 f_out.write("t0 = %i \n" %(t0_time))
@@ -284,12 +284,12 @@ def MLL(iseed,lr:
             ML_benefits.append(MLgain_pred)
             ML_benefits.append(MLgain_real)
             ML_benefits.append(error_ML)
-            if verbose_level>=1: 
+            if verbosity_level>=1: 
                 f_out.write("For each Nwalker: %s\n" %(str(ML_benefits)))
                 f_out.flush()
             ML_benefits_list.append(ML_benefits)
             result2=ML_benefits_list
-    if verbose_level>=1: 
+    if verbosity_level>=1: 
         f_out.write("I am returning these values: %s, %s\n" %(str(result1), str(result2)))
         f_out.close()
     return (result1, result2)
@@ -300,12 +300,12 @@ def generate_grid(iseed,l,f_out):
     width_N        = [[] for i in range(N)]
     dim_list       = [[] for i in range(param)]
     G_list         = []
-    if verbose_level>=1: 
+    if verbosity_level>=1: 
         f_out.write('## Start: "generate_grid" function \n')
         f_out.write("########################### \n")
         f_out.write("##### Landscape', %i '##### \n" % (l))
         f_out.write("########################### \n")
-        f_out.write("%s %i %s %6.2f \n" % ('Generated with seed:', iseed, ', and grid_max:', grid_max))
+        f_out.write("%s %i %s %6.2f \n" % ('Initial seed:', iseed, '. Verbosity level:', verbosity_level))
         f_out.flush()
     # ASSIGN GAUSSIAN VALUES #
     for i in range(N):
@@ -323,7 +323,7 @@ def generate_grid(iseed,l,f_out):
             iseed=iseed+1
             random.seed(iseed)
             width_N[i].append(random.uniform(width_min,width_max))
-    if verbose_level>=2:
+    if verbosity_level>=2:
         f_out.write("%4s %14s %22s %34s \n" % ("N","Amplitude","Center","Width"))
         for i in range(len(Amplitude)):
             line1 = []
@@ -335,7 +335,7 @@ def generate_grid(iseed,l,f_out):
         f_out.flush()
     # CALCULATE G GRID #
     counter=0
-    if verbose_level>=2: f_out.write("%8s %11s %15s \n" % ("i","x","G"))
+    if verbosity_level>=2: f_out.write("%8s %11s %15s \n" % ("i","x","G"))
     Nlen=(round(int((grid_max-grid_min)/(grid_Delta)+1)))
     for index_i in itertools.product(range(Nlen), repeat=param):
         for j in range(param):
@@ -351,7 +351,7 @@ def generate_grid(iseed,l,f_out):
         for j in range(param):
             line.append((dim_list[j][counter]))
         line.append(G_list[counter])
-        if verbose_level>=2: 
+        if verbosity_level>=2: 
             f_out.write("%8i %2s %s \n" % (counter,"",str(line)))
             f_out.flush()
         counter=counter+1
@@ -359,7 +359,7 @@ def generate_grid(iseed,l,f_out):
     Ngrid=int((grid_max/grid_Delta+1)**param)   # calculate number of grid points
     max_G=max(G_list)
     min_G=min(G_list)
-    if verbose_level>=1:
+    if verbosity_level>=1:
         max_G_index=int(np.where(G_list == np.max(G_list))[0])
         min_G_index=int(np.where(G_list == np.min(G_list))[0])
         f_out.write("Number of grid points: %i \n" %Ngrid)
@@ -400,7 +400,7 @@ def check_input_values():
     if CV not in allowed_CV:
         print ('INPUT ERROR: ML needs to be in',allowed_CV, ', but is:', CV)
         sys.exit()
-    if verbose_level not in allowed_verbosity_level:
+    if verbosity_level not in allowed_verbosity_level:
         print ('INPUT ERROR: verbosity_level needs to be in',allowed_verbosity_level, ', but is:', verbosity_level)
     if t2_ML not in allowed_t2_ML:
         print ('INPUT ERROR: ML needs to be in',allowed_t2_ML, ', but is:', t2_ML)
@@ -421,7 +421,7 @@ def check_input_values():
     print('is_dask =',is_dask,flush=True)
     print('NCPU',NCPU,flush=True)
     print('### Verbose ###',flush=True)
-    print('verbose_level =',verbose_level,flush=True)
+    print('verbosity_level =',verbosity_level,flush=True)
     print('allowed_verbosity_level =',allowed_verbosity_level,flush=True)
     print('log_name',log_name,flush=True)
     print('### Landscape parameters ###',flush=True)
@@ -511,7 +511,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     P=int(round(d_threshold/grid_Delta + 1))
     Nx=((grid_max-grid_min)/grid_Delta)+1
     # print header
-    if verbose_level>=1: 
+    if verbosity_level>=1: 
         f_out.write('## Start: "explore_landscape" function \n')
         f_out.write("############# \n")
         f_out.write("Start explorer %i \n" % (w))
@@ -541,7 +541,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
         path_G.append(G_list[num_in_grid])
         list_t.append(t)
 
-        if verbose_level>=1:
+        if verbosity_level>=1:
             line = []
             for j in range(param):
                 line.append((walker_x[j]))
@@ -566,7 +566,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             walker_x.append(Xi[-1][i])
     ### Perform t1 and t2 standard exploration ###
     if ML_explore == False:
-        if verbose_level>=1: 
+        if verbosity_level>=1: 
             f_out.write("## Start random biased exploration\n" %())
             f_out.flush()
         for t in range(t_ini,t_fin):
@@ -589,7 +589,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             draw_in_grid=G_list.index(minimum_path_G[draw])
             draw_in_grid_list=[i for i, e in enumerate(G_list) if e == minimum_path_G[draw] ]
             # Verbosity
-            if verbose_level>=2:
+            if verbosity_level>=2:
                 f_out.write("Special points: %i \n" % (special_points))
                 for i in range(special_points):
                     line = []
@@ -652,7 +652,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                             neighbor_G[counter3]=G_list[index[param]]
                             prob[counter3]=1.0
                             prob_sum=prob_sum+prob[counter3]
-                    if verbose_level>=2:
+                    if verbosity_level>=2:
                         line = []
                         for j in range(param):
                             line.append((dim_list[j][index[j]]))
@@ -671,7 +671,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             if len(range((P*2+1)**param)) != len(prob):
                 print("STOP - ERROR: Problem with number of nearby points considered for next step",flush=True)
                 sys.exit()
-            if verbose_level>=2: 
+            if verbosity_level>=2: 
                 f_out.write("Number of points considered: %i \n" % (len(range((P*2+1)**param))))
                 f_out.write("Points within threshold: %f \n" % int(round((prob_sum))))
                 f_out.flush()
@@ -687,10 +687,10 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             path_G.append(neighbor_G[draw])
             list_t.append(t)
             # verbosity
-            if verbose_level>=2: 
+            if verbosity_level>=2: 
                 f_out.write("We draw neighbor no.: %6i\n" % (draw))
                 f_out.flush()
-            if verbose_level>=1:
+            if verbosity_level>=1:
                 line = []
                 for j in range(param):
                     line.append(walker_x[j])
@@ -709,7 +709,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             # initialize values
             x_bubble=[[] for j in range(param)]
             y_bubble=[]
-            if verbose_level>=1: 
+            if verbosity_level>=1: 
                 f_out.write("## Start ML Exploration\n" %())
                 f_out.flush()
             # For each point in Xi
@@ -731,7 +731,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                             counter_k=counter_k+1
                             if counter_k==param-1:
                                 k_in_grid=new_k_in_grid[0][0][i]
-                if verbose_level>=2: 
+                if verbosity_level>=2: 
                     f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
                     f_out.flush()
                 #######################
@@ -743,7 +743,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         neighbor_walker[j].append(0.0)
                 # Check points within threshold
                 ####### for any param #######
-                if verbose_level>=2:
+                if verbosity_level>=2:
                     line = []
                     for j in range(param):
                         line.append((path_x[j][k]))
@@ -788,7 +788,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                             for j in range(param):
                                 x_bubble[j].append(neighbor_walker[j][counter3])
                             y_bubble.append(neighbor_G[counter3])
-                        if verbose_level>=2:
+                        if verbosity_level>=2:
                             line = []
                             for j in range(param):
                                 line.append((dim_list[j][index[j]]))
@@ -799,7 +799,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         pass
                     counter3=counter3+1
                 #############################
-            if verbose_level>=2:
+            if verbosity_level>=2:
                 for j in range(param):
                     f_out.write("x_bubble[%i]: %s\n" %(j,str(x_bubble[j])))
                 f_out.flush()
@@ -820,14 +820,14 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=15,tol=0.01)
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
-                    if verbose_level>=1: 
+                    if verbosity_level>=1: 
                         f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
                         f_out.write("Best rmse: %f \n" %best_rmse)
                         f_out.flush()
                     hyperparams=[best_hyperparams[0],best_hyperparams[1]]
                     min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
             # print x_bubble corresponding to min(y_bubble)
-            if verbose_level>=1: 
+            if verbosity_level>=1: 
                 f_out.write("## At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
                 f_out.flush()
             # prepare for next timestep
@@ -855,7 +855,7 @@ def create_X_and_y(f_out,x_param,y):
     X=df_X.to_numpy()
     y=df_y.to_numpy()
 
-    if verbose_level>=1: 
+    if verbosity_level>=1: 
         f_out.write("## Unique points: %i\n" % (len(y)))
         f_out.write("## X: \n")
         f_out.write("%s \n" % (str(X)))
@@ -866,10 +866,18 @@ def create_X_and_y(f_out,x_param,y):
 
 # CALCULATE k-NN #
 def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
+    # initialize values
     iseed=iseed+1
-    # Calculate rmse metric
+    average_r=0.0
+    average_r_pearson=0.0
+    average_rmse=0.0
+    real_y=[]
+    predicted_y=[]
+    counter_split=0
+    # CASE1: Calculate error metric
     if mode==1:
-        if verbose_level>=1: 
+        # verbose info
+        if verbosity_level>=1: 
             f_out.write('## Start: "kNN" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform k-NN \n')
@@ -879,72 +887,87 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
             f_out.write('iseed %s \n' % (iseed))
             f_out.write('-------- \n')
             f_out.flush()
-    
-        kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
-        n_neighbors = n_neighbor
-        average_r=0.0
-        average_r_pearson=0.0
-        average_rmse=0.0
+        # assign splits to kf or and loo
         if CV=='kf':
             kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
             validation=kf.split(X)
         if CV=='loo':
             loo = LeaveOneOut()
             validation=loo.split(X)
+        # For kf and loo
         if CV=='kf' or CV=='loo':
-            counter=0
-            real_y=[]
-            predicted_y=[]
+            # calculate r and rmse for each split
             for train_index, test_index in validation:
+                # assign train and test data
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
-                knn = neighbors.KNeighborsRegressor(n_neighbors, weights=weights)
+                # scale data
+                scaler = preprocessing.StandardScaler().fit(X_train)
+                X_train_scaled = scaler.transform(X_train)
+                X_test_scaled = scaler.transform(X_test)
+                # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
+                knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
                 y_pred = knn.fit(X_train, y_train).predict(X_test)
+                # add y_test and y_pred values to general real_y and predicted_y
                 for i in range(len(y_test)):
-                    #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
                     real_y.append(y_test[i])
-                for i in range(len(y_pred)):
-                    #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
-                    predicted_y.append(y_pred[i]) #
-                if CV=='kf':
+                    predicted_y.append(y_pred[i])
+                # if high verbosity, calculate r and rmse at each split. Then print extra info
+                if verbosity_level>=2:
                     r_pearson,_=pearsonr(y_test,y_pred)
                     mse = mean_squared_error(y_test, y_pred)
                     rmse = np.sqrt(mse)
-                    if verbose_level>=2: 
-                        f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
-                        f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
-                    counter=counter+1
                     average_r_pearson=average_r_pearson+r_pearson
                     average_rmse=average_rmse+rmse
-            if CV=='kf':
-                average_r_pearson=average_r_pearson/k_fold
-                average_rmse=average_rmse/k_fold
-                if verbose_level>=2: 
-                    f_out.write('k-fold average r_pearson score: %f \n' % (average_r_pearson))
-                    f_out.write('k-fold average rmse score: %f \n' % (average_rmse))
+                    f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter_split,r_pearson,rmse))
+                    f_out.write("%i test points: %s \n"  % (len(test_index), str(test_index)))
+                    f_out.write("%i train points: %s \n" % (len(train_index),str(train_index)))
+                    f_out.flush()
+                counter_split=counter_split+1
+            # verbosity for average of splits
+            if verbosity_level>=2:
+                average_r_pearson=average_r_pearson/counter_split
+                average_rmse=average_rmse/counter_split
+                f_out.write('Splits average r_pearson score: %f \n' % (average_r_pearson))
+                f_out.write('Splits average rmse score: %f \n' % (average_rmse))
+            # calculate final r and rmse
             total_r_pearson,_ = pearsonr(real_y,predicted_y)
             total_mse = mean_squared_error(real_y, predicted_y)
             total_rmse = np.sqrt(total_mse)
+        # For data sorted from old to new
         elif CV=='sort':
+            # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
             X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
-            knn = neighbors.KNeighborsRegressor(n_neighbors, weights=weights)
+            # scale data
+            scaler = preprocessing.StandardScaler().fit(X_train)
+            X_train_scaled = scaler.transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
+            # fit kNN with (X_train, y_train), and predict X_test
+            knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
             y_pred = knn.fit(X_train, y_train).predict(X_test)
+            # calculate final r and rmse
             total_r_pearson,_=pearsonr(y_test,y_pred)
             mse = mean_squared_error(y_test, y_pred)
             total_rmse = np.sqrt(mse)
-            if verbose_level>=1: 
+            # print verbose info
+            if verbosity_level>=2:
                 f_out.write("Train with first %i points \n" % (len(X_train)))
                 f_out.write("%s \n" % (str(X_train)))
                 f_out.write("Test with last %i points \n" % (len(X_test)))
                 f_out.write("%s \n" % (str(X_test)))
                 f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
-        if verbose_level>=1: 
-            f_out.write('Final r_pearson score: %f \n' % (total_r_pearson))
-            f_out.write('Final rmse score: %f \n' % (total_rmse))
+        # Print last verbose info for kNN
+        if verbosity_level>=1:
+            f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson,total_rmse))
             f_out.flush()
         if error_metric=='rmse': result=total_rmse
     elif mode==2:
-        if verbose_level>=1: 
+        # initialize values
+        real_y=[]
+        predicted_y=[]
+        result = []
+        # verbose info
+        if verbosity_level>=1:
             f_out.write('## Start: "kNN" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform k-NN \n')
@@ -953,32 +976,33 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
             f_out.write('iseed %s \n' % (iseed))
             f_out.write('-------- \n')
             f_out.flush()
-    
-        n_neighbors = n_neighbor
+        # assign train and test data
         X_train, X_test = Xtr, X
         y_train, y_test = ytr, y
-        real_y=[]
-        predicted_y=[]
-        result = []
-        if verbose_level>=2: 
+        # scale data
+        scaler = preprocessing.StandardScaler().fit(X_train)
+        X_train_scaled = scaler.transform(X_train)
+        X_test_scaled = scaler.transform(X_test)        
+        # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
+        knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
+        knn.fit(X_train_scaled, y_train).predict(X_test_scaled)
+        # verbosity info
+        if verbosity_level>=2: 
             f_out.write("X_train: %s\n" %(str(X_train)))
             f_out.write("y_train: %s\n" %(str(y_train)))
             f_out.write("X_test: %s\n" %(str(X_test)))
             f_out.write("y_test: %s\n" %(str(y_test)))
-
-        knn = neighbors.KNeighborsRegressor(n_neighbors, weights=weights)
-        #y_pred = knn.fit(X_train, y_train).predict(X_test)
-        knn.fit(X_train, y_train)
-        y_pred=knn.predict(X_test)
+        # add y_test and y_pred values to general real_y and predicted_y
         for i in range(len(y_test)):
-            #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
             real_y.append(y_test[i])
-        for i in range(len(y_pred)):
-            #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
-            predicted_y.append(y_pred[i]) #
+            predicted_y.append(y_pred[i])
+        # calculate index of minimum predicted value
         min_index = predicted_y.index(min(predicted_y))
-        if verbose_level>=2: f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
-        if verbose_level>=2: f_out.write("At index %i, 'real' minimum value: %f\n" %(min_index, min(real_y)))
+        # print verbosity
+        if verbosity_level>=2: 
+            f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
+            f_out.write("At index %i, 'real' minimum value: %f\n" %(min_index, min(real_y)))
+         # add predicted value to result
         for j in range(param):
             result.append(X_test[min_index][j])
         result.append(min(predicted_y))
@@ -987,7 +1011,7 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
 # CALCULATE GBR #
 def GBR(X,y,iseed,l,w,f_out):
     iseed=iseed+1
-    if verbose_level>=1: 
+    if verbosity_level>=1: 
         f_out.write('## Start: "GBR" function \n')
         f_out.write('-------- \n')
         f_out.write('Perform GBR\n')
@@ -1030,7 +1054,7 @@ def GBR(X,y,iseed,l,w,f_out):
                 r_pearson,_=pearsonr(y_test,y_pred)
                 mse = mean_squared_error(y_test, y_pred)
                 rmse = np.sqrt(mse)
-                if verbose_level>=2: 
+                if verbosity_level>=2: 
                     f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
                     f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
                 counter=counter+1
@@ -1039,7 +1063,7 @@ def GBR(X,y,iseed,l,w,f_out):
         if CV=='kf':
             average_r_pearson=average_r_pearson/k_fold
             average_rmse=average_rmse/k_fold
-            if verbose_level>=2: 
+            if verbosity_level>=2: 
                 f_out.write('k-fold average r_pearson score: %f \n' % (average_r_pearson))
                 f_out.write('k-fold average rmse score: %f \n' % (average_rmse))
         total_r_pearson,_ = pearsonr(real_y,predicted_y)
@@ -1052,13 +1076,13 @@ def GBR(X,y,iseed,l,w,f_out):
         total_r_pearson,_=pearsonr(y_test,y_pred)
         mse = mean_squared_error(y_test, y_pred)
         total_rmse = np.sqrt(mse)
-        if  verbose_level>=1: 
+        if  verbosity_level>=1: 
             f_out.write("Train with first %i points \n" % (len(X_train)))
             f_out.write("%s \n" % (str(X_train)))
             f_out.write("Test with last %i points \n" % (len(X_test)))
             f_out.write("%s \n" % (str(X_test)))
             f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
-    if verbose_level>=1: 
+    if verbosity_level>=1: 
         f_out.write('Final r_pearson score: %f \n' % (total_r_pearson))
         f_out.write('Final rmse score: %f \n' % (total_rmse))
         f_out.flush()
@@ -1083,7 +1107,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
     # CASE1: Calculate error metric
     if mode==1:
         # verbose info
-        if verbose_level>=1: 
+        if verbosity_level>=1: 
             f_out.write('## Start: "GPR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform GPR\n')
@@ -1121,7 +1145,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
                     real_y.append(y_test[i])
                     predicted_y.append(y_pred[i])
                 # if high verbosity, calculate r and rmse at each split. Then print extra info
-                if verbose_level>=2: 
+                if verbosity_level>=2: 
                     r_pearson,_=pearsonr(y_test,y_pred)
                     mse = mean_squared_error(y_test, y_pred)
                     rmse = np.sqrt(mse)
@@ -1159,7 +1183,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
                     f_out.flush()
                 counter_split=counter_split+1
             # verbosity for average of splits
-            if verbose_level>=2: 
+            if verbosity_level>=2: 
                 average_r_pearson=average_r_pearson/counter_split
                 average_rmse=average_rmse/counter_split
                 f_out.write('Splits average r_pearson score: %f \n' % (average_r_pearson))
@@ -1187,7 +1211,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
             mse = mean_squared_error(y_test, y_pred)
             total_rmse = np.sqrt(mse)
             # print verbose info
-            if verbose_level>=2: 
+            if verbosity_level>=2: 
                 f_out.write("Train with first %i points \n" % (len(X_train)))
                 f_out.write("%s \n" % (str(X_train)))
                 f_out.write("Test with last %i points \n" % (len(X_test)))
@@ -1221,7 +1245,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
                 f_out.write('%s \n' % (str(y_pred)))
                 f_out.flush()
         # Print last verbose infor for GPR
-        if verbose_level>=1: 
+        if verbosity_level>=1: 
             f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson,total_rmse))
             f_out.flush()
         if error_metric=='rmse': result=total_rmse
@@ -1232,7 +1256,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         predicted_y=[]
         result = []
         # verbose info
-        if verbose_level>=1: 
+        if verbosity_level>=1: 
             f_out.write('## Start: "GPR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform GPR\n')
@@ -1255,7 +1279,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
         y_pred = GPR.fit(X_train_scaled,y_train).predict(X_test_scaled)
         # verbosity info
-        if verbose_level>=2: 
+        if verbosity_level>=2: 
             f_out.write('X_train: \n')
             f_out.write('%s \n' % (str(X_train)))
             f_out.write('y_train: \n')
@@ -1290,7 +1314,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         # calculate index of minimum predicted value
         min_index = predicted_y.index(min(predicted_y))
         # print verbosity
-        if verbose_level>=2: 
+        if verbosity_level>=2: 
             f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
             f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
         # add predicted value to result
@@ -1314,7 +1338,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
     # CASE1: Calculate error metric
     if mode==1:
         # verbose info
-        if verbose_level>=1: 
+        if verbosity_level>=1: 
             f_out.write('## Start: "KRR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform KRR\n')
@@ -1350,7 +1374,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
                     real_y.append(y_test[i])
                     predicted_y.append(y_pred[i])
                 # if high verbosity, calculate r and rmse at each split. Then print extra info
-                if verbose_level>=2: 
+                if verbosity_level>=2: 
                     r_pearson,_=pearsonr(y_test,y_pred)
                     mse = mean_squared_error(y_test, y_pred)
                     rmse = np.sqrt(mse)
@@ -1380,7 +1404,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
                     f_out.flush()
                 counter_split=counter_split+1
             # verbosity for average of splits
-            if verbose_level>=2: 
+            if verbosity_level>=2: 
                 average_r_pearson=average_r_pearson/counter_split
                 average_rmse=average_rmse/counter_split
                 f_out.write('Splits average r_pearson score: %f \n' % (average_r_pearson))
@@ -1405,14 +1429,14 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
             mse = mean_squared_error(y_test, y_pred)
             total_rmse = np.sqrt(mse)
             # print verbose info
-            if  verbose_level>=2: 
+            if  verbosity_level>=2: 
                 f_out.write("Train with first %i points \n" % (len(X_train)))
                 f_out.write("%s \n" % (str(X_train)))
                 f_out.write("Test with last %i points \n" % (len(X_test)))
                 f_out.write("%s \n" % (str(X_test)))
                 f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
         # Print last verbose info for KRR
-        if verbose_level>=1: 
+        if verbosity_level>=1: 
             f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson, total_rmse))
             f_out.flush()
         if error_metric=='rmse': result=total_rmse
@@ -1423,7 +1447,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         predicted_y=[]
         result = []
         # verbose info
-        if verbose_level>=1:
+        if verbosity_level>=1:
             f_out.write('## Start: "KRR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform KRR\n')
@@ -1444,7 +1468,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         KRR = KernelRidge(alpha=KRR_alpha,kernel=KRR_kernel,gamma=KRR_gamma)
         y_pred = KRR.fit(X_train_scaled, y_train).predict(X_test_scaled)
         # verbosity info
-        if verbose_level>=2:
+        if verbosity_level>=2:
             f_out.write('X_train: \n')
             f_out.write('%s \n' % (str(X_train)))
             f_out.write('y_train: \n')
@@ -1471,7 +1495,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         # calculate index of minimum predicted value
         min_index = predicted_y.index(min(predicted_y))
         # print verbosity
-        if verbose_level>=2:
+        if verbosity_level>=2:
             f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
             f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
         # add predicted value to result
@@ -1508,7 +1532,7 @@ def plot(flag,final_result_T):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(is_dask,NCPU,verbose_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis) = read_initial_values(input_file_name)
+(is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis) = read_initial_values(input_file_name)
 # Run main program
 main(iseed)
 # Measure and print final time
