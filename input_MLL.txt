@@ -3,30 +3,30 @@
 #################################################
 ### Parallel Computing ##########################
 is_dask = True	                                 # Decide if dask is used
-NCPU    = 20    	                              # Choose number of CPUs used by dask
+NCPU    = 10    	                              # Choose number of CPUs used by dask
 ### Verbose #####################################
 verbosity_level = 1                             # Level of verbosity to print at 'log_name' file (Recommended:1)
 allowed_verbosity_level=[0,1,2]   					# possible values of verbosity
 log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.log' is added automatically
 ### Landscape parameters ########################
-Nspf=20                                         # Number of different landscapes generate
-S=0.20                                          # Smoothness - minimum width of Gaussian functions
+Nspf=100                                        # Number of different landscapes generate
+S=0.10                                          # Smoothness - minimum width of Gaussian functions
 iseed=None 		                                 # Seed for random number to generate landscape. Default: None
-param=2                                         # Number of descriptors
+param=3                                         # Number of descriptors
 center_min=0.00                                 # Minimum value for center of each Gaussian in each DOF
 center_max=1.00                                 # Maximum value for center of each Gaussian in each DOF
 ### Grid parameters #############################
 grid_min=0.00                                   # Start point of grid in each DOF
 grid_max=1.00                                   # End point of grid in each DOF
-grid_Delta=0.01                                 # Increment of grid in each DOF
+grid_Delta=0.01                                # Increment of grid in each DOF
 #################################################
 # t1 exploration parameters
 #################################################
 Nwalkers = 2                                    # Number of walkers per landscape
 adven = [10,100]								         # percentage of special points per walker
-t0_time = 5 		                              # Number of initial unbiased steps
-t1_time = 10                                    # Number of time steps for the walker
-d_threshold = 0.10                              # Threshold maximum distance that at each time step
+t0_time = 100 		                              # Number of initial unbiased steps
+t1_time = 1000                                  # Number of time steps for the walker
+d_threshold = 0.05                              # Threshold maximum distance that at each time step
 initial_sampling = 'different'                  # Initial points in a grid for different walkers
 allowed_initial_sampling = ['same','different'] # possible values of 'initial_sampling'
 #################################################
@@ -35,22 +35,23 @@ allowed_initial_sampling = ['same','different'] # possible values of 'initial_sa
 t1_analysis = True                              # Whether t1 analysis is performed
 error_metric='rmse'                             # Choose which error metric to analyze
 allowed_error_metric=[None,'rmse']              # possible error metrics to analyze
-ML='KRR'                                        # Choose what ML algorithm is used
+ML='GPR'                                        # Choose what ML algorithm is used
 allowed_ML=[None,'kNN','GBR','GPR','KRR']       # possible ML algorithms
-CV='kf'                                         # Choose cross-validation: 'kf' or 'loo' or 'sort'
-allowed_CV=['kf','loo','sort']                  # possible types of cross-correlation
-k_fold=10                                       # If CV='kf': number of folds for k-fold cross validation
-test_last_percentage=0.1                        # If CV='sort': percentage of last points chosen as test
 #################################################
 # t2 exploration parameters
 #################################################
-t2_exploration = False                          # Whether t2 exploration is performed
-t2_time = 5                                     # Number of time steps for the walker
+t2_exploration = True                           # Whether t2 exploration is performed
+t2_time = 100                                   # Number of time steps for the walker
 t2_ML = 'GPR'												# Choose what ML algorithm is used
 allowed_t2_ML = [None,'kNN','GBR','GPR','KRR']  # possible ML algorithms
 #################################################
 # Machine Learning parameters
 #################################################
+### Cross-validation ############################
+CV='kf'                                         # Choose cross-validation: 'kf' or 'loo' or 'sort'
+allowed_CV=['kf','loo','sort']                  # possible types of cross-correlation
+k_fold=10                                       # If CV='kf': number of folds for k-fold cross validation
+test_last_percentage=0.1                        # If CV='sort': percentage of last points chosen as test
 ### k-Nearest Neighbors ('kNN') #################
 n_neighbor=3                                    # Number of nearest neighbors consider for kNN regression
 weights='distance'                              # Type of weight used in kNN regression

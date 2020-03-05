@@ -149,6 +149,7 @@ def read_initial_values(inp):
     KRR_kernel = ast.literal_eval(var_value[var_name.index('KRR_kernel')])
     KRR_gamma = ast.literal_eval(var_value[var_name.index('KRR_gamma')])
     optimize_KRR_hyperparams = ast.literal_eval(var_value[var_name.index('optimize_KRR_hyperparams')])
+    optimize_GPR_hyperparams = ast.literal_eval(var_value[var_name.index('optimize_GPR_hyperparams')])
     KRR_alpha_lim = ast.literal_eval(var_value[var_name.index('KRR_alpha_lim')])
     KRR_gamma_lim = ast.literal_eval(var_value[var_name.index('KRR_gamma_lim')])
     allowed_initial_sampling = ast.literal_eval(var_value[var_name.index('allowed_initial_sampling')])
@@ -170,9 +171,9 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis)
+    return (is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis)
 
-def MLL(iseed,lr:
+def MLL(iseed,l):
     # open log file to write intermediate information
     if verbosity_level>=1:
         f_out = open('%s_%s.log' % (log_name,l), 'w')
@@ -522,6 +523,9 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
         f_out.flush()
 
     ### Perform t0 exploration ###
+    if verbosity_level>=1 and t0 !=0: 
+        f_out.write("## Start random biased exploration\n" %())
+        f_out.flush()
     for t in range(t0):
         for i in range(param):
             if initial_sampling=='different': iseed=iseed+w+l+i+t
@@ -566,9 +570,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             walker_x.append(Xi[-1][i])
     ### Perform t1 and t2 standard exploration ###
     if ML_explore == False:
-        if verbosity_level>=1: 
-            f_out.write("## Start random biased exploration\n" %())
-            f_out.flush()
+
         for t in range(t_ini,t_fin):
             del prob[:]
             del neighbor_walker[:][:]
@@ -985,7 +987,7 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         X_test_scaled = scaler.transform(X_test)        
         # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
         knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
-        knn.fit(X_train_scaled, y_train).predict(X_test_scaled)
+        y_pred=knn.fit(X_train_scaled, y_train).predict(X_test_scaled)
         # verbosity info
         if verbosity_level>=2: 
             f_out.write("X_train: %s\n" %(str(X_train)))
@@ -1532,7 +1534,7 @@ def plot(flag,final_result_T):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis) = read_initial_values(input_file_name)
+(is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis) = read_initial_values(input_file_name)
 # Run main program
 main(iseed)
 # Measure and print final time
