@@ -194,7 +194,7 @@ def MLL(iseed,l):
         X1,y1,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,t1_time,0,None,None,False)
         if t1_analysis == True:
         # Step 2A) Calculate error_metric
-            if ML=='kNN': error_metric_result=kNN(X1,y1,iseed,l,w,f_out,None,None,1)
+            if ML=='kNN': error_metric_result=kNN(X1,y1,iseed,l,w,f_out,None,None,1,None)
             if ML=='GBR': error_metric_result=GBR(X1,y1,iseed,l,w,f_out)
             if ML=='GPR': error_metric_result=GPR(X1,y1,iseed,l,w,f_out,None,None,1)
             if ML=='KRR':
@@ -817,7 +817,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             # predict min_point with ML for x_bubble and y_bubble (all neighbour points not explored previously)
             path_x,path_G = create_X_and_y(f_out,path_x,path_G)
             x_bubble,y_bubble = create_X_and_y(f_out,x_bubble,y_bubble)
-            if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
+            if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
             if t2_ML=='GPR': min_point=GPR(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
             if t2_ML=='KRR':
                 hyperparams=[KRR_gamma,KRR_alpha]
@@ -874,7 +874,7 @@ def create_X_and_y(f_out,x_param,y):
     return X,y
 
 # CALCULATE k-NN #
-def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
+def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
     # initialize values
     iseed=iseed+1
     average_r=0.0
@@ -995,7 +995,10 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         X_test_scaled = scaler.transform(X_test)        
         # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
         knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
-        y_pred=knn.fit(X_train_scaled, y_train).predict(X_test_scaled)
+        #if t%t2_train_time==0:
+        #f_out.write("Croqueta, I am training with: %s, %s \n" %(str(X_train),str(y_train)))
+        knn.fit(X_train_scaled, y_train)
+        y_pred=knn.predict(X_test_scaled)
         # verbosity info
         if verbosity_level>=2: 
             f_out.write("X_train: %s\n" %(str(X_train)))
@@ -1006,8 +1009,24 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         for i in range(len(y_test)):
             real_y.append(y_test[i])
             predicted_y.append(y_pred[i])
-        # calculate index of minimum predicted value
-        min_index = predicted_y.index(min(predicted_y))
+        # calculate index of minimum predicted value (keep searching until a non-visited configuration is found)
+        #f_out.write("Croqueta X_train: %s\n" %(str(X_train)))
+        #f_out.write("Croqueta X_test: %s\n" %(str(X_test)))
+        for i in range(len(predicted_y)):
+            min_index = predicted_y.index(sorted(predicted_y)[i])
+            for k in range(len(X_train)):
+                counter_equal=0
+                for j in range(param):
+                    #f_out.write("croqueta: k,j %i, %i\n" % (k,j))
+                    if X_test[min_index][j] == X_train[k][j]: 
+                        counter_equal=counter_equal+1
+                        #f_out.write("croqueta %i, %i - I am increasing counter_equal by 1\n" %(k,j))
+                if counter_equal==param:
+                    f_out.write("Croqueta: I am %s, %s, and am equal to a previous explored point \n" %(str(X_test[min_index]),str(predicted_y[min_index])))
+                    break
+            if counter_equal!=param:
+                f_out.write("Croqueta: I have encountered a minimum geometry that is new: %s, %s\n" %(str(X_test[min_index]),str(predicted_y[min_index])))
+                break
         # print verbosity
         if verbosity_level>=2: 
             f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
@@ -1015,7 +1034,7 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
          # add predicted value to result
         for j in range(param):
             result.append(X_test[min_index][j])
-        result.append(min(predicted_y))
+        result.append(predicted_y[min_index])
     return result
 
 # CALCULATE GBR #
