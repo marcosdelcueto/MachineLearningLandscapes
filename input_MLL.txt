@@ -11,7 +11,7 @@ log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.
 ### Landscape parameters ########################
 Nspf=1                                          # Number of different landscapes generate
 S=0.20                                          # Smoothness - minimum width of Gaussian functions
-iseed=None 		                                 # Seed for random number to generate landscape. Default: None
+iseed=556727542                                 # Seed for random number to generate landscape. Default: None
 param=2                                         # Number of descriptors
 center_min=0.00                                 # Minimum value for center of each Gaussian in each DOF
 center_max=1.00                                 # Maximum value for center of each Gaussian in each DOF
