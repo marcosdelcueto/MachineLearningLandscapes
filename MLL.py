@@ -162,6 +162,8 @@ def read_initial_values(inp):
     allowed_t2_ML = ast.literal_eval(var_value[var_name.index('allowed_t2_ML')])
     t2_exploration = ast.literal_eval(var_value[var_name.index('t2_exploration')])
     t1_analysis = ast.literal_eval(var_value[var_name.index('t1_analysis')])
+    diff_popsize = ast.literal_eval(var_value[var_name.index('diff_popsize')])
+    diff_tol = ast.literal_eval(var_value[var_name.index('diff_tol')])
 
     width_min=S                                     # Minimum width of each Gaussian function
     width_max=1.0/3.0                               # Maximum width of each Gaussian function
@@ -171,7 +173,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis)
+    return (is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol)
 
 def MLL(iseed,l):
     # open log file to write intermediate information
@@ -202,7 +204,7 @@ def MLL(iseed,l):
                 else:
                     mini_args=(X1,y1,iseed,l,w,f_out,None,None,1)
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
-                    solver=differential_evolution(KRR,bounds,args=mini_args,popsize=15,tol=0.01)
+                    solver=differential_evolution(KRR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
                     if verbosity_level>=1: f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
@@ -490,6 +492,11 @@ def check_input_values():
         print('optimize_KRR_hyperparams =',optimize_KRR_hyperparams,flush=True)
         print('KRR_alpha_lim =',KRR_alpha_lim,flush=True)
         print('KRR_gamma_lim =',KRR_gamma_lim,flush=True)
+    print('##############################')
+    print('# Differential evolution parameters')
+    print('diff_popsize =', diff_popsize)
+    print('diff_tol =', diff_tol)
+    print('##############################')
     print('### Calculated parameters ###')
     print('width_min =',width_min,flush=True)
     print('width_max =',width_max,flush=True)
@@ -819,7 +826,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 else:
                     mini_args=(path_x,path_G,iseed,l,w,f_out,None,None,1) # get rmse fitting previous points
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
-                    solver=differential_evolution(KRR,bounds,args=mini_args,popsize=15,tol=0.01)
+                    solver=differential_evolution(KRR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
                     if verbosity_level>=1: 
@@ -896,6 +903,7 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         if CV=='loo':
             loo = LeaveOneOut()
             validation=loo.split(X)
+
         # For kf and loo
         if CV=='kf' or CV=='loo':
             # calculate r and rmse for each split
@@ -1534,7 +1542,7 @@ def plot(flag,final_result_T):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis) = read_initial_values(input_file_name)
+(is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol) = read_initial_values(input_file_name)
 # Run main program
 main(iseed)
 # Measure and print final time
