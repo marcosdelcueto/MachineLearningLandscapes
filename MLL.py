@@ -192,7 +192,7 @@ def MLL(iseed,l):
     dim_list, G_list, Ngrid, max_G = generate_grid(iseed,l,f_out)
     time_taken2 = time()-start
     if verbosity_level>=1:
-        f_out.write("Generate grid took %0.2f seconds\n" %(time_taken2-time_taken1))
+        f_out.write("Generate grid took %0.4f seconds\n" %(time_taken2-time_taken1))
     # For each walker
     for w in range(Nwalkers):
         # Step 1) Perform t1 exploration
@@ -200,7 +200,7 @@ def MLL(iseed,l):
         X1,y1,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,t1_time,0,None,None,False)
         time_taken2 = time()-start
         if verbosity_level>=1:
-            f_out.write("t1 exploration took %0.2f seconds\n" %(time_taken2-time_taken1))
+            f_out.write("t1 exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
         if t1_analysis == True:
         # Step 2A) Calculate error_metric
             time_taken1 = time()-start
@@ -225,7 +225,7 @@ def MLL(iseed,l):
             result1 = error_metric_list
             time_taken2 = time()-start
             if verbosity_level>=1:
-                f_out.write("t1 analysis took %0.2f seconds\n" %(time_taken2-time_taken1))
+                f_out.write("t1 analysis took %0.4f seconds\n" %(time_taken2-time_taken1))
         # Step 2B) Perform t2 exploration
         if t2_exploration == True:
             # Step 2.B.1) Perform t2 exploration with random biased explorer
@@ -233,13 +233,13 @@ def MLL(iseed,l):
             X2a,y2a,unique_t2a = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,False)
             time_taken2 = time()-start
             if verbosity_level>=1:
-                f_out.write("t2 standard exploration took %0.2f seconds\n" %(time_taken2-time_taken1))
+                f_out.write("t2 standard exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
             # Step 2.B.2) Perform t2 exploration with ML explorer
             time_taken1 = time()-start
             X2b,y2b,unique_t2b = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,True)
             time_taken2 = time()-start
             if verbosity_level>=1:
-                f_out.write("t2 ML exploration took %0.2f seconds\n" %(time_taken2-time_taken1))
+                f_out.write("t2 ML exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
             # select coordinates where minimum is predicted with ML
             time_taken1 = time()-start
             x_real=[]
@@ -316,7 +316,7 @@ def MLL(iseed,l):
             result2=ML_benefits_list
     time_taken2 = time()-start
     if verbosity_level>=1:
-        f_out.write("Rest of MLL took %0.2f seconds\n" %(time_taken2-time_taken1))
+        f_out.write("Rest of MLL took %0.4f seconds\n" %(time_taken2-time_taken1))
     if verbosity_level>=1: 
         f_out.write("I am returning these values: %s, %s\n" %(str(result1), str(result2)))
         f_out.close()
@@ -539,10 +539,10 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     prob           = []
     neighbor_walker= [[] for i in range(param)]
     neighbor_G     = []
-    x_param=[[] for j in range(param)]
-    y=[]
-    P=int(round(d_threshold/grid_Delta + 1))
-    Nx=((grid_max-grid_min)/grid_Delta)+1
+    x_param        = [[] for j in range(param)]
+    y              = []
+    P              = int(round(d_threshold/grid_Delta + 1))
+    Nx             = ((grid_max-grid_min)/grid_Delta)+1
     # print header
     if verbosity_level>=1: 
         f_out.write('## Start: "explore_landscape" function \n')
@@ -553,7 +553,6 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
         f_out.write("Number of points per dimension: %i \n" %Nx)
         f_out.write("Testing w: %i, iseed: %i \n" % (w,iseed))
         f_out.flush()
-
     ### Perform t0 exploration ###
     if verbosity_level>=1 and t0 !=0: 
         f_out.write("## Start random biased exploration\n" %())
@@ -740,17 +739,119 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     ### Perform t2 ML exploration
     else:
         for t in range(t_ini,t_fin):
+            time_taken0 = time()-start
             time_taken1 = time()-start
-            # initialize values
-            x_bubble=[[] for j in range(param)]
-            y_bubble=[]
             if verbosity_level>=1: 
                 f_out.write("## Start ML Exploration\n" %())
                 f_out.flush()
-            time_taken2 = time()-start
-            f_out.write("time: %i. Test1 took %0.2f seconds \n" %(t,time_taken2-time_taken1))
-            # For each point in Xi
-            for k in range(len(path_G)):
+            #time_taken2 = time()-start
+            #f_out.write("time: %i. Test1 took %0.4f seconds \n" %(t,time_taken2-time_taken1))
+            # For t2=0, calculate bubble for all points previously visited (slow process)
+            if t==0:
+                # initialize values
+                x_bubble=[[] for j in range(param)]
+                y_bubble=[]
+                # For each point in Xi
+                for k in range(len(path_G)):
+                    time_taken1 = time()-start
+                    counter3=0
+                    del prob[:]
+                    del neighbor_walker[:][:]
+                    del neighbor_G[:]
+                    prob_sum=0.0
+                    # get coordinates of kth point in SPF grid
+                    new_k_in_grid=[[] for j in range(param)]
+                    for j in range(param):
+                        k_list = [i for i, x in enumerate(dim_list[j]) if x == path_x[j][k]]
+                        new_k_in_grid[j].append(k_list)
+                    for i in range(len(k_list)):
+                        counter_k=0
+                        for j in range(1,param):
+                            if new_k_in_grid[0][0][i] in new_k_in_grid[j][0]:
+                                counter_k=counter_k+1
+                                if counter_k==param-1:
+                                    k_in_grid=new_k_in_grid[0][0][i]
+                    if verbosity_level>=2: 
+                        f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
+                        f_out.flush()
+                    #time_taken2 = time()-start
+                    #f_out.write("time: %i. Test2 took %0.4f seconds \n" %(t,time_taken2-time_taken1))
+                    #######################
+                    time_taken1 = time()-start
+                    # initialize neighbor_G and neighbor_walker[j]
+                    for i in range((P*2+1)**param):
+                        prob.append(0.0)
+                        neighbor_G.append(0.0)
+                        for j in range(param):
+                            neighbor_walker[j].append(0.0)
+                    # Check points within threshold
+                    ####### for any param #######
+                    if verbosity_level>=2:
+                    #if verbosity_level>=1:
+                        line = []
+                        for j in range(param):
+                            line.append((path_x[j][k]))
+                        line.append((path_G[k]))
+                        f_out.write("Check around point: %s\n" %(str(line)))
+                        f_out.write("%6s %20s %11s %13s \n" % ("i","[x, G]","Prob","distance"))
+                        f_out.flush()
+                    time_taken2 = time()-start
+                    #f_out.write("time: %i. Test3 took %0.4f seconds \n" %(t,time_taken2-time_taken1))
+                    ## Index_i serves to explore neighbors: from -P+1 to P for each parameter
+                    for index_i in itertools.product(range(-P+1,P), repeat=param):
+                        time_taken1 = time()-start
+                        try: # Use try/except to ignore errors when looking for points outside of landscape
+                            index=[]
+                            subs=0.0
+                            # Assign indeces of grid corresponding to wanted points
+                            for j in range(param):
+                                index.append(k_in_grid - Nx**(param-1-j)*index_i[j])
+                                subs=subs+Nx**(param-1-j)*index_i[j]
+                                index[j]=int(index[j])
+                            index.append(k_in_grid-subs)
+                            index[param]=int(index[param])
+                            # Calculate distance between point of interest and its neighbors
+                            dummy_dist = 0.0
+                            for j in range(param):
+                                dummy_dist = dummy_dist + (path_x[j][k]-dim_list[j][index[j]])**2
+                            d_ij = (math.sqrt(dummy_dist))
+                            # If distance is within threshold: consider that point
+                            if d_ij <= d_threshold and d_ij > 0.0:
+                                use_this_point=True
+                                # Also check that does not correspond to a point explored previously
+                                for i in range(len(path_G)):
+                                    counter_false=0
+                                    for j in range(param):
+                                        if dim_list[0][index[j]] == path_x[j][i]: counter_false=counter_false+1
+                                    if counter_false==param: use_this_point=False
+                                # If those two conditions are fulfilled, update prob[counter3] and prob_sum
+                                if use_this_point==True:
+                                    for j in range(param):
+                                        neighbor_walker[j][counter3]=dim_list[j][index[j]]
+                                    neighbor_G[counter3]=G_list[index[param]]
+                                    prob[counter3]=1.0
+                                    prob_sum=prob_sum+prob[counter3]
+                                # Add all valid neighbors to 'bubble'
+                                for j in range(param):
+                                    x_bubble[j].append(neighbor_walker[j][counter3])
+                                y_bubble.append(neighbor_G[counter3])
+    
+                            if verbosity_level>=2:
+                            #if verbosity_level>=1:
+                                line = []
+                                for j in range(param):
+                                    line.append((dim_list[j][index[j]]))
+                                line.append((G_list[index[param]]))
+                                f_out.write("%6i %s %2s %5.1f %2s %10.6f \n" % (counter3,line,"",prob[counter3],"",d_ij))
+                                f_out.flush()
+                        except:
+                            pass
+                        counter3=counter3+1
+            # For t>0, calculate just bubble around new point, and add it to previous bubble (fast)
+            elif t>0:
+                # For min point calculated last step:
+                if verbosity_level>=1:
+                    f_out.write("I am in t: %i, and last added point was: %s\n" %(t,str(min_point)))
                 time_taken1 = time()-start
                 counter3=0
                 del prob[:]
@@ -760,7 +861,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 # get coordinates of kth point in SPF grid
                 new_k_in_grid=[[] for j in range(param)]
                 for j in range(param):
-                    k_list = [i for i, x in enumerate(dim_list[j]) if x == path_x[j][k]]
+                    k_list = [i for i, x in enumerate(dim_list[j]) if x == min_point[j]]
                     new_k_in_grid[j].append(k_list)
                 for i in range(len(k_list)):
                     counter_k=0
@@ -769,11 +870,12 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                             counter_k=counter_k+1
                             if counter_k==param-1:
                                 k_in_grid=new_k_in_grid[0][0][i]
-                if verbosity_level>=2: 
+                #if verbosity_level>=2: 
+                if verbosity_level>=1: 
                     f_out.write("value of k_in_grid is: %i\n" %(k_in_grid))
                     f_out.flush()
-                time_taken2 = time()-start
-                f_out.write("time: %i. Test2 took %0.2f seconds \n" %(t,time_taken2-time_taken1))
+                #time_taken2 = time()-start
+                #f_out.write("time: %i. Test2 took %0.4f seconds \n" %(t,time_taken2-time_taken1))
                 #######################
                 time_taken1 = time()-start
                 # initialize neighbor_G and neighbor_walker[j]
@@ -787,14 +889,14 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 if verbosity_level>=2:
                     line = []
                     for j in range(param):
-                        line.append((path_x[j][k]))
-                    line.append((path_G[k]))
-                    f_out.write("Check around point: %s\n" %(str(line)))
+                        line.append((dim_list[j][k_in_grid]))
+                    line.append((G_list[k_in_grid]))
+                    f_out.write("New Check around point: %s\n" %(str(line)))
                     f_out.write("%6s %20s %11s %13s \n" % ("i","[x, G]","Prob","distance"))
                     f_out.flush()
                 time_taken2 = time()-start
-                f_out.write("time: %i. Test3 took %0.2f seconds \n" %(t,time_taken2-time_taken1))
-                # Index_i serves to explore neighbors: from -P+1 to P for each parameter
+                #f_out.write("time: %i. Test3 took %0.4f seconds \n" %(t,time_taken2-time_taken1))
+                ## Index_i serves to explore neighbors: from -P+1 to P for each parameter
                 for index_i in itertools.product(range(-P+1,P), repeat=param):
                     time_taken1 = time()-start
                     try: # Use try/except to ignore errors when looking for points outside of landscape
@@ -807,10 +909,11 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                             index[j]=int(index[j])
                         index.append(k_in_grid-subs)
                         index[param]=int(index[param])
+                        #f_out.write("test index: %s\n" %(str(index)))
                         # Calculate distance between point of interest and its neighbors
                         dummy_dist = 0.0
                         for j in range(param):
-                            dummy_dist = dummy_dist + (path_x[j][k]-dim_list[j][index[j]])**2
+                            dummy_dist = dummy_dist + (dim_list[j][k_in_grid]-dim_list[j][index[j]])**2
                         d_ij = (math.sqrt(dummy_dist))
                         # If distance is within threshold: consider that point
                         if d_ij <= d_threshold and d_ij > 0.0:
@@ -839,24 +942,23 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                             line.append((G_list[index[param]]))
                             f_out.write("%6i %s %2s %5.1f %2s %10.6f \n" % (counter3,line,"",prob[counter3],"",d_ij))
                             f_out.flush()
-
                     except:
                         pass
                     counter3=counter3+1
-                    time_taken2 = time()-start
-                    f_out.write("time: %i. Test4 took %0.2f seconds \n" %(t,time_taken2-time_taken1))
-                #############################
+            if verbosity_level>=1:
+                f_out.write("Number of points in bubble before removing duplicates: %i\n" %(len(y_bubble)))
             if verbosity_level>=2:
                 for j in range(param):
                     f_out.write("x_bubble[%i]: %s\n" %(j,str(x_bubble[j])))
                 f_out.flush()
-
             # train ML with path_x and path_G (all points explored previously)
             # predict min_point with ML for x_bubble and y_bubble (all neighbour points not explored previously)
             path_x,path_G = create_X_and_y(f_out,path_x,path_G)
             x_bubble,y_bubble = create_X_and_y(f_out,x_bubble,y_bubble)
             time_taken2 = time()-start
-            f_out.write("Explore landscape ML. time: %i. Before ML took %0.2f seconds \n" %(t,time_taken2-time_taken1))
+            if verbosity_level>=1:
+                f_out.write("Number of points in bubble after removing duplicates: %i\n" %(len(y_bubble)))
+                f_out.write("Explore landscape ML. time: %i. Before ML took %0.4f seconds \n" %(t,time_taken2-time_taken0))
             if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
             if t2_ML=='GPR': min_point=GPR(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
             if t2_ML=='KRR':
@@ -875,7 +977,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         f_out.flush()
                     hyperparams=[best_hyperparams[0],best_hyperparams[1]]
                     min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
-            time_taken1 = time()-start
+            #time_taken1 = time()-start
             # print x_bubble corresponding to min(y_bubble)
             if verbosity_level>=1: 
                 f_out.write("## At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
@@ -883,15 +985,18 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             # prepare for next timestep
             path_x=path_x.tolist()
             path_G=path_G.tolist()
+            x_bubble=x_bubble.tolist()
+            y_bubble=y_bubble.tolist()
             path_x.append(min_point[0:param])
             path_G.append(min_point[param])
             path_x=[list(i) for i in zip(*path_x)]
+            x_bubble=[list(i) for i in zip(*x_bubble)]
             # add coordinates to final array
             for i in range(param):
                 x_param[i].append(min_point[i])
             y.append(min_point[param])
-            time_taken2 = time()-start
-            f_out.write("Explore landscape ML. time: %i. After ML took %0.2f seconds \n" %(t,time_taken2-time_taken1))
+            #time_taken2 = time()-start
+            #f_out.write("Explore landscape ML. time: %i. After ML took %0.4f seconds \n" %(t,time_taken2-time_taken1))
         # get final X,y
         X,y = create_X_and_y(f_out,x_param,y)
     return X,y,len(y)
@@ -900,7 +1005,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
 def create_X_and_y(f_out,x_param,y):
     zippedList = list(zip(*x_param,y))
     df=pd.DataFrame(zippedList)
-    df2=df.drop_duplicates(subset=param, keep="last")
+    df2=df.drop_duplicates(subset=param, keep="first")
     #df2=df
     df_X=df2[range(0,param)]
     df_y=df2[param]
@@ -1039,24 +1144,23 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
         # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
         knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
         ############################################## Test train only at some steps
-        time_taken1 = time()-start
-        if t==0:
-            f_out.write("Croqueta, At time %i, I am training with: %s, %s \n" %(t,str(X_train),str(y_train)))
-            knn.fit(X_train_scaled, y_train)
-            dump(knn, open('knn.pkl', 'wb'))
-            time_taken2 = time()-start
+        #time_taken1 = time()-start
+        #if t==0:
+            #f_out.write("Croqueta, At time %i, I am training with: %s, %s \n" %(t,str(X_train),str(y_train)))
+            #knn.fit(X_train_scaled, y_train)
+            #dump(knn, open('knn.pkl', 'wb'))
+            #time_taken2 = time()-start
 
-        if t>0:
-            knn=load(open('knn.pkl', 'rb'))
-            time_taken2 = time()-start
-        f_out.write("ML train took %0.2f seconds \n" %(time_taken2-time_taken1))
-        #f_out.write("Croqueta fit caca: %s\n"%(str(caca)))
+        #if t>0:
+            #knn=load(open('knn.pkl', 'rb'))
+            #time_taken2 = time()-start
+        #f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
         ################################################
-        #knn.fit(X_train_scaled, y_train)
+        knn.fit(X_train_scaled, y_train)
         time_taken1 = time()-start
         y_pred=knn.predict(X_test_scaled)
         time_taken2 = time()-start
-        f_out.write("ML predict took %0.2f seconds \n" %(time_taken2-time_taken1))
+        f_out.write("ML predict took %0.4f seconds \n" %(time_taken2-time_taken1))
         # verbosity info
         if verbosity_level>=2: 
             f_out.write("X_train: %s\n" %(str(X_train)))
@@ -1087,7 +1191,7 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
                 f_out.write("Croqueta: I have encountered a minimum geometry that is new: %s, %s\n" %(str(X_test[min_index]),str(predicted_y[min_index])))
                 break
         time_taken2 = time()-start
-        f_out.write("ML calculate next minimum  took %0.2f seconds \n" %(time_taken2-time_taken1))
+        f_out.write("ML calculate next minimum  took %0.4f seconds \n" %(time_taken2-time_taken1))
         # print verbosity
         if verbosity_level>=2: 
             f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
@@ -1367,7 +1471,10 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
         kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
         GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+        time_taken1 = time()-start
         y_pred = GPR.fit(X_train_scaled,y_train).predict(X_test_scaled)
+        time_taken2 = time()-start
+        f_out.write("ML predict and fit took %0.4f seconds \n" %(time_taken2-time_taken1))
         # verbosity info
         if verbosity_level>=2: 
             f_out.write('X_train: \n')
@@ -1627,4 +1734,4 @@ start = time()
 main(iseed)
 # Measure and print final time
 time_taken = time()-start
-print ('Process took %0.2f seconds' %time_taken)
+print ('Process took %0.4f seconds' %time_taken)
