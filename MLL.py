@@ -14,6 +14,7 @@ import itertools
 import matplotlib.pyplot as plt
 from time import time
 from dask import delayed
+from pickle import dump,load
 from sklearn import neighbors
 from numpy.random import choice
 from sklearn import preprocessing
@@ -27,7 +28,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, RBF
-from pickle import dump,load
+
 #################################################################################
 ######   START CUSTOMIZABLE PARAMETERS ########
 input_file_name = 'input_MLL.txt'      # name of input file
@@ -165,6 +166,7 @@ def read_initial_values(inp):
     t1_analysis = ast.literal_eval(var_value[var_name.index('t1_analysis')])
     diff_popsize = ast.literal_eval(var_value[var_name.index('diff_popsize')])
     diff_tol = ast.literal_eval(var_value[var_name.index('diff_tol')])
+    t2_train_time = ast.literal_eval(var_value[var_name.index('t2_train_time')])
 
     width_min=S                                     # Minimum width of each Gaussian function
     width_max=1.0/3.0                               # Maximum width of each Gaussian function
@@ -174,7 +176,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol)
+    return (is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol,t2_train_time)
 
 def MLL(iseed,l):
     # open log file to write intermediate information
@@ -206,7 +208,7 @@ def MLL(iseed,l):
             time_taken1 = time()-start
             if ML=='kNN': error_metric_result=kNN(X1,y1,iseed,l,w,f_out,None,None,1,None)
             if ML=='GBR': error_metric_result=GBR(X1,y1,iseed,l,w,f_out)
-            if ML=='GPR': error_metric_result=GPR(X1,y1,iseed,l,w,f_out,None,None,1)
+            if ML=='GPR': error_metric_result=GPR(X1,y1,iseed,l,w,f_out,None,None,1,None)
             if ML=='KRR':
                 hyperparams=[KRR_gamma,KRR_alpha]
                 if optimize_KRR_hyperparams == False:
@@ -478,6 +480,7 @@ def check_input_values():
     print('##############################')
     print('t2_exploration =',t2_exploration,flush=True)
     print('t2_time =',t2_time,flush=True)
+    print('t2_train_time =',t2_train_time,flush=True)
     print('t2_ML =',t2_ML,flush=True)
     print('allowed_t2_ML =',allowed_t2_ML,flush=True)
     print('##############################')
@@ -960,7 +963,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 f_out.write("Number of points in bubble after removing duplicates: %i\n" %(len(y_bubble)))
                 f_out.write("Explore landscape ML. time: %i. Before ML took %0.4f seconds \n" %(t,time_taken2-time_taken0))
             if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
-            if t2_ML=='GPR': min_point=GPR(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
+            if t2_ML=='GPR': min_point=GPR(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
             if t2_ML=='KRR':
                 hyperparams=[KRR_gamma,KRR_alpha]
                 if optimize_KRR_hyperparams == False:
@@ -1143,20 +1146,19 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
         X_test_scaled = scaler.transform(X_test)        
         # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
         knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
-        ############################################## Test train only at some steps
-        #time_taken1 = time()-start
-        #if t==0:
-            #f_out.write("Croqueta, At time %i, I am training with: %s, %s \n" %(t,str(X_train),str(y_train)))
-            #knn.fit(X_train_scaled, y_train)
-            #dump(knn, open('knn.pkl', 'wb'))
-            #time_taken2 = time()-start
-
-        #if t>0:
-            #knn=load(open('knn.pkl', 'rb'))
-            #time_taken2 = time()-start
-        #f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
-        ################################################
-        knn.fit(X_train_scaled, y_train)
+        # Train only at some steps
+        time_taken1 = time()-start
+        if t%t2_train_time==0:
+            if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
+            knn.fit(X_train_scaled, y_train)
+            dump(knn, open('knn.pkl', 'wb'))
+            time_taken2 = time()-start
+        else:
+            if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
+            knn=load(open('knn.pkl', 'rb'))
+            time_taken2 = time()-start
+        if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
+        ###############################################
         time_taken1 = time()-start
         y_pred=knn.predict(X_test_scaled)
         time_taken2 = time()-start
@@ -1285,7 +1287,7 @@ def GBR(X,y,iseed,l,w,f_out):
 
 
 # CALCULATE GPR #
-def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
+def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
     # initialize values
     iseed=iseed+1
     average_r=0.0
@@ -1471,8 +1473,21 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
         kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
         GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+        # Train only at some steps
         time_taken1 = time()-start
-        y_pred = GPR.fit(X_train_scaled,y_train).predict(X_test_scaled)
+        if t%t2_train_time==0:
+            if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
+            GPR.fit(X_train_scaled, y_train)
+            dump(GPR, open('GPR.pkl', 'wb'))
+            time_taken2 = time()-start
+        else:
+            if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
+            GPR=load(open('GPR.pkl', 'rb'))
+            time_taken2 = time()-start
+        if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
+        ##################################
+        time_taken1 = time()-start
+        y_pred = GPR.predict(X_test_scaled)
         time_taken2 = time()-start
         f_out.write("ML predict and fit took %0.4f seconds \n" %(time_taken2-time_taken1))
         # verbosity info
@@ -1663,7 +1678,20 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         X_test_scaled = scaler.transform(X_test)
         # fit GPR with (X_train_scaled, y_train) and predict X_test_scaled
         KRR = KernelRidge(alpha=KRR_alpha,kernel=KRR_kernel,gamma=KRR_gamma)
-        y_pred = KRR.fit(X_train_scaled, y_train).predict(X_test_scaled)
+        # Train only at some steps
+        time_taken1 = time()-start
+        if t%t2_train_time==0:
+            if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
+            KRR.fit(X_train_scaled, y_train)
+            dump(KRR, open('KRR.pkl', 'wb'))
+            time_taken2 = time()-start
+        else:
+            if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
+            KRR=load(open('KRR.pkl', 'rb'))
+            time_taken2 = time()-start
+        if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
+        ###############################################
+        y_pred = KRR.predict(X_test_scaled)
         # verbosity info
         if verbosity_level>=2:
             f_out.write('X_train: \n')
@@ -1729,7 +1757,7 @@ def plot(flag,final_result_T):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol) = read_initial_values(input_file_name)
+(is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol,t2_train_time) = read_initial_values(input_file_name)
 # Run main program
 main(iseed)
 # Measure and print final time

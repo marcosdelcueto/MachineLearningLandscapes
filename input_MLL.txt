@@ -42,7 +42,7 @@ allowed_ML=[None,'kNN','GBR','GPR','KRR']       # possible ML algorithms
 #################################################
 t2_exploration = True                           # Whether t2 exploration is performed
 t2_time = 5                                     # Number of time steps for the walker
-t2_train_time = 5                               # ML is re-trained every 't2_train_time' steps
+t2_train_time = 2                               # ML is re-trained every 't2_train_time' steps
 t2_ML = 'GPR'												# Choose what ML algorithm is used
 allowed_t2_ML = [None,'kNN','GBR','GPR','KRR']  # possible ML algorithms
 #################################################
