@@ -36,18 +36,18 @@ allowed_initial_sampling = ['same','different'] # possible values of 'initial_sa
 # t1 error metric analysis
 #################################################
 t1_analysis = True                              # Whether t1 analysis is performed
-error_metric='rmse'                             # Choose which error metric to analyze
-allowed_error_metric=[None,'rmse']              # possible error metrics to analyze
 ML='GPR'                                        # Choose what ML algorithm is used
 allowed_ML=[None,'kNN','GBR','GPR','KRR']       # possible ML algorithms
+error_metric='rmse'                             # Choose which error metric to analyze
+allowed_error_metric=[None,'rmse']              # possible error metrics to analyze
 #################################################
 # t2 exploration parameters
 #################################################
 t2_exploration = True                           # Whether t2 exploration is performed
-t2_time = 5                                     # Number of time steps for the walker
-t2_train_time = 2                               # ML is re-trained every 't2_train_time' steps
 t2_ML = 'GPR'												# Choose what ML algorithm is used
 allowed_t2_ML = [None,'kNN','GBR','GPR','KRR']  # possible ML algorithms
+t2_time = 5                                     # Number of time steps for the walker
+t2_train_time = 2                               # ML is re-trained every 't2_train_time' steps
 #################################################
 # Machine Learning parameters
 #################################################
