@@ -691,13 +691,20 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 f_out.write("Consider nearby points: \n")
                 f_out.write("%6s %11s %19s %12s %12s \n" % ("i","x","G","Prob","distance"))
                 f_out.flush()
+            #print('FINAL TEST dim_list', dim_list)
+            #print('FINAL TEST G_list', G_list)
+            #print('FINAL TEST minimum_path_x', minimum_path_x)
+            #print('FINAL TEST minimum_path_G', minimum_path_G)
             # Check for inconsistencies
-            for i in range(param):
-                if minimum_path_x[i][draw] != dim_list[i][draw_in_grid]:
-                    print("STOP - ERROR: minimum_path not equal to dum_list (maybe more than 1 point with that value in grid)",flush=True)
-                    print("Selected point draw:", minimum_path_x[:][draw],minimum_path_G[draw],flush=True)
-                    print("Selected point draw in grid:", dim_list[:][draw_in_grid],G_list[draw_in_grid],flush=True)
-                    sys.exit()
+            for k in range(len(draw_in_grid_list)):
+                counter_param=0
+                for i in range(param):
+                    if minimum_path_x[i][draw] == dim_list[i][draw_in_grid_list[k]]:
+                        counter_param=counter_param+1
+                if counter_param==param:
+                    #print('I am in point #:', k)
+                    draw_in_grid=draw_in_grid_list[k]
+                    break
             # initialize prob and neighbor_XX values
             for i in range((P*2+1)**param):
                     prob.append(0.0)
@@ -1521,7 +1528,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
         # fit GPR with (X_train_scaled, y_train) and predict X_test_scaled
         #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
         #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
-        kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
+        kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-3, 1e+1))
         GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
         # Train only at some steps
         time_taken1 = time()-start
