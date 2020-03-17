@@ -818,15 +818,34 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                     del prob[:]
                     del neighbor_walker[:][:]
                     del neighbor_G[:]
+                    #prob = []
+                    #neighbor_walker = [[] for i in range(param)]
+                    #neighbor_G = []
                     prob_sum=0.0
                     # get coordinates of kth point in SPF grid
                     new_k_in_grid=[[] for j in range(param)]
+                    # for each parameter
+                    k_list=[]
+                    #f_out.write("croqueta test: looking for point %f %f %f\n" %(path_x[0][k],path_x[1][k],path_x[2][k]))
                     for j in range(param):
+                        # calculate list of indeces in grid that match path_x values
                         k_list = [i for i, x in enumerate(dim_list[j]) if x == path_x[j][k]]
                         new_k_in_grid[j].append(k_list)
+                        f_out.write("Looking for path_x[j][k]: %f\n" %(path_x[j][k]))
+                        #for l in range(len(k_list)):
+                             #f_out.write("new croqueta test: l %i, dim_list[j][l] %f\n" %(l, dim_list[j][l]))
+                        #f_out.write("croqueta test k_list: %s\n" %(str(k_list)))
+                        #f_out.write("croqueta test len(k_list): %i\n" %(len(k_list)))
+                        #f_out.write("croqueta test new_k_in_grid: %s \n" %(str(new_k_in_grid)))
                     for i in range(len(k_list)):
                         counter_k=0
                         for j in range(1,param):
+                            #f_out.write("croqueta test k %i, i %i, j %i\n" %(k,i,j))
+                            #f_out.flush()
+                            #f_out.write("croqueta test new_k_in_grid[0][0][i]: %s\n" %( str(new_k_in_grid[0][0][i])))
+                            #f_out.flush()
+                            #f_out.write("croqueta test new_k_in_grid[j][0]: %s\n" %( str(new_k_in_grid[j][0])))
+                            #f_out.flush()
                             if new_k_in_grid[0][0][i] in new_k_in_grid[j][0]:
                                 counter_k=counter_k+1
                                 if counter_k==param-1:

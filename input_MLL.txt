@@ -1,27 +1,28 @@
 #################################################
 # General Landscape parameters
 #################################################
+### Type of calculation #########################
+calculate_grid = False                          # Decide whether to calculate or read SPF
 ### Parallel Computing ##########################
-is_dask = True	                              # Decide if dask is used
+dask_parallel = True	                           # Decide if dask is used
 NCPU    = 6    	                              # Choose number of CPUs used by dask
+### SPF parameters ##############################
+iseed = None                                    # Seed for random number to generate landscape. Default: None
+Nspf = 6                                        # Number of different landscapes generate
+grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read
+### Gaussian parameters #########################
+S = 0.20                                        # Smoothness - minimum width of Gaussian functions
+param = 2                                       # Number of descriptors
+center_min = 0.00                               # Minimum value for center of each Gaussian in each DOF
+center_max = 1.00                               # Maximum value for center of each Gaussian in each DOF
+### Grid parameters #############################
+grid_min = 0.00                                 # Start point of grid in each DOF
+grid_max = 1.00                                 # End point of grid in each DOF
+grid_Delta = 0.01                               # Increment of grid in each DOF
 ### Verbose #####################################
 verbosity_level = 1                             # Level of verbosity to print at 'log_name' file (Recommended:1)
-allowed_verbosity_level=[0,1,2]   					# possible values of verbosity
+allowed_verbosity_level = [0,1,2]   				# possible values of verbosity
 log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.log' is added automatically
-### SPF parameters ##############################
-iseed=19                                        # Seed for random number to generate landscape. Default: None
-Nspf=6                                          # Number of different landscapes generate
-calculate_grid = False                           # Decide whether to calculate or read SPF
-grid_name = 'SPF_values'                    # File name where SPF coordinates are written/read
-### Gaussian parameters #########################
-S=0.20                                          # Smoothness - minimum width of Gaussian functions
-param=2                                         # Number of descriptors
-center_min=0.00                                 # Minimum value for center of each Gaussian in each DOF
-center_max=1.00                                 # Maximum value for center of each Gaussian in each DOF
-### Grid parameters #############################
-grid_min=0.00                                   # Start point of grid in each DOF
-grid_max=1.00                                   # End point of grid in each DOF
-grid_Delta=0.01                                # Increment of grid in each DOF
 #################################################
 # t1 exploration parameters
 #################################################
