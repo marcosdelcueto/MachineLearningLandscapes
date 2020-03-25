@@ -43,7 +43,7 @@ def main(iseed):
     # Calculation just to generate SPF grid
     if calculate_grid == True:
         # Use paralellization: a SPF per CPU
-        if is_dask==True:
+        if dask_parallel==True:
             dummy_list=[]
             for l in range(Nspf):
                 iseed=iseed+l
@@ -51,7 +51,7 @@ def main(iseed):
                 dummy_list.append(dummy)
             result=dask.compute(dummy_list,scheduler='processes',num_workers=NCPU)
         # Calculate SPFs in serial (all in 1 CPU)
-        if is_dask==False:
+        if dask_parallel==False:
             for l in range(Nspf):
                 iseed=iseed+l
                 Ngrid = generate_grid(iseed,l)
@@ -61,7 +61,7 @@ def main(iseed):
         results_t1_per_Nspf=[]
         results_t2_per_Nspf=[]
         # Calculate results for each landscape (may use dask to run each landscape in a CPU in parallel)
-        if is_dask==True:
+        if dask_parallel==True:
             for l in range(Nspf):
                 iseed=iseed+l
                 (provi_result_t1,provi_result_t2)=delayed(MLL,nout=2)(iseed,l)
@@ -71,7 +71,7 @@ def main(iseed):
             results_t2_per_Nspf=dask.compute(results_t2_per_Nspf,scheduler='processes',num_workers=NCPU)
             results_t1_per_Nspf=results_t1_per_Nspf[0]
             results_t2_per_Nspf=results_t2_per_Nspf[0]
-        elif is_dask==False:
+        elif dask_parallel==False:
             for l in range(Nspf):
                 iseed=iseed+l
                 (provi_result_t1,provi_result_t2)=MLL(iseed,l)
@@ -128,7 +128,7 @@ def read_initial_values(inp):
     # close input file
     f_in.close()
     # assign input variables    
-    is_dask = ast.literal_eval(var_value[var_name.index('is_dask')])
+    dask_parallel = ast.literal_eval(var_value[var_name.index('dask_parallel')])
     NCPU = ast.literal_eval(var_value[var_name.index('NCPU')])
     verbosity_level = ast.literal_eval(var_value[var_name.index('verbosity_level')])
     log_name = ast.literal_eval(var_value[var_name.index('log_name')])
@@ -194,7 +194,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol,t2_train_time,calculate_grid,grid_name)
+    return (dask_parallel,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol,t2_train_time,calculate_grid,grid_name)
 
 def MLL(iseed,l):
     # open log file to write intermediate information
@@ -455,8 +455,8 @@ def generate_grid(iseed,l):
     return None
 
 def check_input_values():
-    if type(is_dask) != bool:
-        print ('INPUT ERROR: is_dask should be boolean, but is:', is_dask)
+    if type(dask_parallel) != bool:
+        print ('INPUT ERROR: dask_parallel should be boolean, but is:', dask_parallel)
         sys.exit()
     if type(t1_analysis) != bool:
         print ('INPUT ERROR: t1_analysis should be boolean, but is:', t1_analysis)
@@ -496,7 +496,7 @@ def check_input_values():
     print('# General Landscape parameters')
     print('##############################')
     print('### Parallel computing ###',flush=True)
-    print('is_dask =',is_dask,flush=True)
+    print('dask_parallel =',dask_parallel,flush=True)
     print('NCPU',NCPU,flush=True)
     print('### Verbose ###',flush=True)
     print('verbosity_level =',verbosity_level,flush=True)
@@ -1840,7 +1840,7 @@ def plot(flag,final_result_T):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(is_dask,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol,t2_train_time,calculate_grid,grid_name) = read_initial_values(input_file_name)
+(dask_parallel,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol,t2_train_time,calculate_grid,grid_name) = read_initial_values(input_file_name)
 # Run main program
 main(iseed)
 # Measure and print final time
