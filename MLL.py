@@ -305,8 +305,10 @@ def MLL(iseed,l):
             y_real=G_list[k_in_grid]
             # Calculate ML prediction relative error and MLgain
             error_ML = abs(( min(y2b) - y_real) / y_real)
-            MLgain_pred = ( min(y2a) - min(y2b))/abs(min(y2a))
-            MLgain_real = ( min(y2a) - y_real)/abs(min(y2a))
+            #MLgain_pred = ( min(y2a) - min(y2b))/abs(min(y2a))
+            #MLgain_real = ( min(y2a) - y_real)/abs(min(y2a))
+            MLgain_pred = ( min(y2a) - min(y2b))/(min(y1)-min_G)
+            MLgain_real = ( min(y2a) -  y_real )/(min(y1)-min_G)
             # Print t2 exploration results
             if verbosity_level>=1: 
                 f_out.write("################ \n")

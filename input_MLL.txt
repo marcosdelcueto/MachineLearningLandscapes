@@ -5,10 +5,10 @@
 calculate_grid = False                          # Decide whether to calculate or read SPF
 ### Parallel Computing ##########################
 dask_parallel = True	                           # Decide if dask is used
-NCPU    = 6    	                              # Choose number of CPUs used by dask
+NCPU    = 4    	                              # Choose number of CPUs used by dask
 ### SPF parameters ##############################
 iseed = None                                    # Seed for random number to generate landscape. Default: None
-Nspf = 6                                        # Number of different landscapes generate
+Nspf = 4                                        # Number of different landscapes generate
 grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read
 ### Gaussian parameters #########################
 S = 0.20                                        # Smoothness - minimum width of Gaussian functions
