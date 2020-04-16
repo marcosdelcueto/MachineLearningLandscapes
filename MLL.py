@@ -91,16 +91,22 @@ def main(iseed):
                 print('- RMSE Median: %f' %(statistics.median(results_per_walker_t1[i])),flush=True)
             if t2_exploration == True:
                 print('-- t2 exploration')
-                print('- [ML_gain_pred, ML_gain_real, error_rel_ML]: %s' %(str(results_per_walker_t2[i])),flush=True)
+                print('- [ML_gain_pred, ML_gain_real, error_rel_ML, min_standard, min_ML]: %s' %(str(results_per_walker_t2[i])),flush=True)
                 ML_gain_pred = [item[0] for item in results_per_walker_t2[i]]
                 ML_gain_real = [item[1] for item in results_per_walker_t2[i]]
                 error_rel_ML = [item[2] for item in results_per_walker_t2[i]]
+                min_standard = [item[3] for item in results_per_walker_t2[i]]
+                min_ML       = [item[4] for item in results_per_walker_t2[i]]
                 print('- ML_gain_pred Mean: %f' %(statistics.mean(ML_gain_pred)),flush=True)
                 print('- ML_gain_pred Median: %f' %(statistics.median(ML_gain_pred)),flush=True)
                 print('- ML_gain_real Mean: %f' %(statistics.mean(ML_gain_real)),flush=True)
                 print('- ML_gain_real Median: %f' %(statistics.median(ML_gain_real)),flush=True)
                 print('- error_rel_ML Mean: %f' %(statistics.mean(error_rel_ML)),flush=True)
                 print('- error_rel_ML Median: %f' %(statistics.median(error_rel_ML)),flush=True)
+                print('- min_standard Mean: %f' %(statistics.mean(min_standard)),flush=True)
+                print('- min_standard Median: %f' %(statistics.median(min_standard)),flush=True)
+                print('- min_ML Mean: %f' %(statistics.mean(min_ML)),flush=True)
+                print('- min_ML Median: %f' %(statistics.median(min_ML)),flush=True)
             print('')
 ###### END MAIN ######
 #################################################################################
@@ -308,12 +314,14 @@ def MLL(iseed,l):
             #MLgain_pred = ( min(y2a) - min(y2b))/abs(min(y2a))
             #MLgain_real = ( min(y2a) - y_real)/abs(min(y2a))
             # calculate MLgain with respect to minimum value obtained with a standard exploration, whether in t1 or t2
+            #MLgain_pred = ( min_standard - min(y2b))/(min(y1)-min_G)
+            #MLgain_real = ( min_standard -  y_real )/(min(y1)-min_G)
             if min(y2a) < min(y1):
                 min_standard = min(y2a)
             else:
                 min_standard = min(y1)
-            MLgain_pred = ( min_standard - min(y2b))/(min(y1)-min_G)
-            MLgain_real = ( min_standard -  y_real )/(min(y1)-min_G)
+            MLgain_pred = min_standard - min(y2b)
+            MLgain_real = min_standard -  y_real 
             # Print t2 exploration results
             if verbosity_level>=1: 
                 f_out.write("################ \n")
@@ -358,6 +366,8 @@ def MLL(iseed,l):
             ML_benefits.append(MLgain_pred)
             ML_benefits.append(MLgain_real)
             ML_benefits.append(error_ML)
+            ML_benefits.append(min_standard)
+            ML_benefits.append(y_real)
             if verbosity_level>=1: 
                 f_out.write("For each Nwalker: %s\n" %(str(ML_benefits)))
                 f_out.flush()
