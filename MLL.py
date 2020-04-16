@@ -1426,8 +1426,9 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
                 # fit GPR with (X_train_scaled, y_train) and predict X_test_scaled
                 #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
                 #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
-                kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
-                GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+                #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
+                kernel = RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3))
+                GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-4, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
                 y_pred = GPR.fit(X_train_scaled, y_train).predict(X_test_scaled)
                 # add y_test and y_pred values to general real_y and predicted_y
                 for i in range(len(y_test)):
