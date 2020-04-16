@@ -307,8 +307,13 @@ def MLL(iseed,l):
             error_ML = abs(( min(y2b) - y_real) / y_real)
             #MLgain_pred = ( min(y2a) - min(y2b))/abs(min(y2a))
             #MLgain_real = ( min(y2a) - y_real)/abs(min(y2a))
-            MLgain_pred = ( min(y2a) - min(y2b))/(min(y1)-min_G)
-            MLgain_real = ( min(y2a) -  y_real )/(min(y1)-min_G)
+            # calculate MLgain with respect to minimum value obtained with a standard exploration, whether in t1 or t2
+            if min(y2a) < min(y1):
+                min_standard = min(y2a)
+            else:
+                min_standard = min(y1)
+            MLgain_pred = ( min_standard - min(y2b))/(min(y1)-min_G)
+            MLgain_real = ( min_standard -  y_real )/(min(y1)-min_G)
             # Print t2 exploration results
             if verbosity_level>=1: 
                 f_out.write("################ \n")
