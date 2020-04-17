@@ -166,14 +166,18 @@ def read_initial_values(inp):
     GBR_max_depth = ast.literal_eval(var_value[var_name.index('GBR_max_depth')])
     GBR_min_samples_split = ast.literal_eval(var_value[var_name.index('GBR_min_samples_split')])
     GBR_min_samples_leaf = ast.literal_eval(var_value[var_name.index('GBR_min_samples_leaf')])
-    GPR_A_RBF = ast.literal_eval(var_value[var_name.index('GPR_A_RBF')])
+    GPR_alpha = ast.literal_eval(var_value[var_name.index('GPR_alpha')])
     GPR_length_scale = ast.literal_eval(var_value[var_name.index('GPR_length_scale')])
-    GPR_noise_level = ast.literal_eval(var_value[var_name.index('GPR_noise_level')])
+    optimize_GPR_hyperparams = ast.literal_eval(var_value[var_name.index('optimize_GPR_hyperparams')])
+    GPR_alpha_lim = ast.literal_eval(var_value[var_name.index('GPR_alpha_lim')])
+    GPR_length_scale_lim = ast.literal_eval(var_value[var_name.index('GPR_length_scale_lim')])
+    #GPR_n_restarts_optimizer = ast.literal_eval(var_value[var_name.index('GPR_n_restarts_optimizer')])
+    #GPR_A_RBF = ast.literal_eval(var_value[var_name.index('GPR_A_RBF')])
+    #GPR_noise_level = ast.literal_eval(var_value[var_name.index('GPR_noise_level')])
     KRR_alpha = ast.literal_eval(var_value[var_name.index('KRR_alpha')])
     KRR_kernel = ast.literal_eval(var_value[var_name.index('KRR_kernel')])
     KRR_gamma = ast.literal_eval(var_value[var_name.index('KRR_gamma')])
     optimize_KRR_hyperparams = ast.literal_eval(var_value[var_name.index('optimize_KRR_hyperparams')])
-    optimize_GPR_hyperparams = ast.literal_eval(var_value[var_name.index('optimize_GPR_hyperparams')])
     KRR_alpha_lim = ast.literal_eval(var_value[var_name.index('KRR_alpha_lim')])
     KRR_gamma_lim = ast.literal_eval(var_value[var_name.index('KRR_gamma_lim')])
     allowed_initial_sampling = ast.literal_eval(var_value[var_name.index('allowed_initial_sampling')])
@@ -200,7 +204,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (dask_parallel,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol,t2_train_time,calculate_grid,grid_name)
+    return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name)
 
 def MLL(iseed,l):
     # open log file to write intermediate information
@@ -254,13 +258,27 @@ def MLL(iseed,l):
             time_taken1 = time()-start
             if ML=='kNN': error_metric_result=kNN(X1,y1,iseed,l,w,f_out,None,None,1,None)
             if ML=='GBR': error_metric_result=GBR(X1,y1,iseed,l,w,f_out)
-            if ML=='GPR': error_metric_result=GPR(X1,y1,iseed,l,w,f_out,None,None,1,None)
-            if ML=='KRR':
-                hyperparams=[KRR_gamma,KRR_alpha]
-                if optimize_KRR_hyperparams == False:
-                    error_metric_result=KRR(hyperparams,X1,y1,iseed,l,w,f_out,None,None,1)
+            #if ML=='GPR': error_metric_result=GPR1(X1,y1,iseed,l,w,f_out,None,None,1,None)
+            if ML=='GPR':
+                hyperparams=[GPR_alpha,GPR_length_scale]
+                if optimize_GPR_hyperparams == False:
+                    error_metric_result=GPR(hyperparams,X1,y1,iseed,l,w,f_out,None,None,1,None)
                 else:
-                    mini_args=(X1,y1,iseed,l,w,f_out,None,None,1)
+                    mini_args=(X1,y1,iseed,l,w,f_out,None,None,1,None)
+                    bounds = [GPR_alpha_lim]+[GPR_length_scale_lim]
+                    solver=differential_evolution(GPR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
+                    best_hyperparams = solver.x
+                    best_rmse = solver.fun
+                    if verbosity_level>=1: f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
+                    if verbosity_level>=1: f_out.write("Best rmse: %f \n"  %best_rmse)
+                    if verbosity_level>=1: f_out.flush()
+                    error_metric_result = best_rmse
+            if ML=='KRR':
+                hyperparams=[KRR_alpha,KRR_gamma]
+                if optimize_KRR_hyperparams == False:
+                    error_metric_result=KRR(hyperparams,X1,y1,iseed,l,w,f_out,None,None,1,None)
+                else:
+                    mini_args=(X1,y1,iseed,l,w,f_out,None,None,1,None)
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
@@ -576,9 +594,10 @@ def check_input_values():
         print('GBR_min_samples_leaf =',GBR_min_samples_leaf,flush=True)
     if ML=='GPR':
         print('### GPR parameters ###')
-        print('GPR_A_RBF =',GPR_A_RBF,flush=True)
+        print('GPR_alpha =',GPR_alpha,flush=True)
         print('GPR_length_scale =',GPR_length_scale,flush=True)
-        print('GPR_noise_level =',GPR_noise_level,flush=True)
+        print('GPR_alpha_lim =',GPR_alpha_lim,flush=True)
+        print('GPR_length_scale_lim =',GPR_length_scale_lim,flush=True)
     if ML=='KRR':
         print('### KRR parameters ###')
         print('KRR_alpha =',KRR_alpha,flush=True)
@@ -1056,13 +1075,29 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 f_out.write("Number of points in bubble after removing duplicates: %i\n" %(len(y_bubble)))
                 f_out.write("Explore landscape ML. time: %i. Before ML took %0.4f seconds \n" %(t,time_taken2-time_taken0))
             if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
-            if t2_ML=='GPR': min_point=GPR(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
-            if t2_ML=='KRR':
-                hyperparams=[KRR_gamma,KRR_alpha]
-                if optimize_KRR_hyperparams == False:
-                    min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
+            #if t2_ML=='GPR': min_point=GPR(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
+            if t2_ML=='GPR':
+                hyperparams=[GPR_alpha,GPR_length_scale]
+                if optimize_GPR_hyperparams == False:
+                    min_point=GPR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,1,t)
                 else:
-                    mini_args=(path_x,path_G,iseed,l,w,f_out,None,None,1) # get rmse fitting previous points
+                    mini_args=(path_x,path_G,iseed,l,w,f_out,None,None,1,t) # get rmse fitting previous points
+                    bounds = [GPR_alpha_lim]+[GPR_length_scale_lim]
+                    solver=differential_evolution(GPR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
+                    best_hyperparams = solver.x
+                    best_rmse = solver.fun
+                    if verbosity_level>=1: 
+                        f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
+                        f_out.write("Best rmse: %f \n" %best_rmse)
+                        f_out.flush()
+                    hyperparams=[best_hyperparams[0],best_hyperparams[1]]
+                    min_point=GPR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
+            if t2_ML=='KRR':
+                hyperparams=[KRR_alpha,KRR_gamma]
+                if optimize_KRR_hyperparams == False:
+                    min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,1,t)
+                else:
+                    mini_args=(path_x,path_G,iseed,l,w,f_out,None,None,1,t) # get rmse fitting previous points
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
@@ -1072,7 +1107,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         f_out.write("Best rmse: %f \n" %best_rmse)
                         f_out.flush()
                     hyperparams=[best_hyperparams[0],best_hyperparams[1]]
-                    min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2)
+                    min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
             #time_taken1 = time()-start
             # print x_bubble corresponding to min(y_bubble)
             if verbosity_level>=1: 
@@ -1380,7 +1415,7 @@ def GBR(X,y,iseed,l,w,f_out):
 
 
 # CALCULATE GPR #
-def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
+def GPR1(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
     # initialize values
     iseed=iseed+1
     average_r=0.0
@@ -1401,8 +1436,7 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
             f_out.write('-------- \n')
             f_out.write('Perform GPR\n')
             f_out.write('Cross_validation: %s\n' % (CV))
-            f_out.write('Initial GPR_A_RBF %f: \n' % (GPR_A_RBF))
-            f_out.write('Initial GPR_noise_level: %f: \n' % (GPR_noise_level))
+            f_out.write('Initial GPR_alpha %f: \n' % (GPR_alpha))
             f_out.write('-------- \n')
             f_out.flush()
         # assign splits to kf or and loo
@@ -1423,12 +1457,20 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
                 scaler = preprocessing.StandardScaler().fit(X_train)
                 X_train_scaled = scaler.transform(X_train)
                 X_test_scaled = scaler.transform(X_test)
+                ##### croqueta scaling ####
+                f_out.write('X_train: %s\n' % (str(X_train)))
+                f_out.write('X_train_scaled: %s\n' % (str(X_train_scaled)))
+                f_out.write('y_train: %s\n' % (str(y_train)))
+                f_out.write('X_test: %s\n' % (str(X_test)))
+                f_out.write('X_test_scaled: %s\n' % (str(X_test_scaled)))
+                f_out.write('y_test: %s\n' % (str(y_test)))
+                ###################
                 # fit GPR with (X_train_scaled, y_train) and predict X_test_scaled
                 #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
                 #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
                 #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
-                kernel = RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3))
-                GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-4, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+                kernel = 1.0 * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + 1.0 * WhiteKernel(noise_level=GPR_alpha, noise_level_bounds=(1e-20, 1e+1))
+                GPR = GaussianProcessRegressor(kernel=kernel, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
                 y_pred = GPR.fit(X_train_scaled, y_train).predict(X_test_scaled)
                 # add y_test and y_pred values to general real_y and predicted_y
                 for i in range(len(y_test)):
@@ -1489,8 +1531,8 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
             # fit KRR with (X_train, y_train), and predict X_test
             #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
             #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
-            kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
-            GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+            kernel = 1.0 * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + 1.0 * WhiteKernel(noise_level=GPR_alpha, noise_level_bounds=(1e-20, 1e+1))
+            GPR = GaussianProcessRegressor(kernel=kernel, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
             # scale data
             scaler = preprocessing.StandardScaler().fit(X_train)
             X_train_scaled = scaler.transform(X_train)
@@ -1550,9 +1592,9 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
             f_out.write('## Start: "GPR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform GPR\n')
-            f_out.write('Initial GPR_A_RBF %f \n' % (GPR_A_RBF))
             f_out.write('Initial GPR_length_scale: %f \n' % (GPR_length_scale))
-            f_out.write('Initial GPR_noise_level: %f \n' % (GPR_noise_level))
+            f_out.write('Initial GPR_alpha: %f \n' % (GPR_alpha))
+            #f_out.write('Initial GPR_n_restarts_optimizer: %f \n' % (GPR_n_restarts_optimizer))
             f_out.write('-------- \n')
             f_out.flush()
         # assign train and data tests
@@ -1562,11 +1604,19 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
         scaler = preprocessing.StandardScaler().fit(X_train)
         X_train_scaled = scaler.transform(X_train)
         X_test_scaled = scaler.transform(X_test)
+        ##### croqueta scaling ####
+        f_out.write('X_train: %s\n' % (str(X_train)))
+        f_out.write('X_train_scaled: %s\n' % (str(X_train_scaled)))
+        f_out.write('y_train: %s\n' % (str(y_train)))
+        f_out.write('X_test: %s\n' % (str(X_test)))
+        f_out.write('X_test_scaled: %s\n' % (str(X_test_scaled)))
+        f_out.write('y_test: %s\n' % (str(y_test)))
+        ###################
         # fit GPR with (X_train_scaled, y_train) and predict X_test_scaled
         #kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + A_noise * WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-5, 1e+1))
         #GPR = GaussianProcessRegressor(kernel=kernel,alpha=GPR_alpha,normalize_y=True)
-        kernel = GPR_A_RBF * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + WhiteKernel(noise_level=GPR_noise_level, noise_level_bounds=(1e-3, 1e+1))
-        GPR = GaussianProcessRegressor(kernel=kernel, alpha=1e-10, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
+        kernel = 1.0 * RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3)) + 1.0 * WhiteKernel(noise_level=GPR_alpha, noise_level_bounds=(1e-20, 1e+1))
+        GPR = GaussianProcessRegressor(kernel=kernel, optimizer=optimizer_GPR, n_restarts_optimizer=0, normalize_y=False, copy_X_train=True, random_state=None)
         # Train only at some steps
         time_taken1 = time()-start
         if t%t2_train_time==0:
@@ -1634,8 +1684,208 @@ def GPR(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
         f_out.write("ML calculate minimum took %0.4f seconds \n" %(time_taken2-time_taken1))
     return result
 
+
+
+# CALCULATE GPR #
+def GPR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
+    # assign hyperparameters
+    GPR_alpha,GPR_length_scale = hyperparams
+    # initialize values
+    iseed=iseed+1
+    average_r=0.0
+    average_r_pearson=0.0
+    average_rmse=0.0
+    real_y=[]
+    predicted_y=[]
+    counter_split=0
+    # CASE1: Calculate error metric
+    if mode==1:
+        # verbose info
+        if verbosity_level>=1: 
+            f_out.write('## Start: "GPR" function \n')
+            f_out.write('-------- \n')
+            f_out.write('Perform GPR\n')
+            f_out.write('Cross_validation %i - fold\n' % (k_fold))
+            f_out.write('GPR alpha %f\n' % (GPR_alpha))
+            f_out.write('GPR_length_scale %f\n' % (GPR_length_scale))
+            f_out.write('-------- \n')
+            f_out.flush()
+        # assign splits for kf and loo
+        if CV=='kf':
+            kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+            validation=kf.split(X)
+        if CV=='loo':
+            loo = LeaveOneOut()
+            validation=loo.split(X)
+        # For kf and loo
+        if CV=='kf' or CV=='loo':
+            # calculate r and rmse for each split
+            for train_index, test_index in validation:
+                # assign train and test data
+                X_train, X_test = X[train_index], X[test_index]
+                y_train, y_test = y[train_index], y[test_index]
+                # scale data
+                scaler = preprocessing.StandardScaler().fit(X_train)
+                X_train_scaled = scaler.transform(X_train)
+                X_test_scaled = scaler.transform(X_test)
+                # fit GPR with (X_train, y_train), and predict X_test
+                kernel = RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3))
+                GPR = GaussianProcessRegressor(kernel=kernel, alpha=GPR_alpha, optimizer=None, normalize_y=False,copy_X_train=True, random_state=None)
+                y_pred = GPR.fit(X_train_scaled, y_train).predict(X_test_scaled)
+                # add y_test and y_pred values to general real_y and predicted_y
+                for i in range(len(y_test)):
+                    real_y.append(y_test[i])
+                    predicted_y.append(y_pred[i])
+                # if high verbosity, calculate r and rmse at each split. Then print extra info
+                if verbosity_level>=2: 
+                    r_pearson,_=pearsonr(y_test,y_pred)
+                    mse = mean_squared_error(y_test, y_pred)
+                    rmse = np.sqrt(mse)
+                    average_r_pearson=average_r_pearson+r_pearson
+                    average_rmse=average_rmse+rmse
+                    f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter_split,r_pearson,rmse))
+                    f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
+                    f_out.write("%i train points: %s \n" % (len(train_index),str(train_index)))
+                    f_out.write('X_train: \n')
+                    f_out.write('%s \n' % (str(X_train)))
+                    f_out.write('y_train: \n')
+                    f_out.write('%s \n' % (str(y_train)))
+                    f_out.write('X_test: \n')
+                    f_out.write('%s \n' % (str(X_test)))
+                    f_out.write('y_test: \n')
+                    f_out.write('%s \n' % (str(y_test)))
+                    f_out.write('Parameters GPR: \n')
+                    f_out.write('%s \n' % (str(GPR.get_params(deep=True))))
+                    f_out.write('X_train_scaled: \n')
+                    f_out.write('%s \n' % (str(X_train_scaled)))
+                    f_out.write('X_test_scaled: \n')
+                    f_out.write('%s \n' % (str(X_test_scaled)))
+                    f_out.write('y_test: \n')
+                    f_out.write('%s \n' % (str(y_test)))
+                    f_out.write('y_pred: \n')
+                    f_out.write('%s \n' % (str(y_pred)))
+                    f_out.flush()
+                counter_split=counter_split+1
+            # verbosity for average of splits
+            if verbosity_level>=2: 
+                average_r_pearson=average_r_pearson/counter_split
+                average_rmse=average_rmse/counter_split
+                f_out.write('Splits average r_pearson score: %f \n' % (average_r_pearson))
+                f_out.write('Splits average rmse score: %f \n' % (average_rmse))
+            # calculate final r and rmse
+            total_r_pearson,_ = pearsonr(real_y,predicted_y)
+            total_mse = mean_squared_error(real_y, predicted_y)
+            total_rmse = np.sqrt(total_mse)
+        # For data sorted from old to new
+        elif CV=='sort':
+            # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
+            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
+            # scale data
+            scaler = preprocessing.StandardScaler().fit(X_train)
+            X_train_scaled = scaler.transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
+            # fit GPR with (X_train, y_train), and predict X_test
+            kernel = RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3))
+            GPR = GaussianProcessRegressor(kernel=kernel, alpha=GPR_alpha, optimizer=None, normalize_y=False, copy_X_train=True, random_state=None)
+            y_pred = GPR.fit(X_train_scaled, y_train).predict(X_test_scaled)
+            # calculate final r and rmse
+            total_r_pearson,_=pearsonr(y_test,y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+            total_rmse = np.sqrt(mse)
+            # print verbose info
+            if  verbosity_level>=2: 
+                f_out.write("Train with first %i points \n" % (len(X_train)))
+                f_out.write("%s \n" % (str(X_train)))
+                f_out.write("Test with last %i points \n" % (len(X_test)))
+                f_out.write("%s \n" % (str(X_test)))
+                f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
+        # Print last verbose info for GPR
+        if verbosity_level>=1: 
+            f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson, total_rmse))
+            f_out.flush()
+        if error_metric=='rmse': result=total_rmse
+    # CASE 2: Predict minimum
+    if mode==2:
+        # initialize values
+        real_y=[]
+        predicted_y=[]
+        result = []
+        # verbose info
+        if verbosity_level>=1:
+            f_out.write('## Start: "GPR" function \n')
+            f_out.write('-------- \n')
+            f_out.write('Perform GPR\n')
+            f_out.write('Cross_validation %i - fold\n' % (k_fold))
+            f_out.write('GPR alpha %f\n' % (GPR_alpha))
+            f_out.write('GPR_length_scale %f\n' % (GPR_length_scale))
+            f_out.write('-------- \n')
+            f_out.flush()
+        # assign train and data tests
+        X_train, X_test = Xtr, X
+        y_train, y_test = ytr, y
+        # scale data
+        scaler = preprocessing.StandardScaler().fit(X_train)
+        X_train_scaled = scaler.transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        # fit GPR with (X_train_scaled, y_train) and predict X_test_scaled
+        kernel = RBF(length_scale=GPR_length_scale, length_scale_bounds=(1e-3, 1e+3))
+        GPR = GaussianProcessRegressor(kernel=kernel, alpha=GPR_alpha, optimizer=None, normalize_y=False, copy_X_train=True, random_state=None)
+        # Train only at some steps
+        time_taken1 = time()-start
+        if t%t2_train_time==0:
+            if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
+            GPR.fit(X_train_scaled, y_train)
+            #dump(KRR, open('KRR.pkl', 'wb'))
+            dump(GPR, open('GPR_%i.pkl' %(l), 'wb'))
+            time_taken2 = time()-start
+        else:
+            if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
+            #KRR=load(open('KRR.pkl', 'rb'))
+            GPR=load(open('GPR_%i.pkl' %(l), 'rb'))
+            time_taken2 = time()-start
+        if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
+        ###############################################
+        y_pred = GPR.predict(X_test_scaled)
+        # verbosity info
+        if verbosity_level>=2:
+            f_out.write('X_train: \n')
+            f_out.write('%s \n' % (str(X_train)))
+            f_out.write('y_train: \n')
+            f_out.write('%s \n' % (str(y_train)))
+            f_out.write('X_test: \n')
+            f_out.write('%s \n' % (str(X_test)))
+            f_out.write('y_test: \n')
+            f_out.write('%s \n' % (str(y_test)))
+            f_out.write('Parameters GPR: \n')
+            f_out.write('%s \n' % (str(GPR.get_params(deep=True))))
+            f_out.write('X_train_scaled: \n')
+            f_out.write('%s \n' % (str(X_train_scaled)))
+            f_out.write('X_test_scaled: \n')
+            f_out.write('%s \n' % (str(X_test_scaled)))
+            f_out.write('y_test: \n')
+            f_out.write('%s \n' % (str(y_test)))
+            f_out.write('y_pred: \n')
+            f_out.write('%s \n' % (str(y_pred)))
+            f_out.flush()
+        # add y_test and y_pred values to general real_y and predicted_y
+        for i in range(len(y_test)):
+            real_y.append(y_test[i])
+            predicted_y.append(y_pred[i])
+        # calculate index of minimum predicted value
+        min_index = predicted_y.index(min(predicted_y))
+        # print verbosity
+        if verbosity_level>=2:
+            f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
+            f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
+        # add predicted value to result
+        for j in range(param):
+            result.append(X_test[min_index][j])
+        result.append(min(predicted_y))
+    return result
+
+
 # CALCULATE KRR #
-def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
+def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
     # assign hyperparameters
     KRR_alpha,KRR_gamma = hyperparams
     # initialize values
@@ -1702,7 +1952,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
                     f_out.write('%s \n' % (str(X_test)))
                     f_out.write('y_test: \n')
                     f_out.write('%s \n' % (str(y_test)))
-                    f_out.write('Parameters GPR: \n')
+                    f_out.write('Parameters KRR: \n')
                     f_out.write('%s \n' % (str(KRR.get_params(deep=True))))
                     f_out.write('X_train_scaled: \n')
                     f_out.write('%s \n' % (str(X_train_scaled)))
@@ -1775,7 +2025,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         scaler = preprocessing.StandardScaler().fit(X_train)
         X_train_scaled = scaler.transform(X_train)
         X_test_scaled = scaler.transform(X_test)
-        # fit GPR with (X_train_scaled, y_train) and predict X_test_scaled
+        # fit KRR with (X_train_scaled, y_train) and predict X_test_scaled
         KRR = KernelRidge(alpha=KRR_alpha,kernel=KRR_kernel,gamma=KRR_gamma)
         # Train only at some steps
         time_taken1 = time()-start
@@ -1788,7 +2038,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
         else:
             if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
             #KRR=load(open('KRR.pkl', 'rb'))
-            GPR=load(open('GPR_%i.pkl' %(l), 'rb'))
+            KRR=load(open('KRR_%i.pkl' %(l), 'rb'))
             time_taken2 = time()-start
         if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
         ###############################################
@@ -1803,7 +2053,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode):
             f_out.write('%s \n' % (str(X_test)))
             f_out.write('y_test: \n')
             f_out.write('%s \n' % (str(y_test)))
-            f_out.write('Parameters GPR: \n')
+            f_out.write('Parameters KRR: \n')
             f_out.write('%s \n' % (str(KRR.get_params(deep=True))))
             f_out.write('X_train_scaled: \n')
             f_out.write('%s \n' % (str(X_train_scaled)))
@@ -1858,7 +2108,7 @@ def plot(flag,final_result_T):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(dask_parallel,NCPU,verbosity_level,log_name,Nspf,S,iseed,param,center_min,center_max,grid_min,grid_max,grid_Delta,Nwalkers,adven,t1_time,d_threshold,t0_time,initial_sampling,ML,error_metric,CV,k_fold,test_last_percentage,n_neighbor,weights,GBR_criterion,GBR_n_estimators,GBR_learning_rate,GBR_max_depth,GBR_min_samples_split,GBR_min_samples_leaf,GPR_A_RBF,GPR_length_scale,GPR_noise_level,KRR_alpha,KRR_kernel,KRR_gamma,optimize_KRR_hyperparams,optimize_GPR_hyperparams,KRR_alpha_lim,KRR_gamma_lim,allowed_initial_sampling,allowed_CV,allowed_ML,allowed_ML,allowed_error_metric,width_min,width_max,Amplitude_min,Amplitude_max,N,t2_time,allowed_verbosity_level,t2_ML,allowed_t2_ML,t2_exploration,t1_analysis,diff_popsize,diff_tol,t2_train_time,calculate_grid,grid_name) = read_initial_values(input_file_name)
+(dask_parallel, NCPU, verbosity_level, log_name,Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim, GPR_length_scale_lim, KRR_alpha, KRR_kernel,  KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name) = read_initial_values(input_file_name)
 # Run main program
 main(iseed)
 # Measure and print final time
