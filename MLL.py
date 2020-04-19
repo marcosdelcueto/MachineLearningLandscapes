@@ -1176,6 +1176,7 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
     real_y=[]
     predicted_y=[]
     counter_split=0
+    prev_total_rmse = 0
     # CASE1: Calculate error metric
     if mode==1:
         for n in range(len(n_neighbor)):
@@ -1267,8 +1268,9 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
             if n==0 or total_rmse<prev_total_rmse:
                 if error_metric=='rmse': result=total_rmse
                 final_k = n_neighbor[n]
-            prev_total_rmse = total_rmse
-        f_out.write("Final k: %i, rmse: %f \n" % (final_k,result))
+                prev_total_rmse = total_rmse
+        f_out.write("---------- \n")
+        f_out.write("Final Optimum k: %i, rmse: %f \n" % (final_k,result))
     elif mode==2:
         for n in range(len(n_neighbor)):
             # initialize values
@@ -1362,90 +1364,104 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
                 #if error_metric=='rmse': result=total_rmse
                 result = provi_result
                 final_k = n_neighbor[n]
-            prev_total_rmse = total_rmse
+                prev_total_rmse = total_rmse
         f_out.write("Final k: %i, result: %s \n" % (final_k,str(result)))
 
     return result
 
 # CALCULATE GBR #
 def GBR(X,y,iseed,l,w,f_out):
-    iseed=iseed+1
-    if verbosity_level>=1: 
-        f_out.write('## Start: "GBR" function \n')
-        f_out.write('-------- \n')
-        f_out.write('Perform GBR\n')
-        f_out.write('cross_validation %i - fold\n' % (k_fold))
-        f_out.write('GBR criterion: %s\n' % (GBR_criterion))
-        f_out.write('Number of estimators: %i\n' % (GBR_n_estimators))
-        f_out.write('Learning rate: %f\n' % (GBR_learning_rate))
-        f_out.write('Tree max depth: %i\n' % (GBR_max_depth))
-        f_out.write('Min samples to split: %i\n' % (GBR_min_samples_split))
-        f_out.write('Min samples per leaf: %i\n' % (GBR_min_samples_leaf))
-        f_out.write('--------\n')
-        f_out.flush()
-
-    kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
-    average_r=0.0
-    average_r_pearson=0.0
-    average_rmse=0.0
-    if CV=='kf':
-        kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
-        validation=kf.split(X)
-    if CV=='loo':
-        loo = LeaveOneOut()
-        validation=loo.split(X)
-    if CV=='kf' or CV=='loo':
-        real_y=[]
-        predicted_y=[]
-        counter=1
-        for train_index, test_index in validation:
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-            GBR = GradientBoostingRegressor(criterion=GBR_criterion,n_estimators=GBR_n_estimators,learning_rate=GBR_learning_rate,max_depth=GBR_max_depth,min_samples_split=GBR_min_samples_split,min_samples_leaf=GBR_min_samples_leaf)
-            y_pred = GBR.fit(X_train, y_train).predict(X_test)
-            for i in range(len(y_test)):
-                #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
-                real_y.append(y_test[i])
-            for i in range(len(y_pred)):
-                #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
-                predicted_y.append(y_pred[i])
-            if CV=='kf':
-                r_pearson,_=pearsonr(y_test,y_pred)
-                mse = mean_squared_error(y_test, y_pred)
-                rmse = np.sqrt(mse)
-                if verbosity_level>=2: 
-                    f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
-                    f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
-                counter=counter+1
-                average_r_pearson=average_r_pearson+r_pearson
-                average_rmse=average_rmse+rmse
-        if CV=='kf':
-            average_r_pearson=average_r_pearson/k_fold
-            average_rmse=average_rmse/k_fold
-            if verbosity_level>=2: 
-                f_out.write('k-fold average r_pearson score: %f \n' % (average_r_pearson))
-                f_out.write('k-fold average rmse score: %f \n' % (average_rmse))
-        total_r_pearson,_ = pearsonr(real_y,predicted_y)
-        total_mse = mean_squared_error(real_y, predicted_y)
-        total_rmse = np.sqrt(total_mse)
-    elif CV=='sort':
-        X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
-        GBR = GradientBoostingRegressor(criterion=GBR_criterion,n_estimators=GBR_n_estimators,learning_rate=GBR_learning_rate,max_depth=GBR_max_depth,min_samples_split=GBR_min_samples_split,min_samples_leaf=GBR_min_samples_leaf)
-        y_pred = GBR.fit(X_train, y_train).predict(X_test)
-        total_r_pearson,_=pearsonr(y_test,y_pred)
-        mse = mean_squared_error(y_test, y_pred)
-        total_rmse = np.sqrt(mse)
-        if  verbosity_level>=1: 
-            f_out.write("Train with first %i points \n" % (len(X_train)))
-            f_out.write("%s \n" % (str(X_train)))
-            f_out.write("Test with last %i points \n" % (len(X_test)))
-            f_out.write("%s \n" % (str(X_test)))
-            f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
-    if verbosity_level>=1: 
-        f_out.write('Final r_pearson score: %f \n' % (total_r_pearson))
-        f_out.write('Final rmse score: %f \n' % (total_rmse))
-        f_out.flush()
-    if error_metric=='rmse': result=total_rmse
+    prev_total_rmse = 0
+    gbr_counter = 0
+    for gbr1 in range(len(GBR_n_estimators)):
+        for gbr2 in range(len(GBR_learning_rate)):
+            for gbr3 in range(len(GBR_max_depth)):
+                for gbr4 in range(len(GBR_min_samples_split)):
+                    for gbr5 in range(len(GBR_min_samples_leaf)):
+                        iseed=iseed+1
+                        if verbosity_level>=1: 
+                            f_out.write('## Start: "GBR" function \n')
+                            f_out.write('-------- \n')
+                            f_out.write('Perform GBR\n')
+                            f_out.write('cross_validation %i - fold\n' % (k_fold))
+                            f_out.write('GBR criterion: %s\n' % (GBR_criterion))
+                            f_out.write('Number of estimators: %i\n' % (GBR_n_estimators[gbr1]))
+                            f_out.write('Learning rate: %f\n' % (GBR_learning_rate[gbr2]))
+                            f_out.write('Tree max depth: %i\n' % (GBR_max_depth[gbr3]))
+                            f_out.write('Min samples to split: %i\n' % (GBR_min_samples_split[gbr4]))
+                            f_out.write('Min samples per leaf: %i\n' % (GBR_min_samples_leaf[gbr5]))
+                            f_out.write('--------\n')
+                            f_out.flush()
+                    
+                        kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+                        average_r=0.0
+                        average_r_pearson=0.0
+                        average_rmse=0.0
+                        if CV=='kf':
+                            kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+                            validation=kf.split(X)
+                        if CV=='loo':
+                            loo = LeaveOneOut()
+                            validation=loo.split(X)
+                        if CV=='kf' or CV=='loo':
+                            real_y=[]
+                            predicted_y=[]
+                            counter=1
+                            for train_index, test_index in validation:
+                                X_train, X_test = X[train_index], X[test_index]
+                                y_train, y_test = y[train_index], y[test_index]
+                                GBR = GradientBoostingRegressor(criterion=GBR_criterion,n_estimators=GBR_n_estimators[gbr1],learning_rate=GBR_learning_rate[gbr2],max_depth=GBR_max_depth[gbr3],min_samples_split=GBR_min_samples_split[gbr4],min_samples_leaf=GBR_min_samples_leaf[gbr5])
+                                y_pred = GBR.fit(X_train, y_train).predict(X_test)
+                                for i in range(len(y_test)):
+                                    #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
+                                    real_y.append(y_test[i])
+                                for i in range(len(y_pred)):
+                                    #f_out.write("y_pred[i] %s \n" %(str(y_pred[i])))
+                                    predicted_y.append(y_pred[i])
+                                if CV=='kf':
+                                    r_pearson,_=pearsonr(y_test,y_pred)
+                                    mse = mean_squared_error(y_test, y_pred)
+                                    rmse = np.sqrt(mse)
+                                    if verbosity_level>=2: 
+                                        f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter,r_pearson,rmse))
+                                        f_out.write("%i test points: %s \n" % (len(test_index),str(test_index)))
+                                    counter=counter+1
+                                    average_r_pearson=average_r_pearson+r_pearson
+                                    average_rmse=average_rmse+rmse
+                            if CV=='kf':
+                                average_r_pearson=average_r_pearson/k_fold
+                                average_rmse=average_rmse/k_fold
+                                if verbosity_level>=2: 
+                                    f_out.write('k-fold average r_pearson score: %f \n' % (average_r_pearson))
+                                    f_out.write('k-fold average rmse score: %f \n' % (average_rmse))
+                            total_r_pearson,_ = pearsonr(real_y,predicted_y)
+                            total_mse = mean_squared_error(real_y, predicted_y)
+                            total_rmse = np.sqrt(total_mse)
+                        elif CV=='sort':
+                            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
+                            GBR = GradientBoostingRegressor(criterion=GBR_criterion,n_estimators=GBR_n_estimators[gbr1],learning_rate=GBR_learning_rate[gbr2],max_depth=GBR_max_depth[gbr3],min_samples_split=GBR_min_samples_split[gbr4],min_samples_leaf=GBR_min_samples_leaf[gbr5])
+                            y_pred = GBR.fit(X_train, y_train).predict(X_test)
+                            total_r_pearson,_=pearsonr(y_test,y_pred)
+                            mse = mean_squared_error(y_test, y_pred)
+                            total_rmse = np.sqrt(mse)
+                            if  verbosity_level>=1: 
+                                f_out.write("Train with first %i points \n" % (len(X_train)))
+                                f_out.write("%s \n" % (str(X_train)))
+                                f_out.write("Test with last %i points \n" % (len(X_test)))
+                                f_out.write("%s \n" % (str(X_test)))
+                                f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
+                        if verbosity_level>=1: 
+                            f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson,total_rmse))
+                            f_out.flush()
+                        if gbr_counter==0 or total_rmse<prev_total_rmse:
+                            final_gbr = []
+                            if error_metric=='rmse': result=total_rmse
+                            final_gbr = [GBR_n_estimators[gbr1],GBR_learning_rate[gbr2],GBR_max_depth[gbr3],GBR_min_samples_split[gbr4],GBR_min_samples_leaf[gbr5]]
+                            f_out.write("New final_gbr: %s \n" % (str(final_gbr)))
+                            prev_total_rmse = total_rmse
+                        gbr_counter=gbr_counter+1
+    f_out.write("---------- \n")
+    f_out.write("Final Optimum GBR: %s, rmse: %f \n" % (str(final_gbr),result))
     return result
 
 
