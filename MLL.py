@@ -1086,7 +1086,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             if t2_ML=='GPR':
                 hyperparams=[GPR_alpha,GPR_length_scale]
                 if optimize_GPR_hyperparams == False:
-                    min_point=GPR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,1,t)
+                    min_point=GPR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
                 else:
                     mini_args=(path_x,path_G,iseed,l,w,f_out,None,None,1,t) # get rmse fitting previous points
                     bounds = [GPR_alpha_lim]+[GPR_length_scale_lim]
@@ -1102,7 +1102,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             if t2_ML=='KRR':
                 hyperparams=[KRR_alpha,KRR_gamma]
                 if optimize_KRR_hyperparams == False:
-                    min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,1,t)
+                    min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
                 else:
                     mini_args=(path_x,path_G,iseed,l,w,f_out,None,None,1,t) # get rmse fitting previous points
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
@@ -1125,6 +1125,13 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             path_G=path_G.tolist()
             x_bubble=x_bubble.tolist()
             y_bubble=y_bubble.tolist()
+            ####### croqueta ########
+            #f_out.write("croqueta param: %s\n" %(str(param)))
+            #f_out.write("croqueta type(param): %s\n" %(type(param)))
+            #f_out.write("min_point: %s\n" %(min_point))
+            #f_out.write("min_point[0:param]\n" %(min_point[0:param]))
+            #f_out.write("min_point[param]\n" %(min_point[param]))
+            #########################
             path_x.append(min_point[0:param])
             path_G.append(min_point[param])
             path_x=[list(i) for i in zip(*path_x)]
@@ -1171,172 +1178,193 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
     counter_split=0
     # CASE1: Calculate error metric
     if mode==1:
-        # verbose info
-        if verbosity_level>=1: 
-            f_out.write('## Start: "kNN" function \n')
-            f_out.write('-------- \n')
-            f_out.write('Perform k-NN \n')
-            f_out.write('k= %i \n' % (n_neighbor))
-            f_out.write('cross_validation %i - fold \n' % (k_fold))
-            f_out.write('weights %s \n' % (weights))
-            f_out.write('iseed %s \n' % (iseed))
-            f_out.write('-------- \n')
-            f_out.flush()
-        # assign splits to kf or and loo
-        if CV=='kf':
-            kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
-            validation=kf.split(X)
-        if CV=='loo':
-            loo = LeaveOneOut()
-            validation=loo.split(X)
-
-        # For kf and loo
-        if CV=='kf' or CV=='loo':
-            # calculate r and rmse for each split
-            for train_index, test_index in validation:
-                # assign train and test data
-                X_train, X_test = X[train_index], X[test_index]
-                y_train, y_test = y[train_index], y[test_index]
+        for n in range(len(n_neighbor)):
+            # verbose info
+            if verbosity_level>=1: 
+                f_out.write('## Start: "kNN" function \n')
+                f_out.write('-------- \n')
+                f_out.write('Perform k-NN \n')
+                f_out.write('k= %i \n' % (n_neighbor[n]))
+                f_out.write('cross_validation %i - fold \n' % (k_fold))
+                f_out.write('weights %s \n' % (weights))
+                f_out.write('iseed %s \n' % (iseed))
+                f_out.write('-------- \n')
+                f_out.flush()
+            # assign splits to kf or and loo
+            if CV=='kf':
+                kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+                validation=kf.split(X)
+            if CV=='loo':
+                loo = LeaveOneOut()
+                validation=loo.split(X)
+    
+            # For kf and loo
+            if CV=='kf' or CV=='loo':
+                # calculate r and rmse for each split
+                for train_index, test_index in validation:
+                    # assign train and test data
+                    X_train, X_test = X[train_index], X[test_index]
+                    y_train, y_test = y[train_index], y[test_index]
+                    # scale data
+                    scaler = preprocessing.StandardScaler().fit(X_train)
+                    X_train_scaled = scaler.transform(X_train)
+                    X_test_scaled = scaler.transform(X_test)
+                    # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
+                    knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor[n], weights=weights)
+                    y_pred = knn.fit(X_train, y_train).predict(X_test)
+                    # add y_test and y_pred values to general real_y and predicted_y
+                    for i in range(len(y_test)):
+                        real_y.append(y_test[i])
+                        predicted_y.append(y_pred[i])
+                    # if high verbosity, calculate r and rmse at each split. Then print extra info
+                    if verbosity_level>=2:
+                        r_pearson,_=pearsonr(y_test,y_pred)
+                        mse = mean_squared_error(y_test, y_pred)
+                        rmse = np.sqrt(mse)
+                        average_r_pearson=average_r_pearson+r_pearson
+                        average_rmse=average_rmse+rmse
+                        f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter_split,r_pearson,rmse))
+                        f_out.write("%i test points: %s \n"  % (len(test_index), str(test_index)))
+                        f_out.write("%i train points: %s \n" % (len(train_index),str(train_index)))
+                        f_out.flush()
+                    counter_split=counter_split+1
+                # verbosity for average of splits
+                if verbosity_level>=2:
+                    average_r_pearson=average_r_pearson/counter_split
+                    average_rmse=average_rmse/counter_split
+                    f_out.write('Splits average r_pearson score: %f \n' % (average_r_pearson))
+                    f_out.write('Splits average rmse score: %f \n' % (average_rmse))
+                # calculate final r and rmse
+                total_r_pearson,_ = pearsonr(real_y,predicted_y)
+                total_mse = mean_squared_error(real_y, predicted_y)
+                total_rmse = np.sqrt(total_mse)
+            # For data sorted from old to new
+            elif CV=='sort':
+                # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
+                X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
                 # scale data
                 scaler = preprocessing.StandardScaler().fit(X_train)
                 X_train_scaled = scaler.transform(X_train)
                 X_test_scaled = scaler.transform(X_test)
-                # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
-                knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
+                # fit kNN with (X_train, y_train), and predict X_test
+                knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor[n], weights=weights)
                 y_pred = knn.fit(X_train, y_train).predict(X_test)
-                # add y_test and y_pred values to general real_y and predicted_y
-                for i in range(len(y_test)):
-                    real_y.append(y_test[i])
-                    predicted_y.append(y_pred[i])
-                # if high verbosity, calculate r and rmse at each split. Then print extra info
+                # calculate final r and rmse
+                total_r_pearson,_=pearsonr(y_test,y_pred)
+                mse = mean_squared_error(y_test, y_pred)
+                total_rmse = np.sqrt(mse)
+                # print verbose info
                 if verbosity_level>=2:
-                    r_pearson,_=pearsonr(y_test,y_pred)
-                    mse = mean_squared_error(y_test, y_pred)
-                    rmse = np.sqrt(mse)
-                    average_r_pearson=average_r_pearson+r_pearson
-                    average_rmse=average_rmse+rmse
-                    f_out.write('Landscape %i . Adventurousness: %i . k-fold: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],counter_split,r_pearson,rmse))
-                    f_out.write("%i test points: %s \n"  % (len(test_index), str(test_index)))
-                    f_out.write("%i train points: %s \n" % (len(train_index),str(train_index)))
-                    f_out.flush()
-                counter_split=counter_split+1
-            # verbosity for average of splits
-            if verbosity_level>=2:
-                average_r_pearson=average_r_pearson/counter_split
-                average_rmse=average_rmse/counter_split
-                f_out.write('Splits average r_pearson score: %f \n' % (average_r_pearson))
-                f_out.write('Splits average rmse score: %f \n' % (average_rmse))
+                    f_out.write("Train with first %i points \n" % (len(X_train)))
+                    f_out.write("%s \n" % (str(X_train)))
+                    f_out.write("Test with last %i points \n" % (len(X_test)))
+                    f_out.write("%s \n" % (str(X_test)))
+                    f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
+            # Print last verbose info for kNN
+            if verbosity_level>=1:
+                f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson,total_rmse))
+                f_out.flush()
+            if n==0 or total_rmse<prev_total_rmse:
+                if error_metric=='rmse': result=total_rmse
+                final_k = n_neighbor[n]
+            prev_total_rmse = total_rmse
+        f_out.write("Final k: %i, rmse: %f \n" % (final_k,result))
+    elif mode==2:
+        for n in range(len(n_neighbor)):
+            # initialize values
+            real_y=[]
+            predicted_y=[]
+            provi_result = []
+            # verbose info
+            if verbosity_level>=1:
+                f_out.write('## Start: "kNN" function \n')
+                f_out.write('-------- \n')
+                f_out.write('Perform k-NN \n')
+                f_out.write('k= %i \n' % (n_neighbor[n]))
+                f_out.write('weights %s \n' % (weights))
+                f_out.write('iseed %s \n' % (iseed))
+                f_out.write('-------- \n')
+                f_out.flush()
+            # assign train and test data
+            X_train, X_test = Xtr, X
+            y_train, y_test = ytr, y
+            # scale data
+            scaler = preprocessing.StandardScaler().fit(X_train)
+            X_train_scaled = scaler.transform(X_train)
+            X_test_scaled = scaler.transform(X_test)        
+            # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
+            knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor[n], weights=weights)
+            # Train only at some steps
+            time_taken1 = time()-start
+            if t%t2_train_time==0:
+                if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
+                knn.fit(X_train_scaled, y_train)
+                dump(knn, open('knn_%i.pkl' %(l), 'wb'))
+                time_taken2 = time()-start
+            else:
+                if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
+                knn=load(open('knn_%i.pkl' %(l), 'rb'))
+                time_taken2 = time()-start
+            if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
+            ###############################################
+            time_taken1 = time()-start
+            y_pred=knn.predict(X_test_scaled)
+            time_taken2 = time()-start
+            f_out.write("ML predict took %0.4f seconds \n" %(time_taken2-time_taken1))
+            # verbosity info
+            if verbosity_level>=2: 
+                f_out.write("X_train: %s\n" %(str(X_train)))
+                f_out.write("y_train: %s\n" %(str(y_train)))
+                f_out.write("X_test: %s\n" %(str(X_test)))
+                f_out.write("y_test: %s\n" %(str(y_test)))
+            # add y_test and y_pred values to general real_y and predicted_y
+            for i in range(len(y_test)):
+                real_y.append(y_test[i])
+                predicted_y.append(y_pred[i])
+            # calculate index of minimum predicted value (keep searching until a non-visited configuration is found)
+            time_taken1 = time()-start
+            #f_out.write("Croqueta X_train: %s\n" %(str(X_train)))
+            #f_out.write("Croqueta X_test: %s\n" %(str(X_test)))
+            for i in range(len(predicted_y)):
+                min_index = predicted_y.index(sorted(predicted_y)[i])
+                for k in range(len(X_train)):
+                    counter_equal=0
+                    for j in range(param):
+                        #f_out.write("croqueta: k,j %i, %i\n" % (k,j))
+                        if X_test[min_index][j] == X_train[k][j]: 
+                            counter_equal=counter_equal+1
+                            #f_out.write("croqueta %i, %i - I am increasing counter_equal by 1\n" %(k,j))
+                    if counter_equal==param:
+                        f_out.write("Croqueta: I am %s, %s, and am equal to a previous explored point \n" %(str(X_test[min_index]),str(predicted_y[min_index])))
+                        break
+                if counter_equal!=param:
+                    f_out.write("Croqueta: I have encountered a minimum geometry that is new: %s, %s\n" %(str(X_test[min_index]),str(predicted_y[min_index])))
+                    break
+            time_taken2 = time()-start
+            f_out.write("ML calculate next minimum  took %0.4f seconds \n" %(time_taken2-time_taken1))
+            # print verbosity
+            if verbosity_level>=2: 
+                f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
+                f_out.write("At index %i, 'real' minimum value: %f\n" %(min_index, min(real_y)))
+             # add predicted value to result
+            for j in range(param):
+                provi_result.append(X_test[min_index][j])
+            provi_result.append(predicted_y[min_index])
+
             # calculate final r and rmse
             total_r_pearson,_ = pearsonr(real_y,predicted_y)
             total_mse = mean_squared_error(real_y, predicted_y)
             total_rmse = np.sqrt(total_mse)
-        # For data sorted from old to new
-        elif CV=='sort':
-            # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
-            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
-            # scale data
-            scaler = preprocessing.StandardScaler().fit(X_train)
-            X_train_scaled = scaler.transform(X_train)
-            X_test_scaled = scaler.transform(X_test)
-            # fit kNN with (X_train, y_train), and predict X_test
-            knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
-            y_pred = knn.fit(X_train, y_train).predict(X_test)
-            # calculate final r and rmse
-            total_r_pearson,_=pearsonr(y_test,y_pred)
-            mse = mean_squared_error(y_test, y_pred)
-            total_rmse = np.sqrt(mse)
-            # print verbose info
-            if verbosity_level>=2:
-                f_out.write("Train with first %i points \n" % (len(X_train)))
-                f_out.write("%s \n" % (str(X_train)))
-                f_out.write("Test with last %i points \n" % (len(X_test)))
-                f_out.write("%s \n" % (str(X_test)))
-                f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
-        # Print last verbose info for kNN
-        if verbosity_level>=1:
-            f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson,total_rmse))
-            f_out.flush()
-        if error_metric=='rmse': result=total_rmse
-    elif mode==2:
-        # initialize values
-        real_y=[]
-        predicted_y=[]
-        result = []
-        # verbose info
-        if verbosity_level>=1:
-            f_out.write('## Start: "kNN" function \n')
-            f_out.write('-------- \n')
-            f_out.write('Perform k-NN \n')
-            f_out.write('k= %i \n' % (n_neighbor))
-            f_out.write('weights %s \n' % (weights))
-            f_out.write('iseed %s \n' % (iseed))
-            f_out.write('-------- \n')
-            f_out.flush()
-        # assign train and test data
-        X_train, X_test = Xtr, X
-        y_train, y_test = ytr, y
-        # scale data
-        scaler = preprocessing.StandardScaler().fit(X_train)
-        X_train_scaled = scaler.transform(X_train)
-        X_test_scaled = scaler.transform(X_test)        
-        # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
-        knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor, weights=weights)
-        # Train only at some steps
-        time_taken1 = time()-start
-        if t%t2_train_time==0:
-            if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
-            knn.fit(X_train_scaled, y_train)
-            dump(knn, open('knn_%i.pkl' %(l), 'wb'))
-            time_taken2 = time()-start
-        else:
-            if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
-            knn=load(open('knn_%i.pkl' %(l), 'rb'))
-            time_taken2 = time()-start
-        if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
-        ###############################################
-        time_taken1 = time()-start
-        y_pred=knn.predict(X_test_scaled)
-        time_taken2 = time()-start
-        f_out.write("ML predict took %0.4f seconds \n" %(time_taken2-time_taken1))
-        # verbosity info
-        if verbosity_level>=2: 
-            f_out.write("X_train: %s\n" %(str(X_train)))
-            f_out.write("y_train: %s\n" %(str(y_train)))
-            f_out.write("X_test: %s\n" %(str(X_test)))
-            f_out.write("y_test: %s\n" %(str(y_test)))
-        # add y_test and y_pred values to general real_y and predicted_y
-        for i in range(len(y_test)):
-            real_y.append(y_test[i])
-            predicted_y.append(y_pred[i])
-        # calculate index of minimum predicted value (keep searching until a non-visited configuration is found)
-        time_taken1 = time()-start
-        f_out.write("Croqueta X_train: %s\n" %(str(X_train)))
-        f_out.write("Croqueta X_test: %s\n" %(str(X_test)))
-        for i in range(len(predicted_y)):
-            min_index = predicted_y.index(sorted(predicted_y)[i])
-            for k in range(len(X_train)):
-                counter_equal=0
-                for j in range(param):
-                    #f_out.write("croqueta: k,j %i, %i\n" % (k,j))
-                    if X_test[min_index][j] == X_train[k][j]: 
-                        counter_equal=counter_equal+1
-                        #f_out.write("croqueta %i, %i - I am increasing counter_equal by 1\n" %(k,j))
-                if counter_equal==param:
-                    f_out.write("Croqueta: I am %s, %s, and am equal to a previous explored point \n" %(str(X_test[min_index]),str(predicted_y[min_index])))
-                    break
-            if counter_equal!=param:
-                f_out.write("Croqueta: I have encountered a minimum geometry that is new: %s, %s\n" %(str(X_test[min_index]),str(predicted_y[min_index])))
-                break
-        time_taken2 = time()-start
-        f_out.write("ML calculate next minimum  took %0.4f seconds \n" %(time_taken2-time_taken1))
-        # print verbosity
-        if verbosity_level>=2: 
-            f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
-            f_out.write("At index %i, 'real' minimum value: %f\n" %(min_index, min(real_y)))
-         # add predicted value to result
-        for j in range(param):
-            result.append(X_test[min_index][j])
-        result.append(predicted_y[min_index])
+
+            f_out.write("n_neighbor[n]: %i\n" %(n_neighbor[n]))
+            f_out.write("total_rmse: %f\n" %(total_rmse))
+            if n==0 or total_rmse<prev_total_rmse:
+                #if error_metric=='rmse': result=total_rmse
+                result = provi_result
+                final_k = n_neighbor[n]
+            prev_total_rmse = total_rmse
+        f_out.write("Final k: %i, result: %s \n" % (final_k,str(result)))
+
     return result
 
 # CALCULATE GBR #
