@@ -2,7 +2,7 @@
 # General Landscape parameters
 #################################################
 ### Type of calculation #########################
-calculate_grid = True                           # Decide whether to calculate or read SPF
+calculate_grid = False                           # Decide whether to calculate or read SPF
 ### Parallel Computing ##########################
 dask_parallel = True		                        # Decide if dask is used
 NCPU    = 6    	                              # Choose number of CPUs used by dask
@@ -27,7 +27,7 @@ log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.
 # t1 exploration parameters
 #################################################
 Nwalkers = 1                                    # Number of walkers per landscape
-adven = [10]		  					# percentage of special points per walker
+adven = [60]		  					# percentage of special points per walker
 t0_time = 5 		                              # Number of initial unbiased steps
 t1_time = 50                                    # Number of time steps for the walker
 d_threshold = 0.04                              # Threshold maximum distance that at each time step
