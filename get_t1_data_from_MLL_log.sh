@@ -1,15 +1,17 @@
 #!/bin/bash
-
-
-t1=120
-t0=12
-data_file_name='data_x_G' 
-Nspf=100
-adv=(10 20 40 60 80 100)
-
+# Simple script to extract {{x},G} t1 data from MLL, and create files with general format that can be analized separately
+### START CUSTOMIZABLE DATA ###
+data_file_name='data_x_G'		# prefix of data files taht will be created
+t1=120								# number of t1 points
+t0=12									# number of t0 points (ignored)
+Nspf=100								# number of landscapes
+adv=(10 20 40 60 80 100)		# array with values of adventurousness values
+#### END CUSTOMIZABLE DATA ####
+# Loop for all landscapes
 for l in `seq 0 $((Nspf-1))`
 do
    counter=0
+	# loop for all adventurousness values
    for i in `seq ${#adv[@]}`
    do 
 		a=${adv[counter]}
