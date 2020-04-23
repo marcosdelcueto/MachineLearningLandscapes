@@ -12,6 +12,12 @@ Nspf = 100                       # number of landscapes
 adven = [10,20,40,60,80,100]     # array with adventurousness values
 ######   END CUSTOMIZABLE PARAMETERS   ######
 #################################################################################
+final_S = []
+final_a = []
+# Set value of general factors
+factor_F1 = 0.27
+factor_F2 = 120
+# Loop for each adventurousness
 for a in adven:
     # initialize final arrays
     average_F1 = []
@@ -34,10 +40,6 @@ for a in adven:
             provi_G = line[i+1]
             X.append(provi_X)
             G.append(provi_G)
-        #print('X:')
-        #print(X)
-        #print('G:')
-        #print(G)
         # Calculate F1
         for i in range(len(G)-1):
             d = []
@@ -50,7 +52,6 @@ for a in adven:
                 if Delta_G > 0.0:
                     F1.append(Delta_x/Delta_G)
         # Calculate F2
-
         for i in range(len(G)):
             for j in range(len(G)):
                 if j==i+1:
@@ -58,23 +59,18 @@ for a in adven:
                     for k in range(len(X[0])):
                         dx = dx + (X[i][k]-X[j][k])**2
                     dx = np.sqrt(dx)
-                    d0.append(dx)
-        av_d0=sum(d0)/len(d0)
-        #print('average d0',av_d0)
-                    
-        average_F1.append(sum(F1)/len(F1))
-        average_F2.append((av_d0)**0.75)
-    # Print S results
-    factor_F1 = 2**(2*len(X[0])+1)
-    factor_F2 = 15**len(X[0])
-    #print(average_F1)
-    #print(sum(average_F1)/len(average_F1))
-    #print(average_F2)
-    #print(sum(average_F2)/len(average_F2))
-    print("################")
-    print("####","a = ", a, "####")
-    print('F1 Mean:',statistics.mean(average_F1), '. Stdev:',statistics.stdev(average_F1))
-    print('F2 Mean:',statistics.mean(average_F2), '. Stdev:',statistics.stdev(average_F2))
-    print('--------------')
-    print('Estimated S:', statistics.mean(average_F1)/factor_F1, '+/-', statistics.stdev(average_F1)/factor_F1)
-    print('Estimated a:', statistics.mean(average_F2)*factor_F2, '+/-', statistics.stdev(average_F2)*factor_F2)
+                    F2.append(dx)
+        # calculates average value for each SPF
+        av_f1 = sum(F1)/len(F1)
+        av_f2 = (sum(F2)/len(F2))
+        average_F1.append(((av_f1)**0.95)/((len(G))**0.50) * 1 **(len(X[0])) + 0.0)
+        average_F2.append(((av_f2)**0.78)/((len(G))**0.55) * 1 **(len(X[0])) + 0.0)
+
+    # Add arrays with average of each landscape to a general array containing all 'a'
+    final_S.append(average_F1)
+    final_a.append(average_F2)
+
+# Print final results
+for i in range(len(adven)):
+    print('### a = %i. Estimated S: %.2f +/- %.2f . Estimated a: %.2f +/- %.2f' % (adven[i],statistics.mean(final_S[i])*factor_F1, statistics.stdev(final_S[i])*factor_F1,statistics.mean(final_a[i])*factor_F2,statistics.stdev(final_a[i])*factor_F2))
+
