@@ -23,9 +23,9 @@ S_C1 =  0.78
 S_C2 = -0.50
 S_C3 =  1.00
 # Set value of general a factors
-factor_F2 = 1.0
-a_C1 =  1.0
-a_C2 =  0.001
+factor_F2 = 0.27
+a_C1 =  0.7
+a_C2 =  0.0
 a_C3 =  1.00
 
 # Loop for each adventurousness
@@ -43,6 +43,8 @@ for a in adven:
         d0 = []
         F1 = []
         F2 = []
+        F2_num = []
+        F2_den = []
         # read data and assign it to X and G arrays
         f_data = open('%s_%i_%s.dat' % (data_file_name,a,l), 'r')
         for line in f_data:
@@ -66,6 +68,7 @@ for a in adven:
                     F1.append(Delta_x/Delta_G)
                     #F1.append(1/Delta_G)
         # Calculate F2
+        ################### Option 1: average with next point
         for i in range(len(G)):
             for j in range(len(G)):
                 if j==i+1:
@@ -73,7 +76,38 @@ for a in adven:
                     for k in range(len(X[0])):
                         dx = dx + (X[i][k]-X[j][k])**2
                     dx = np.sqrt(dx)
-                    F2.append(dx)
+                    F2.append(10000*dx)
+        ################### Option 2: average of last10%/first10%
+        #for i in range(len(G)):
+            #if i<10:
+                #for j in range(0,9):
+                    #if j != i:
+                        #Delta_xi = 0.0
+                        #for k in range(len(X[0])):
+                            #Delta_xi = Delta_xi + (X[i][k]-X[j][k])**2
+                        #Delta_xi = np.sqrt(Delta_xi)
+                        #F2_den.append(Delta_xi)
+            #if i>90:
+                #for j in range(91,100):
+                    #if j != i:
+                        #Delta_xf = 0.0
+                        #for k in range(len(X[0])):
+                            #Delta_xf = Delta_xf + (X[i][k]-X[j][k])**2
+                        #Delta_xf = np.sqrt(Delta_xf)
+                        #F2_num.append(Delta_xf)
+        #for i in range(len(F2_num)):
+            #F2.append(400*F2_num[i]/F2_den[i])
+        ################### Option 3: 
+        #for i in range(len(G)):
+            #if i>90:
+                #for j in range(91,100):
+                    #if j != i:
+                        #Delta_x = 0.0
+                        #for k in range(len(X[0])):
+                            #Delta_x = Delta_x + (X[i][k]-X[j][k])**2
+                        #Delta_x = np.sqrt(Delta_x)
+                        #F2.append(Delta_x*1600)
+        ###################
         # calculates average value for each SPF
         #av_f1 = sum(F1)/len(F1)
         av_f1 = statistics.mean(F1)
