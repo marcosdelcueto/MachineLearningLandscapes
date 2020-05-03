@@ -18,18 +18,20 @@ final_a = []
 error_a = []
 
 # Set value of general S factors
-factor_F1 = 0.27
-S_C1 =  0.78
-S_C2 = -0.50
-S_C3 =  1.00
+factor_F1 = 0.16  # 24
+S_C1 =  0.55 # 0.78
+S_C2 = 0.55 #-0.5
+S_C3 =  1.00 #1
 # Set value of general a factors
-factor_F2 = 0.27
-a_C1 =  0.7
-a_C2 =  0.0
-a_C3 =  1.00
+factor_F2 = 500 # 232   # 500
+a_C1 =  0.72  #0.70     # 0.72
+a_C2 = -0.20 #-1.5      # -0.2
+a_C3 =  1.00 # 1.0      # 1.0
 
 # Loop for each adventurousness
+counter_adven = 0
 for a in adven:
+    #print('########### NEW a ###########')
     # initialize final arrays
     average_F1 = []
     average_F2 = []
@@ -56,17 +58,38 @@ for a in adven:
             X.append(provi_X)
             G.append(provi_G)
         # Calculate F1
-        for i in range(len(G)-1):
-            d = []
-            for j in range(i+1,len(G)):
-                Delta_x = 0.0
-                Delta_G = np.sqrt((G[i] - G[j])**2)
-                for k in range(len(X[0])):
-                    Delta_x = Delta_x + (X[i][k]-X[j][k])**2
-                Delta_x = np.sqrt(Delta_x)
-                if Delta_G > 0.0:
-                    F1.append(Delta_x/Delta_G)
-                    #F1.append(1/Delta_G)
+        ################### Option 1 
+        #for j in range(i+1,len(G)):
+        for i in range(len(G)):
+            for j in range(len(G)):
+                if j>i:
+                #if j==i+1:
+                #if i==99:
+                    Delta_x = 0.0
+                    Delta_G = np.sqrt((G[i] - G[j])**2)
+                    for k in range(len(X[0])):
+                        Delta_x = Delta_x + (X[i][k]-X[j][k])**2
+                    Delta_x = np.sqrt(Delta_x)
+                    if Delta_G > 0.0:
+                        #F1.append((Delta_x)/(Delta_G))
+                        #F1.append(Delta_G/Delta_x)
+                        F1.append(Delta_G/Delta_x**1.5)
+                        #F1.append(1/Delta_G)
+                    #F1.append(Delta_x)
+        ###################
+        ################### Option 2
+        #for i in range(len(G)):
+            #for j in range(len(G)):
+                #if j==i+1:
+                    #Delta_x = 0.0
+                    #Delta_G = np.sqrt((G[i] - G[j])**2)
+                    #for k in range(len(X[0])):
+                        #Delta_x = Delta_x + (X[i][k]-X[j][k])**2
+                    #Delta_x = np.sqrt(Delta_x)
+                    #if Delta_G > 0.0:
+                        #F1.append((Delta_x**1.5/Delta_G))
+                        #F1.append(Delta_x/Delta_G)
+
         # Calculate F2
         ################### Option 1: average with next point
         for i in range(len(G)):
@@ -76,7 +99,8 @@ for a in adven:
                     for k in range(len(X[0])):
                         dx = dx + (X[i][k]-X[j][k])**2
                     dx = np.sqrt(dx)
-                    F2.append(10000*dx)
+                    #F2.append(dx*(len(G)**len(X[0])))
+                    F2.append(dx)
         ################### Option 2: average of last10%/first10%
         #for i in range(len(G)):
             #if i<10:
@@ -114,13 +138,19 @@ for a in adven:
         stdev_f1 = statistics.stdev(F1)
         av_f2 = statistics.mean(F2)
         stdev_f2 = statistics.stdev(F2)
+        #print('tests:','F1:', av_f1, stdev_f1, 'F2:',av_f2,stdev_f2)
         new_S = factor_F1 * ((av_f1)**S_C1)*(len(G))**S_C2 * S_C3 **(len(X[0])) + 0.0
         new_a = factor_F2 * ((av_f2)**a_C1)*(len(G))**a_C2 * a_C3 **(len(X[0])) + 0.0
 
-        average_F1.append(new_S)
+
+        average_F1.append(1.0/new_S)
+        #average_F1.append(new_S)
         average_F2.append(new_a)
-        error_F1.append(factor_F1 * abs(S_C1) * stdev_f1/abs(av_f1) * abs(new_S) * (len(G))**S_C2 * S_C3 **(len(X[0])))
-        error_F2.append(factor_F2 * abs(a_C1) * stdev_f2/abs(av_f2) * abs(new_a) * (len(G))**a_C2 * a_C3 **(len(X[0])))
+        error_F1.append((abs(S_C1) * abs(av_f1)**(S_C1-1)*stdev_f1 *  factor_F1 * (len(G))**S_C2 * S_C3**(len(X[0])))/new_S**2)
+        #error_F1.append(abs(S_C1) * abs(av_f1)**(S_C1-1)*stdev_f1 *  factor_F1 * (len(G))**S_C2 * S_C3**(len(X[0])))
+        error_F2.append(abs(a_C1) * abs(av_f2)**(a_C1-1)*stdev_f2 *  factor_F2 * (len(G))**a_C2 * a_C3**(len(X[0])))
+
+
 
         #average_F2.append(av_f2)
         #error_F2.append(stdev_f2)
@@ -131,9 +161,12 @@ for a in adven:
     final_a.append(average_F2)
     error_a.append(error_F2)
 
+
+    print('### a = %i. Estimated S: %.2f +/- %.2f . Estimated a: %.2f +/- %.2f' % (adven[counter_adven],statistics.mean(final_S[counter_adven]), statistics.mean(error_S[counter_adven]),statistics.mean(final_a[counter_adven]),statistics.mean(error_a[counter_adven])))
+
+    counter_adven = counter_adven +1
+
 # Print final results
-for i in range(len(adven)):
-    #error = factor_F1 * 0.95 * 
-    #print('### a = %i. Estimated S: %.2f +/- %.2f . Estimated a: %.2f +/- %.2f' % (adven[i],statistics.mean(final_S[i]), statistics.stdev(final_S[i]),statistics.mean(final_a[i]),statistics.stdev(final_a[i])))
-    print('### a = %i. Estimated S: %.2f +/- %.2f . Estimated a: %.2f +/- %.2f' % (adven[i],statistics.mean(final_S[i]), statistics.mean(error_S[i]),statistics.mean(final_a[i]),statistics.mean(error_a[i])))
+#for i in range(len(adven)):
+    #print('### a = %i. Estimated S: %.2f +/- %.2f . Estimated a: %.2f +/- %.2f' % (adven[i],statistics.mean(final_S[i]), statistics.mean(error_S[i]),statistics.mean(final_a[i]),statistics.mean(error_a[i])))
 
