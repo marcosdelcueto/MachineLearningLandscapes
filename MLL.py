@@ -7,6 +7,7 @@ import sys
 import dask
 import random
 import math
+import copy
 import statistics
 import numpy as np
 import pandas as pd
@@ -31,7 +32,7 @@ from sklearn.gaussian_process.kernels import WhiteKernel, RBF
 
 #################################################################################
 ######   START CUSTOMIZABLE PARAMETERS ########
-input_file_name = 'input_MLL.txt'      # name of input file
+input_file_name = 'input_MLL.inp'      # name of input file
 ######   END CUSTOMIZABLE PARAMETERS   ######
 #################################################################################
 
@@ -55,8 +56,10 @@ def main(iseed):
             for l in range(Nspf):
                 iseed=iseed+l
                 Ngrid = generate_grid(iseed,l)
-    # Calculation just to explore SPF
-    elif calculate_grid == False:
+
+    # Calculation to explore SPF
+    #elif calculate_grid == False:
+    if t1_analysis == True:
         # Initialize results array
         results_t1_per_Nspf=[]
         results_t2_per_Nspf=[]
@@ -111,6 +114,8 @@ def main(iseed):
                 print('- ML_gain_real_relative Mean: %f' %(statistics.mean(ML_gain_real_relative)))
                 print('- ML_gain_real_relative Median: %f' %(statistics.median(ML_gain_real_relative)))
             print('',flush=True)
+        if plot_t1_error_metric == True and error_metric=='rmse':
+            plot(error_metric,None,None,None,None,None,None,None,None,None,results_per_walker_t1)
 ###### END MAIN ######
 #################################################################################
 
@@ -197,6 +202,9 @@ def read_initial_values(inp):
     diff_tol = ast.literal_eval(var_value[var_name.index('diff_tol')])
     t2_train_time = ast.literal_eval(var_value[var_name.index('t2_train_time')])
     calculate_grid = ast.literal_eval(var_value[var_name.index('calculate_grid')])
+    plot_t1_exploration = ast.literal_eval(var_value[var_name.index('plot_t1_exploration')])
+    plot_t1_error_metric = ast.literal_eval(var_value[var_name.index('plot_t1_error_metric')])
+    plot_contour_map = ast.literal_eval(var_value[var_name.index('plot_contour_map')])
     grid_name = ast.literal_eval(var_value[var_name.index('grid_name')])
 
     width_min=S                                     # Minimum width of each Gaussian function
@@ -207,7 +215,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name)
+    return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric)
 
 def MLL(iseed,l):
     # open log file to write intermediate information
@@ -252,7 +260,22 @@ def MLL(iseed,l):
     for w in range(Nwalkers):
         # Step 1) Perform t1 exploration
         time_taken1 = time()-start
-        X1,y1,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,t1_time,0,None,None,False)
+        #X0,y0,unique_t0 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,0,0,None,None,False)
+        X0,y0,unique_t0 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,0,0,None,None,False,None,None)
+        #print('TEST X0:')
+        #print(X0)
+        #print('TEST y0:')
+        #print(y0)
+        #X1,y1,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,t1_time,0,None,None,False)
+        X1,y1,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,t1_time,0,None,None,False,X0,y0)
+        #print('TEST after X0:')
+        #print(X0)
+        #print('TEST after y0:')
+        #print(y0)
+        #print('TEST X1:')
+        #print(X1)
+        #print('TEST y1:')
+        #print(y1)
         time_taken2 = time()-start
         if verbosity_level>=1:
             f_out.write("t1 exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
@@ -295,19 +318,30 @@ def MLL(iseed,l):
             error_metric_list.append(error_metric_result)
             result1 = error_metric_list
             time_taken2 = time()-start
+            ###################################
+            ###################################
+            ###################################
+            # TEST plot 2d exploration
+            if plot_t1_exploration == True and param == 2:
+                plot('t1_exploration',l,w,iseed,dim_list,G_list,X0,y0,X1,y1,None)
+            ###################################
+            ###################################
+            ###################################
             if verbosity_level>=1:
                 f_out.write("t1 analysis took %0.4f seconds\n" %(time_taken2-time_taken1))
         # Step 2B) Perform t2 exploration
         if t2_exploration == True:
             # Step 2.B.1) Perform t2 exploration with random biased explorer
             time_taken1 = time()-start
-            X2a,y2a,unique_t2a = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,False)
+            #X2a,y2a,unique_t2a = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,False)
+            X2a,y2a,unique_t2a = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,False,None,None)
             time_taken2 = time()-start
             if verbosity_level>=1:
                 f_out.write("t2 standard exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
             # Step 2.B.2) Perform t2 exploration with ML explorer
             time_taken1 = time()-start
-            X2b,y2b,unique_t2b = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,True)
+            #X2b,y2b,unique_t2b = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,True)
+            X2b,y2b,unique_t2b = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,True,None,None)
             time_taken2 = time()-start
             if verbosity_level>=1:
                 f_out.write("t2 ML exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
@@ -407,6 +441,7 @@ def MLL(iseed,l):
     return (result1, result2)
 
 def generate_grid(iseed,l):
+    initial_seed = iseed
     time_taken1 = time()-start
     Amplitude      = []
     center_N       = [[] for i in range(N)]
@@ -417,7 +452,7 @@ def generate_grid(iseed,l):
     if verbosity_level>=1: 
         f_out.write('## Start: "generate_grid" function \n')
         f_out.write("########################### \n")
-        f_out.write("##### Landscape', %i '##### \n" % (l))
+        f_out.write("###### Landscape %i ####### \n" % (l))
         f_out.write("########################### \n")
         f_out.write("%s %i %s %6.2f \n" % ('Initial seed:', iseed, '. Verbosity level:', verbosity_level))
         f_out.flush()
@@ -438,14 +473,14 @@ def generate_grid(iseed,l):
             random.seed(iseed)
             width_N[i].append(random.uniform(width_min,width_max))
     if verbosity_level>=2:
-        f_out.write("%4s %14s %22s %34s \n" % ("N","Amplitude","Center","Width"))
+        #f_out.write("%4s %14s %22s %34s \n" % ("N","Amplitude","Center","Width"))
         for i in range(len(Amplitude)):
             line1 = []
             line2 = []
             for j in range(param):
                 line1.append((center_N[i][j]))
                 line2.append((width_N[i][j]))
-            f_out.write("%4i %2s %10.6f %2s %s %2s %s \n" % (i, "", Amplitude[i],"",str(line1),"",str(line2)))
+            #f_out.write("%4i %2s %10.6f %2s %s %2s %s \n" % (i, "", Amplitude[i],"",str(line1),"",str(line2)))
         f_out.flush()
     # CALCULATE G GRID #
     counter=0
@@ -491,6 +526,8 @@ def generate_grid(iseed,l):
         f_out.write("Minimum value of grid: %s \n" %(str(line2)))
         f_out.flush()
 
+    if plot_contour_map == True and param == 2:
+        plot('contour',l,None,initial_seed,dim_list,G_list,None,None,None,None,None)
     #return dim_list, G_list, Ngrid, max_G
     time_taken2 = time()-start
     f_out.write("Generate grid took %0.4f seconds\n" %(time_taken2-time_taken1))
@@ -557,6 +594,9 @@ def check_input_values():
     print('grid_Delta =',grid_Delta)
     print('calculate_grid =',calculate_grid)
     print('grid_name =',grid_name)
+    print('plot_t1_exploration =',plot_t1_exploration)
+    print('plot_t1_error_metric =',plot_t1_error_metric)
+    print('plot_contour_map =',plot_contour_map)
     print('##############################')
     print('# T1 exploration parameters')
     print('##############################')
@@ -627,7 +667,8 @@ def check_input_values():
     print('#####   END PRINT INPUT  #####')
     print("\n",flush=True)
 
-def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_explore):
+#def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_explore,X0,y0):
+def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_explore,X0,y0):
     walker_x       = []
     path_x         = [[] for i in range(param)]
     path_G         = []
@@ -653,40 +694,80 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     if verbosity_level>=1 and t0 !=0: 
         f_out.write("## Start random biased exploration\n" %())
         f_out.flush()
-    for t in range(t0):
-        for i in range(param):
-            if initial_sampling=='different': iseed=iseed+w+l+i+t
-            if initial_sampling=='same': iseed=iseed+1
-            random.seed(iseed)
-            num=int(random.randint(0,Ngrid-1))
-            if t==0:
-                walker_x.append(dim_list[i][num])
-            else:
-                walker_x[i]=dim_list[i][num]
-        for i in range(param):
-            path_x[i].append(walker_x[i])
-        num_in_grid=0.0
-        for i in range(param):
-            num_in_grid=num_in_grid + walker_x[param-1-i]*(Nx**i)*(Nx-1)
-        num_in_grid=int(round(num_in_grid))
-        path_G.append(G_list[num_in_grid])
-        list_t.append(t)
-
-        if verbosity_level>=1:
-            line = []
-            for j in range(param):
-                line.append((walker_x[j]))
-            line.append((G_list[num_in_grid]))
-            f_out.write("timestep %4i %2s %s \n" %(t,"",str(line)))
-            f_out.flush()
+    if t0 != 0:
+        #print('1-TEST inside function, X0:')
+        #print(X0)
+        for t in range(t0):
+            for i in range(param):
+                if initial_sampling=='different': iseed=iseed+w+l+i+t
+                if initial_sampling=='same': iseed=iseed+1
+                random.seed(iseed)
+                num=int(random.randint(0,Ngrid-1))
+                if t==0:
+                    walker_x.append(dim_list[i][num])
+                else:
+                    walker_x[i]=dim_list[i][num]
+                #print('TEST:', t,i,num,dim_list[i][num],walker_x[i])
+            for i in range(param):
+                path_x[i].append(walker_x[i])
+            num_in_grid=0.0
+            for i in range(param):
+                num_in_grid=num_in_grid + walker_x[param-1-i]*(Nx**i)*(Nx-1)
+            num_in_grid=int(round(num_in_grid))
+            path_G.append(G_list[num_in_grid])
+            list_t.append(t)
+    
+            if verbosity_level>=1:
+                line = []
+                for j in range(param):
+                    line.append((walker_x[j]))
+                line.append((G_list[num_in_grid]))
+                f_out.write("timestep %4i %2s %s \n" %(t,"",str(line)))
+                f_out.flush()
+        #print('TEST INITIAL POINTS:')
+        #print(path_x)
+        #print(path_G)
+        if t1 == 0:
+            X = path_x
+            y = path_G
+            return X,y,len(y)
+        #print('2-TEST inside function, X0:')
+        #print(X0)
     # Set values for t1 exploration
+    #print('3-TEST inside function, X0:')
+    #print(X0)
     if t2==0:
-        t_ini=t0
-        t_fin=t1+t0
+        #print('TEST INITIAL POINTS:')
+        #print(X0)
+        #print(y0)
+        #path_x = X0
+        #path_G = y0
+        #path_x = list(X0)
+        #path_G = list(y0)
+        path_x = copy.deepcopy(X0)
+        path_G = copy.deepcopy(y0)
+        #path_x = X0[:]
+        #path_G = y0[:]
+        #path_x = X0.copy()
+        #path_G = y0.copy()
+        #path_x = []; path_x.extend(X0)
+        #path_G = []; path_G.extend(y0)
+        #print('ID 1:', id(path_x))
+        #print('ID 2:', id(X0))
+        #t_ini=t0
+        #t_fin=t1+t0
+        t_ini=t0_time
+        t_fin=t1+t0_time
+        #print('TEST INITIAL POINTS:')
+        #print(path_x)
+        #print(path_G)
         for i in range(param): # set walker_x to last path_x
-            walker_x[i]=path_x[i][-1]
+            #walker_x[i]=path_x[i][-1]
+            walker_x.append(path_x[i][-1])
+        #print('4-TEST inside function, X0:')
+        #print(X0)
     # Set values for t2 exploration
-    elif t0==0:
+    elif t0==0 and t2!=0:
         t_ini=0
         t_fin=t2
         for t in range(t1): # copy Xi and yi to path_x and path_G
@@ -697,7 +778,8 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             walker_x.append(Xi[-1][i])
     ### Perform t1 and t2 standard exploration ###
     if ML_explore == False:
-
+        #print('5-TEST inside function, X0:')
+        #print(X0)
         for t in range(t_ini,t_fin):
             del prob[:]
             del neighbor_walker[:][:]
@@ -731,6 +813,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                     line.append((minimum_path_x[j][draw]))
                 line.append((minimum_path_G[draw]))
                 f_out.write("Selected point in draw: %i %s \n" % (i,str(line)))
+                f_out.write("draw %s, draw_in_grid %s,draw_in_grid_list %s \n" % (str(draw),str(draw_in_grid),str(draw_in_grid_list)))
                 f_out.write("Consider nearby points: \n")
                 f_out.write("%6s %11s %19s %12s %12s \n" % ("i","x","G","Prob","distance"))
                 f_out.flush()
@@ -817,11 +900,15 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             # choose neighbor to draw
             draw=int(choice(range((P*2+1)**param),size=1,p=prob))
             # add draw's X and G values to path_x and path_G
+            #print('5a-TEST inside function, X0:')
+            #print(X0)
             for i in range(param):
                 walker_x[i]=neighbor_walker[i][draw]
                 path_x[i].append(walker_x[i])
             path_G.append(neighbor_G[draw])
             list_t.append(t)
+            #print('5b-TEST inside function, X0:')
+            #print(X0)
             # verbosity
             if verbosity_level>=2: 
                 f_out.write("We draw neighbor no.: %6i\n" % (draw))
@@ -839,6 +926,8 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             y.append(neighbor_G[draw])
         # calculate final X and y
         X,y = create_X_and_y(f_out,x_param,y)
+        #print('6-TEST inside function, X0:')
+        #print(X0)
     ### Perform t2 ML exploration
     else:
         for t in range(t_ini,t_fin):
@@ -2132,23 +2221,76 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
     return result
 
 # PLOT #
-def plot(flag,final_result_T):
+#def plot(flag,final_result_T):
+def plot(flag,l,w,iseed,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
+    #print('TEST plot, X0:')
+    #print(X0)
+    #print('TEST plot, X1:')
+    #print(X1)
+    if flag=='contour':
+        print('Start: "plot(contour)"')
+        # 2D contour plot
+        pnt3d_1=plt.tricontour(dim_list[0],dim_list[1],G_list,20,linewidths=1,colors='k')
+        plt.clabel(pnt3d_1,inline=1,fontsize=5)
+        pnt3d_2=plt.tricontourf(dim_list[0],dim_list[1],G_list,100,cmap='Greys')
+        cbar=plt.colorbar(pnt3d_2,pad=0.01)
+        cbar.set_label("$G(\mathbf{x})$ (a.u.)",fontsize=12,labelpad=0)
+        plt.xlabel('$x_1$ (a.u.)',fontsize=12)
+        plt.ylabel('$x_2$ (a.u.)',fontsize=12)
+        plt.axis([center_min,center_max,center_min,center_max])
+        plt.xticks(fontsize=10)
+        plt.yticks(fontsize=10)
+        plt.title('$S = %.2f$, $a = %s %s$. Seed: %i' %(float(S),adven[0],'\%',iseed),fontsize=15)
+        nfile='_landscape'+str(l)
+        file1='contour_2d' + nfile + '.png'
+        plt.savefig(file1,format='png',dpi=600)
+        print('save 2d map plot to %s' %file1)
+        cbar.remove()
+        plt.close()
+    if flag=='t1_exploration':
+        X1 = list(map(list, zip(*X1)))
+        tim=np.arange(t1_time)
+        #tim_initial=np.arange(t0_time)
+        pnt3d_1=plt.tricontour(dim_list[0],dim_list[1],G_list,20,linewidths=1,colors='k')
+        plt.clabel(pnt3d_1,inline=1,fontsize=5)
+        pnt3d_2=plt.tricontourf(dim_list[0],dim_list[1],G_list,100,cmap='Greys')
+        pnt3d_3=plt.scatter(X1[0][:],X1[1][:],c=tim,cmap='inferno',s=50,linewidth=1,zorder=4,alpha=0.8)
+        pnt3d_4=plt.scatter(X0[0][:],X0[1][:],c='black',s=50,linewidth=1,zorder=4,alpha=0.8)
+        #cbar_2=plt.colorbar(pnt3d_3,pad=0.06)
+        cbar_2=plt.colorbar(pnt3d_3)
+        cbar_2.set_label("Time step \n", fontsize=12)
+        cbar=plt.colorbar(pnt3d_2,pad=0.01)
+        cbar.set_label("$G(\mathbf{x})$ (a.u.)",fontsize=12,labelpad=0)
+        plt.xlabel('$x_1$ (a.u.)',fontsize=12)
+        plt.ylabel('$x_2$ (a.u.)',fontsize=12)
+        plt.axis([center_min,center_max,center_min,center_max])
+        plt.xticks(fontsize=10)
+        plt.yticks(fontsize=10)
+        plt.title('$S = %.2f$, $a = %s %s$' %(float(S),adven[w],'\%'),fontsize=15)
+        nfile='_landscape'+str(l)+'_walker'+str(w)
+        file1='t1_exploration' + nfile + '.png'
+        plt.savefig(file1,format='png',dpi=600)
+        print('save 2d plot to %s' %file1)
+        if w==Nwalkers-1:
+            cbar.remove()
+            cbar_2.remove()
+        plt.close()
     if flag=='rmse':
-        pntbox=plt.boxplot(final_result_T,patch_artist=True,labels=adven,showfliers=False)
+        pntbox=plt.boxplot(results_per_walker_t1,patch_artist=True,labels=adven,showfliers=False)
         plt.xticks(fontsize=10)
         plt.yticks(fontsize=10)
         plt.xlabel('Adventurousness (%)',fontsize=15)
-        plt.ylabel('RMSE (arb. units)',fontsize=15)
+        plt.ylabel('RMSE (a.u.)',fontsize=15)
         file1='rmse.png'
         plt.savefig(file1,format='png',dpi=600)
         print('save rmse box plot to %s' %file1,flush=True)
         plt.close()
 
-        pntbox=plt.boxplot(final_result_T,patch_artist=True,labels=adven,showfliers=True)
+        pntbox=plt.boxplot(results_per_walker_t1,patch_artist=True,labels=adven,showfliers=True)
         plt.xticks(fontsize=10)
         plt.yticks(fontsize=10)
         plt.xlabel('Adventurousness (%)',fontsize=15)
-        plt.ylabel('RMSE (arb. units)',fontsize=15)
+        plt.ylabel('RMSE (a.u.)',fontsize=15)
         file1='rmse_with_outliers.png'
         plt.savefig(file1,format='png',dpi=600)
         print('save rmse box plot to %s' %file1,flush=True)
@@ -2159,7 +2301,7 @@ def plot(flag,final_result_T):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(dask_parallel, NCPU, verbosity_level, log_name,Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim, GPR_length_scale_lim, KRR_alpha, KRR_kernel,  KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name) = read_initial_values(input_file_name)
+(dask_parallel, NCPU, verbosity_level, log_name,Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim, GPR_length_scale_lim, KRR_alpha, KRR_kernel,  KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric) = read_initial_values(input_file_name)
 # Run main program
 main(iseed)
 # Measure and print final time

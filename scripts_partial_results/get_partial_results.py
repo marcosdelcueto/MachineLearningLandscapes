@@ -9,8 +9,8 @@ import statistics
 #######################################
 ### START CUSTOMIZABLE INPUT VALUES ###
 Nspf = 100                                           # Number of different landscapes generate
-Nwalkers = 2                                         # Number of walkers per landscape
-adven = [10,100]                                     # percentage of special points per walker
+Nwalkers = 10                                        # Number of walkers per landscape
+adven = [10,20,30,40,50,60,70,80,90,100]             # percentage of special points per walker
 t1_analysis    = True                                # Whether t1 analysis is performed 
 t2_exploration = True                                # Whether t2 exploration is performed
 log_name = 'log_grid_l'                              # Name of log file. Suffix '_XX.log' is added automatically
