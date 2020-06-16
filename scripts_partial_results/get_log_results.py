@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Marcos del Cueto
 # Department of Chemistry and MIF, University of Liverpool
+# This script gets final results from log files and print results in standard format
 ################################################################################
 import re
 import ast
@@ -73,10 +74,19 @@ for i in range(Nwalkers):
         ML_gain_pred = [item[0] for item in results_per_walker_t2[i]]
         ML_gain_real = [item[1] for item in results_per_walker_t2[i]] 
         error_rel_ML = [item[2] for item in results_per_walker_t2[i]]
+        min_standard = [item[3] for item in results_per_walker_t2[i]]
+        min_ML       = [item[4] for item in results_per_walker_t2[i]]
+        ML_gain_real_relative = [item[5] for item in results_per_walker_t2[i]]
         print('- ML_gain_pred Mean: %f' %(statistics.mean(ML_gain_pred)),flush=True)
         print('- ML_gain_pred Median: %f' %(statistics.median(ML_gain_pred)),flush=True)
         print('- ML_gain_real Mean: %f' %(statistics.mean(ML_gain_real)),flush=True)
         print('- ML_gain_real Median: %f' %(statistics.median(ML_gain_real)),flush=True)
         print('- error_rel_ML Mean: %f' %(statistics.mean(error_rel_ML)),flush=True)
         print('- error_rel_ML Median: %f' %(statistics.median(error_rel_ML)),flush=True)
+        print('- min_standard Mean: %f' %(statistics.mean(min_standard)),flush=True)
+        print('- min_standard Median: %f' %(statistics.median(min_standard)),flush=True)
+        print('- min_ML Mean: %f' %(statistics.mean(min_ML)),flush=True)
+        print('- min_ML Median: %f' %(statistics.median(min_ML)),flush=True)
+        print('- ML_gain_real_relative Mean: %f' %(statistics.mean(ML_gain_real_relative)),flush=True)
+        print('- ML_gain_real_relative Median: %f' %(statistics.median(ML_gain_real_relative)),flush=True)
     print('')
