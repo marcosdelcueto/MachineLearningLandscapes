@@ -2,17 +2,17 @@
 # General Landscape parameters
 #################################################
 ### Type of calculation #########################
-calculate_grid = False                          # Decide if grid is calculated now. Otherwise, is read from ${grid_name}_${l}.log files
+calculate_grid = True                           # Decide if grid is calculated now. Otherwise, is read from ${grid_name}_${l}.log files
 plot_contour_map = True                         # Decide whether to make 2D plot of grid
 ### Parallel Computing ##########################
-dask_parallel = True			                     # Decide if dask is used
+dask_parallel = False		                     # Decide if dask is used
 NCPU    = 4    	                              # Choose number of CPUs used by dask
 ### SPF parameters ##############################
 iseed = None                                    # Seed for random number to generate landscape. Default: None
 Nspf =  4                                       # Number of different landscapes generate
 grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read
 ### Gaussian parameters #########################
-S = 0.20                                        # Smoothness - minimum width of Gaussian functions
+S = 0.10                                        # Smoothness - minimum width of Gaussian functions
 param = 2                                       # Number of descriptors
 center_min = 0.00                               # Minimum value for center of each Gaussian in each DOF
 center_max = 1.00                               # Maximum value for center of each Gaussian in each DOF
@@ -27,12 +27,12 @@ log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.
 #################################################
 # t1 exploration parameters
 #################################################
-plot_t1_exploration = False                     # Decide whether to make 2D plot of t1 exploration
-plot_t1_error_metric = True                     # Decide whether to make box plot of error metric for t1 exploration
-Nwalkers = 10                                   # Number of walkers per landscape
-adven = [10,20,30,40,50,60,70,80,90,100]	    	# Percentage of special points per walker
-t0_time = 5 		                              # Number of initial unbiased steps
-t1_time = 51                                    # Number of time steps for the walker
+plot_t1_exploration = True                      # Decide whether to make 2D plot of t1 exploration
+plot_t1_error_metric = False                    # Decide whether to make box plot of error metric for t1 exploration
+Nwalkers = 3                                    # Number of walkers per landscape
+adven = [10,50,100]	    	                     # Percentage of special points per walker
+t0_time = 15 		                              # Number of initial unbiased steps
+t1_time = 201                                   # Number of time steps for the walker
 d_threshold = 0.04                              # Threshold maximum distance that at each time step
 initial_sampling = 'different'                  # Initial points in a grid for different walkers
 allowed_initial_sampling = ['same','different'] # possible values of 'initial_sampling'
