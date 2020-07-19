@@ -65,7 +65,7 @@ def main(iseed):
         results_t2_per_Nspf=[]
         # Calculate results for each landscape (may use dask to run each landscape in a CPU in parallel)
         if dask_parallel==True:
-            for l in range(Nspf):
+            for l in range(initial_spf,initial_spf+Nspf):
                 iseed=iseed+l
                 (provi_result_t1,provi_result_t2)=delayed(MLL,nout=2)(iseed,l)
                 results_t1_per_Nspf.append(provi_result_t1)
@@ -75,7 +75,7 @@ def main(iseed):
             results_t1_per_Nspf=results_t1_per_Nspf[0]
             results_t2_per_Nspf=results_t2_per_Nspf[0]
         elif dask_parallel==False:
-            for l in range(Nspf):
+            for l in range(initial_spf,initial_spf+Nspf):
                 iseed=iseed+l
                 (provi_result_t1,provi_result_t2)=MLL(iseed,l)
                 results_t1_per_Nspf.append(provi_result_t1)
@@ -147,6 +147,7 @@ def read_initial_values(inp):
     verbosity_level = ast.literal_eval(var_value[var_name.index('verbosity_level')])
     log_name = ast.literal_eval(var_value[var_name.index('log_name')])
     Nspf = ast.literal_eval(var_value[var_name.index('Nspf')])
+    initial_spf = ast.literal_eval(var_value[var_name.index('initial_spf')])
     S = ast.literal_eval(var_value[var_name.index('S')])
     iseed = ast.literal_eval(var_value[var_name.index('iseed')])
     param = ast.literal_eval(var_value[var_name.index('param')])
@@ -215,7 +216,7 @@ def read_initial_values(inp):
     if iseed==None: 
         iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
 
-    return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric)
+    return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf)
 
 def MLL(iseed,l):
     # open log file to write intermediate information
@@ -583,6 +584,7 @@ def check_input_values():
     print('log_name',log_name)
     print('### Landscape parameters ###')
     print('Nspf =',Nspf)
+    print('initial_spf =',initial_spf)
     print('S =',S)
     print('iseed =',iseed)
     print('param =',param)
@@ -2303,7 +2305,7 @@ def plot(flag,l,w,iseed,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(dask_parallel, NCPU, verbosity_level, log_name,Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim, GPR_length_scale_lim, KRR_alpha, KRR_kernel,  KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric) = read_initial_values(input_file_name)
+(dask_parallel, NCPU, verbosity_level, log_name,Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim, GPR_length_scale_lim, KRR_alpha, KRR_kernel,  KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf) = read_initial_values(input_file_name)
 # Run main program
 main(iseed)
 # Measure and print final time

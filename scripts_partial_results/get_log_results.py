@@ -6,12 +6,14 @@
 import re
 import ast
 import statistics
+import numpy
+from scipy.stats import iqr
 
 #######################################
 ### START CUSTOMIZABLE INPUT VALUES ###
 Nspf = 100                                           # Number of different landscapes generate
-Nwalkers = 10                                        # Number of walkers per landscape
-adven = [10,20,30,40,50,60,70,80,90,100]             # percentage of special points per walker
+Nwalkers = 4                                         # Number of walkers per landscape
+adven = [10,40,70,100]             # percentage of special points per walker
 t1_analysis    = True                                # Whether t1 analysis is performed 
 t2_exploration = True                                # Whether t2 exploration is performed
 log_name = 'log_grid_l'                              # Name of log file. Suffix '_XX.log' is added automatically
@@ -89,4 +91,21 @@ for i in range(Nwalkers):
         print('- min_ML Median: %f' %(statistics.median(min_ML)),flush=True)
         print('- ML_gain_real_relative Mean: %f' %(statistics.mean(ML_gain_real_relative)),flush=True)
         print('- ML_gain_real_relative Median: %f' %(statistics.median(ML_gain_real_relative)),flush=True)
+        print('- ML_gain_real_relative Stdev: %f' %(statistics.stdev(ML_gain_real_relative)),flush=True)
+        print('- ML_gain_real_relative All:', ML_gain_real_relative)
+        print('- ML_gain_real_relative IQR:',iqr(ML_gain_real_relative))
+######################
+#####################
+        MLgain_median = statistics.median(ML_gain_real_relative)
+        MLgain_iqr = iqr(ML_gain_real_relative)
+        new_MLgain = []
+        for i in ML_gain_real_relative:
+            if (abs(i-MLgain_median)) <= 1.5*MLgain_iqr:
+                new_MLgain.append(i)
+            else:
+                print('I am ignoring:', i,'diff:', abs(i-MLgain_median), '1.5IQR:', 1.5*MLgain_iqr)
+        print('FINAL RESULTS:')
+        print('Median:', statistics.median(new_MLgain))
+        print('Stdev:', statistics.stdev(new_MLgain))
+        print('All:',new_MLgain)
     print('')
