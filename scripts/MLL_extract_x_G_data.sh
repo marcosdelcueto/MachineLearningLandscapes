@@ -1,4 +1,7 @@
 #!/bin/bash
+# Marcos del Cueto
+# Department of Chemistry and MIF, University of Liverpool
+# Script to extract {x},G data from logs
 t0=15
 t1=200
 t2=15

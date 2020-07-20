@@ -1,4 +1,6 @@
 #!/bin/bash
+# Marcos del Cueto
+# Department of Chemistry and MIF, University of Liverpool
 # Simple script to extract {{x},G} t1 data from MLL, and create files with general format that can be analized separately
 ### START CUSTOMIZABLE DATA ###
 data_file_name='data_x_G'		# prefix of data files taht will be created

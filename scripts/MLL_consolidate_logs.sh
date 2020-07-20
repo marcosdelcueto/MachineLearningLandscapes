@@ -1,4 +1,7 @@
 #!/bin/bash
+# Marcos del Cueto
+# Department of Chemistry and MIF, University of Liverpool
+# Script to consolidate several logs and save_logs
 ### START CUSTOMIZABLE DATA ###
 log_names='log_grid_l'
 save_log_names='save_log_grid_l'

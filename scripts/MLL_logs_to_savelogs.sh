@@ -1,4 +1,7 @@
 #!/bin/bash
+# Marcos del Cueto
+# Department of Chemistry and MIF, University of Liverpool
+# Script to save logs that have finished properly
 
 counter=0
 for i in `ls save_log_grid_l_*`
