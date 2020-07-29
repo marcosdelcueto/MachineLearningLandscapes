@@ -1,4 +1,16 @@
 # MachineLearningLandscapes
-### MLL.py
 Main program to generate research landscapes, explore and analyze them.
-Calculation parameters can be changed in input_MLL.txt file
+Calculation parameters can be changed in input_MLL.inp file
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+The necessary packages (with the tested versions) are specified in the file _requirements.txt_. These packages can be installed with pip:
+
+```
+pip3 install -r requirements.txt
+```
+---

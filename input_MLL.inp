@@ -2,7 +2,7 @@
 # General Landscape parameters
 #################################################
 ### Type of calculation #########################
-calculate_grid = False                          # Decide whether to calculate or read SPF
+calculate_grid = True                           # Decide whether to calculate or read SPF
 plot_contour_map = False                        # Decide whether to make 2D plot of grid
 ### Parallel Computing ##########################
 dask_parallel = False                            # Decide if dask is used
@@ -20,7 +20,7 @@ center_max = 1.00                               # Maximum value for center of ea
 ### Grid parameters #############################
 grid_min = 0.00                                 # Start point of grid in each DOF
 grid_max = 1.00                                 # End point of grid in each DOF
-grid_Delta = 0.010                              # Increment of grid in each DOF
+grid_Delta = 0.10                               # Increment of grid in each DOF
 ### Verbose #####################################
 verbosity_level = 1                             # Level of verbosity to print at 'log_name' file (Recommended:1)
 allowed_verbosity_level = [0,1,2]   				# possible values of verbosity
@@ -40,7 +40,7 @@ allowed_initial_sampling = ['same','different'] # possible values of 'initial_sa
 #################################################
 # t1 error metric analysis
 #################################################
-t1_analysis = True                              # Whether t1 analysis is performed
+t1_analysis = False                              # Whether t1 analysis is performed
 ML='GPR'                                        # Choose what ML algorithm is used
 allowed_ML=[None,'kNN','GBR','GPR','KRR']       # possible ML algorithms
 error_metric='rmse'                             # Choose which error metric to analyze
@@ -48,7 +48,7 @@ allowed_error_metric=[None,'rmse']              # possible error metrics to anal
 #################################################
 # t2 exploration parameters
 #################################################
-t2_exploration = True                           # Whether t2 exploration is performed
+t2_exploration = False                           # Whether t2 exploration is performed
 t2_ML = 'GPR'												# Choose what ML algorithm is used
 allowed_t2_ML = [None,'kNN','GBR','GPR','KRR']  # possible ML algorithms
 t2_time = 5                                    # Number of time steps for the walker
