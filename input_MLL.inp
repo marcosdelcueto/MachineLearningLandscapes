@@ -3,9 +3,9 @@
 #################################################
 ### Type of calculation #########################
 calculate_grid = True                           # Decide whether to calculate or read SPF
-plot_contour_map = False                        # Decide whether to make 2D plot of grid
+plot_contour_map = True                         # Decide whether to make 2D plot of grid
 ### Parallel Computing ##########################
-dask_parallel = False                            # Decide if dask is used
+dask_parallel = False                           # Decide if dask is used
 NCPU    = 1     	                              # Choose number of CPUs used by dask
 ### SPF parameters ##############################
 iseed = None                                    # Seed for random number to generate landscape. Default: None
@@ -28,19 +28,19 @@ log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.
 #################################################
 # t1 exploration parameters
 #################################################
-plot_t1_exploration = False                     # Decide whether to make 2D plot of t1 exploration
-plot_t1_error_metric = False                    # Decide whether to make box plot of error metric for t1 exploration
+plot_t1_exploration = True                     # Decide whether to make 2D plot of t1 exploration
+plot_t1_error_metric = True                    # Decide whether to make box plot of error metric for t1 exploration
 Nwalkers = 1                                    # Number of walkers per landscape
 adven = [50]		   						         # percentage of special points per walker
 t0_time = 15 		                              # Number of initial unbiased steps
 t1_time = 100                                   # Number of time steps for the walker
-d_threshold = 0.08                              # Threshold maximum distance that at each time step
+d_threshold = 0.48                              # Threshold maximum distance that at each time step
 initial_sampling = 'different'                  # Initial points in a grid for different walkers
 allowed_initial_sampling = ['same','different'] # possible values of 'initial_sampling'
 #################################################
 # t1 error metric analysis
 #################################################
-t1_analysis = False                              # Whether t1 analysis is performed
+t1_analysis = True                              # Whether t1 analysis is performed
 ML='GPR'                                        # Choose what ML algorithm is used
 allowed_ML=[None,'kNN','GBR','GPR','KRR']       # possible ML algorithms
 error_metric='rmse'                             # Choose which error metric to analyze
@@ -48,10 +48,10 @@ allowed_error_metric=[None,'rmse']              # possible error metrics to anal
 #################################################
 # t2 exploration parameters
 #################################################
-t2_exploration = False                           # Whether t2 exploration is performed
+t2_exploration = True                           # Whether t2 exploration is performed
 t2_ML = 'GPR'												# Choose what ML algorithm is used
 allowed_t2_ML = [None,'kNN','GBR','GPR','KRR']  # possible ML algorithms
-t2_time = 5                                    # Number of time steps for the walker
+t2_time = 15                                    # Number of time steps for the walker
 t2_train_time = 1                               # ML is re-trained every 't2_train_time' steps
 #################################################
 # Machine Learning parameters
