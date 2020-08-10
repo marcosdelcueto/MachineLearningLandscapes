@@ -237,7 +237,7 @@ def MLL(iseed,l):
                         counter_word=counter_word+1
             except:
                 pass
-    Ngrid=int((grid_max/grid_Delta+1)**param)   # calculate number of grid points
+    Ngrid=int(round((grid_max/grid_Delta+1)**param))   # calculate number of grid points
     max_G=max(G_list)
     min_G=min(G_list)
     ##################################
@@ -455,7 +455,7 @@ def generate_grid(iseed,l):
     # Calculate G grid
     counter=0
     if verbosity_level>=1: f_out.write("%8s %11s %15s \n" % ("i","x","G"))
-    Nlen=(round(int((grid_max-grid_min)/(grid_Delta)+1)))
+    Nlen=(int(round((grid_max-grid_min)/(grid_Delta)+1)))
     for index_i in itertools.product(range(Nlen), repeat=param):
         for j in range(param):
             dim_list[j].append(index_i[j]*grid_Delta)
@@ -478,12 +478,12 @@ def generate_grid(iseed,l):
             f_out.flush()
         counter=counter+1
 
-    Ngrid=int((grid_max/grid_Delta+1)**param)   # calculate number of grid points
+    Ngrid=int(round((grid_max/grid_Delta+1)**param))   # calculate number of grid points
     max_G=max(G_list)
     min_G=min(G_list)
     if verbosity_level>=1:
-        max_G_index=int(np.where(G_list == np.max(G_list))[0])
-        min_G_index=int(np.where(G_list == np.min(G_list))[0])
+        max_G_index=int(round(np.where(G_list == np.max(G_list))[0]))
+        min_G_index=int(round(np.where(G_list == np.min(G_list))[0]))
         f_out.write("Number of grid points: %i \n" %Ngrid)
         line1 = []
         line2 = []
@@ -672,7 +672,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 if initial_sampling=='different': iseed=iseed+w+l+i+t
                 if initial_sampling=='same': iseed=iseed+1
                 random.seed(iseed)
-                num=int(random.randint(0,Ngrid-1))
+                num=int(round(random.randint(0,Ngrid-1)))
                 if t==0:
                     walker_x.append(dim_list[i][num])
                 else:
@@ -681,7 +681,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                 path_x[i].append(walker_x[i])
             num_in_grid=0.0
             for i in range(param):
-                num_in_grid=num_in_grid + walker_x[param-1-i]*(Nx**i)*(Nx-1)
+                num_in_grid=num_in_grid + round(walker_x[param-1-i]*(Nx-1))*(Nx**i) # Needed to round product to avoid propagation of small error (relevant for larger dimensionality)
             num_in_grid=int(round(num_in_grid))
             path_G.append(G_list[num_in_grid])
             list_t.append(t)
@@ -736,6 +736,26 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             draw=random.choice(range(special_points))
             draw_in_grid=G_list.index(minimum_path_G[draw])
             draw_in_grid_list=[i for i, e in enumerate(G_list) if e == minimum_path_G[draw] ]
+            #####################################################################################
+            # Added fix to select correct draw_in_grid value from list, when several points in grid have same G value
+            if len(draw_in_grid_list) > 1:
+                #f_out.write("ALERT: MORE THAN ONE POINT WITH SAME G POSSIBLE\n")
+                #f_out.write("Target:\n")
+                #for j in range(param):
+                    #f_out.write("%f   " %(minimum_path_x[j][draw]))
+                #f_out.write("\n")
+                for i in range(len(draw_in_grid_list)):
+                    counter_select_from_list=0
+                    #f_out.write("Possibility: dim_list[:][draw_in_grid_list[i]]:\n")
+                    for j in range(param):
+                        #f_out.write("%f   " %(dim_list[j][draw_in_grid_list[i]]))
+                        if dim_list[j][draw_in_grid_list[i]] == minimum_path_x[j][draw]:
+                            counter_select_from_list = counter_select_from_list+1
+                    #f_out.write("\n")
+                    if counter_select_from_list == param:
+                        #f_out.write("From list, we should select: %i th term \n" %(i))
+                        draw_in_grid = draw_in_grid_list[i]
+            #####################################################################################
             # Verbosity
             if verbosity_level>=2:
                 f_out.write("Special points: %i \n" % (special_points))
@@ -780,9 +800,9 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                     for j in range(param):
                         index.append(draw_in_grid - Nx**(param-1-j)*index_i[j])
                         subs=subs+Nx**(param-1-j)*index_i[j]
-                        index[j]=int(index[j])
+                        index[j]=int(round(index[j]))
                     index.append(draw_in_grid-subs)
-                    index[param]=int(index[param])
+                    index[param]=int(round(index[param]))
                     # Calculate distance between point of interest and its neighbors
                     dummy_dist = 0.0
                     for j in range(param):
@@ -818,6 +838,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             if prob_sum==0.0: 
                 print("STOP - ERROR: No new candidate points found within threshold",flush=True)
                 print("STOP - ERROR: At Nspf:", l, ". Walker:", w, ". Time:", t,flush=True)
+                f_out.write("STOP - ERROR: No new candidate points found within threshold\n")
                 sys.exit()
 
             if len(range((P*2+1)**param)) != len(prob):
@@ -920,9 +941,9 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                             for j in range(param):
                                 index.append(k_in_grid - Nx**(param-1-j)*index_i[j])
                                 subs=subs+Nx**(param-1-j)*index_i[j]
-                                index[j]=int(index[j])
+                                index[j]=int(round(index[j]))
                             index.append(k_in_grid-subs)
-                            index[param]=int(index[param])
+                            index[param]=int(round(index[param]))
                             # Calculate distance between point of interest and its neighbors
                             dummy_dist = 0.0
                             for j in range(param):
@@ -1012,9 +1033,9 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         for j in range(param):
                             index.append(k_in_grid - Nx**(param-1-j)*index_i[j])
                             subs=subs+Nx**(param-1-j)*index_i[j]
-                            index[j]=int(index[j])
+                            index[j]=int(round(index[j]))
                         index.append(k_in_grid-subs)
-                        index[param]=int(index[param])
+                        index[param]=int(round(index[param]))
                         # Calculate distance between point of interest and its neighbors
                         dummy_dist = 0.0
                         for j in range(param):
