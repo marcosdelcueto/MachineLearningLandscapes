@@ -16,11 +16,10 @@ import matplotlib.pyplot as plt
 from time import time
 from dask import delayed
 from pickle import dump,load
-from sklearn import neighbors
 from numpy.random import choice
-from sklearn import preprocessing
 from sklearn.model_selection import KFold
 from scipy.stats import pearsonr, spearmanr
+from sklearn import neighbors, preprocessing
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import LeaveOneOut
@@ -38,7 +37,7 @@ input_file_name = 'input_MLL.inp'      # name of input file
 
 #################################################################################
 ###### START MAIN ######
-def main(iseed):
+def main():
     # Check that input values are OK
     check_input_values()
     # Calculation just to generate SPF grid
@@ -47,15 +46,13 @@ def main(iseed):
         if dask_parallel==True:
             dummy_list=[]
             for l in range(Nspf):
-                iseed=iseed+l
-                dummy = delayed(generate_grid)(iseed,l)
+                dummy = delayed(generate_grid)(l)
                 dummy_list.append(dummy)
             result=dask.compute(dummy_list,scheduler='processes',num_workers=NCPU)
         # Calculate SPFs in serial (all in 1 CPU)
         else:
             for l in range(Nspf):
-                iseed=iseed+l
-                Ngrid = generate_grid(iseed,l)
+                Ngrid = generate_grid(l)
     # Explore SPF
     if t1_analysis == True:
         # Initialize results array
@@ -64,8 +61,7 @@ def main(iseed):
         # Calculate results for each landscape (may use dask to run each landscape in a CPU in parallel)
         if dask_parallel==True:
             for l in range(initial_spf,initial_spf+Nspf):
-                iseed=iseed+l
-                (provi_result_t1,provi_result_t2)=delayed(MLL,nout=2)(iseed,l)
+                (provi_result_t1,provi_result_t2)=delayed(MLL,nout=2)(l)
                 results_t1_per_Nspf.append(provi_result_t1)
                 results_t2_per_Nspf.append(provi_result_t2)
             results_t1_per_Nspf=dask.compute(results_t1_per_Nspf,scheduler='processes',num_workers=NCPU)
@@ -74,8 +70,7 @@ def main(iseed):
             results_t2_per_Nspf=results_t2_per_Nspf[0]
         elif dask_parallel==False:
             for l in range(initial_spf,initial_spf+Nspf):
-                iseed=iseed+l
-                (provi_result_t1,provi_result_t2)=MLL(iseed,l)
+                (provi_result_t1,provi_result_t2)=MLL(l)
                 results_t1_per_Nspf.append(provi_result_t1)
                 results_t2_per_Nspf.append(provi_result_t2)
         # Transpose results_per_Nspf, to get results per walker
@@ -106,7 +101,7 @@ def main(iseed):
                 print('- ML_gain_real_relative Median: %f' %(statistics.median(ML_gain_real_relative)))
             print('',flush=True)
         if plot_t1_error_metric == True and error_metric=='rmse':
-            plot(error_metric,None,None,None,None,None,None,None,None,None,results_per_walker_t1)
+            plot(error_metric,None,None,None,None,None,None,None,None,results_per_walker_t1)
 ###### END MAIN ######
 #################################################################################
 
@@ -140,7 +135,6 @@ def read_initial_values(inp):
     Nspf = ast.literal_eval(var_value[var_name.index('Nspf')])
     initial_spf = ast.literal_eval(var_value[var_name.index('initial_spf')])
     S = ast.literal_eval(var_value[var_name.index('S')])
-    iseed = ast.literal_eval(var_value[var_name.index('iseed')])
     param = ast.literal_eval(var_value[var_name.index('param')])
     center_min = ast.literal_eval(var_value[var_name.index('center_min')])
     center_max = ast.literal_eval(var_value[var_name.index('center_max')])
@@ -152,7 +146,6 @@ def read_initial_values(inp):
     t1_time = ast.literal_eval(var_value[var_name.index('t1_time')])
     d_threshold = ast.literal_eval(var_value[var_name.index('d_threshold')])
     t0_time = ast.literal_eval(var_value[var_name.index('t0_time')])
-    initial_sampling = ast.literal_eval(var_value[var_name.index('initial_sampling')])
     ML = ast.literal_eval(var_value[var_name.index('ML')])
     error_metric = ast.literal_eval(var_value[var_name.index('error_metric')])
     CV = ast.literal_eval(var_value[var_name.index('CV')])
@@ -177,7 +170,6 @@ def read_initial_values(inp):
     optimize_KRR_hyperparams = ast.literal_eval(var_value[var_name.index('optimize_KRR_hyperparams')])
     KRR_alpha_lim = ast.literal_eval(var_value[var_name.index('KRR_alpha_lim')])
     KRR_gamma_lim = ast.literal_eval(var_value[var_name.index('KRR_gamma_lim')])
-    allowed_initial_sampling = ast.literal_eval(var_value[var_name.index('allowed_initial_sampling')])
     allowed_CV = ast.literal_eval(var_value[var_name.index('allowed_CV')])
     allowed_ML = ast.literal_eval(var_value[var_name.index('allowed_ML')])
     allowed_error_metric = ast.literal_eval(var_value[var_name.index('allowed_error_metric')])
@@ -201,13 +193,15 @@ def read_initial_values(inp):
     Amplitude_min=0.0                               # Minimum amplitude of each Gaussian function
     Amplitude_max=1.0                               # Maximum amplitude of each Gaussian function
     N=int(round((1/(S**param))))                    # Number of Gaussian functions of a specific landscape
-    if iseed==None: 
-        iseed=random.randrange(2**30-1) # If no seed is specified, choose a random one
+    ############# TESTING #############
+    #width_min=0.05
+    #N=2
+    ###################################
 
-    return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf)
+    return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, S, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf)
 
 ### Function doing most of the heavy lifting
-def MLL(iseed,l):
+def MLL(l):
     # open log file to write intermediate information
     if verbosity_level>=1:
         f_out = open('%s_%s.log' % (log_name,l), 'w')
@@ -221,7 +215,7 @@ def MLL(iseed,l):
     # Generate SPF grid
     time_taken1 = time()-start
     # Old: generate grid
-    #dim_list, G_list, Ngrid, max_G = generate_grid(iseed,l,f_out)
+    #dim_list, G_list, Ngrid, max_G = generate_grid(l,f_out)
     #  New: read grid from file
     filename = grid_name + '_' + str(l) + '.log'
     dim_list       = [[] for i in range(param)]
@@ -248,12 +242,12 @@ def MLL(iseed,l):
     for w in range(Nwalkers):
         # Step 1) Perform t1 exploration
         time_taken1 = time()-start
-        X0,y0,unique_t0 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,0,0,None,None,False,None,None)
+        X0,y0,unique_t0 = explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,0,0,None,None,False,None,None)
         #print('TEST X0:')
         #print(X0)
         #print('TEST y0:')
         #print(y0)
-        X1,y1,unique_t1 = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,t1_time,0,None,None,False,X0,y0)
+        X1,y1,unique_t1 = explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,0,t1_time,0,None,None,False,X0,y0)
         #print('TEST X1:')
         #print(X1)
         #print('TEST y1:')
@@ -264,14 +258,14 @@ def MLL(iseed,l):
         if t1_analysis == True:
         # Step 2A) Calculate error_metric
             time_taken1 = time()-start
-            if ML=='kNN': error_metric_result=kNN(X1,y1,iseed,l,w,f_out,None,None,1,None)
-            if ML=='GBR': error_metric_result=GBR(X1,y1,iseed,l,w,f_out)
+            if ML=='kNN': error_metric_result=kNN(X1,y1,l,w,f_out,None,None,1,None)
+            if ML=='GBR': error_metric_result=GBR(X1,y1,l,w,f_out)
             if ML=='GPR':
                 hyperparams=[GPR_alpha,GPR_length_scale]
                 if optimize_GPR_hyperparams == False:
-                    error_metric_result=GPR(hyperparams,X1,y1,iseed,l,w,f_out,None,None,1,None)
+                    error_metric_result=GPR(hyperparams,X1,y1,l,w,f_out,None,None,1,None)
                 else:
-                    mini_args=(X1,y1,iseed,l,w,f_out,None,None,1,None)
+                    mini_args=(X1,y1,l,w,f_out,None,None,1,None)
                     bounds = [GPR_alpha_lim]+[GPR_length_scale_lim]
                     solver=differential_evolution(GPR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
@@ -284,9 +278,9 @@ def MLL(iseed,l):
             if ML=='KRR':
                 hyperparams=[KRR_alpha,KRR_gamma]
                 if optimize_KRR_hyperparams == False:
-                    error_metric_result=KRR(hyperparams,X1,y1,iseed,l,w,f_out,None,None,1,None)
+                    error_metric_result=KRR(hyperparams,X1,y1,l,w,f_out,None,None,1,None)
                 else:
-                    mini_args=(X1,y1,iseed,l,w,f_out,None,None,1,None)
+                    mini_args=(X1,y1,l,w,f_out,None,None,1,None)
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
@@ -301,20 +295,20 @@ def MLL(iseed,l):
             time_taken2 = time()-start
             # Plot 2d exploration
             if plot_t1_exploration == True and param == 2:
-                plot('t1_exploration',l,w,iseed,dim_list,G_list,X0,y0,X1,y1,None)
+                plot('t1_exploration',l,w,dim_list,G_list,X0,y0,X1,y1,None)
             if verbosity_level>=1:
                 f_out.write("t1 analysis took %0.4f seconds\n" %(time_taken2-time_taken1))
         # Step 2B) Perform t2 exploration
         if t2_exploration == True:
             # Step 2.B.1) Perform t2 exploration with weighted random explorer
             time_taken1 = time()-start
-            X2a,y2a,unique_t2a = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,False,None,None)
+            X2a,y2a,unique_t2a = explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,False,None,None)
             if verbosity_level>=1:
                 time_taken2 = time()-start
                 f_out.write("t2 standard exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
             # Step 2.B.2) Perform t2 exploration with ML-guided explorer
             time_taken1 = time()-start
-            X2b,y2b,unique_t2b = explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,True,None,None)
+            X2b,y2b,unique_t2b = explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,0,unique_t1,t2_time,X1,y1,True,None,None)
             if verbosity_level>=1:
                 time_taken2 = time()-start
                 f_out.write("t2 ML exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
@@ -410,8 +404,7 @@ def MLL(iseed,l):
     return (result1, result2)
 
 ### Function to calculate SPF grid
-def generate_grid(iseed,l):
-    initial_seed = iseed
+def generate_grid(l):
     time_taken1 = time()-start
     Amplitude      = []
     center_N       = [[] for i in range(N)]
@@ -424,23 +417,19 @@ def generate_grid(iseed,l):
         f_out.write("########################### \n")
         f_out.write("###### Landscape %i ####### \n" % (l))
         f_out.write("########################### \n")
-        f_out.write("%s %i %s %6.2f \n" % ('Initial seed:', iseed, '. Verbosity level:', verbosity_level))
+        f_out.write("%s %6.2f \n" % ('Verbosity level:', verbosity_level))
         f_out.flush()
     # Assign Gaussian values
     for i in range(N):
-        iseed=iseed+1
-        random.seed(iseed)
+        random.seed(a=None)
         Amplitude.append(random.uniform(Amplitude_min,Amplitude_max))
-        iseed=iseed+1
-        random.seed(iseed)
+        random.seed(a=None)
         am_i_negative=random.randint(0,1)
         if am_i_negative==0: Amplitude[i]=-Amplitude[i]
         for dim in range(param):
-            iseed=iseed+1
-            random.seed(iseed)
+            random.seed(a=None)
             center_N[i].append(random.uniform(center_min,center_max))
-            iseed=iseed+1
-            random.seed(iseed)
+            random.seed(a=None)
             width_N[i].append(random.uniform(width_min,width_max))
     if verbosity_level>=2:
         #f_out.write("%4s %14s %22s %34s \n" % ("N","Amplitude","Center","Width"))
@@ -482,8 +471,12 @@ def generate_grid(iseed,l):
     max_G=max(G_list)
     min_G=min(G_list)
     if verbosity_level>=1:
-        max_G_index=int(round(np.where(G_list == np.max(G_list))[0]))
-        min_G_index=int(round(np.where(G_list == np.min(G_list))[0]))
+        #print('TEST1',np.where(G_list == np.max(G_list))[0][0])
+        #print('TEST2',np.where(G_list == np.min(G_list))[0][0])
+        #max_G_index=int(round(np.where(G_list == np.max(G_list))[0]))
+        #min_G_index=int(round(np.where(G_list == np.min(G_list))[0]))
+        max_G_index=int(round(np.where(G_list == np.max(G_list))[0][0]))
+        min_G_index=int(round(np.where(G_list == np.min(G_list))[0][0]))
         f_out.write("Number of grid points: %i \n" %Ngrid)
         line1 = []
         line2 = []
@@ -497,7 +490,7 @@ def generate_grid(iseed,l):
         f_out.flush()
 
     if plot_contour_map == True and param == 2:
-        plot('contour',l,None,initial_seed,dim_list,G_list,None,None,None,None,None)
+        plot('contour',l,None,dim_list,G_list,None,None,None,None,None)
     #return dim_list, G_list, Ngrid, max_G # not needed as we write grid to file now
     time_taken2 = time()-start
     f_out.write("Generate grid took %0.4f seconds\n" %(time_taken2-time_taken1))
@@ -515,9 +508,6 @@ def check_input_values():
         sys.exit()
     if Nwalkers != len(adven):
         print ('INPUT ERROR: Nwalkers is %i, but adven has %i elements:' %(Nwalkers, len(adven)))
-        sys.exit()
-    if initial_sampling not in allowed_initial_sampling:
-        print ('INPUT ERROR: initial_sampling need to be in',allowed_initial_sampling, ', but is:', initial_sampling)
         sys.exit()
     if ML not in allowed_ML:
         print ('INPUT ERROR: ML needs to be in',allowed_ML, ', but is:', ML)
@@ -556,7 +546,6 @@ def check_input_values():
     print('Nspf =',Nspf)
     print('initial_spf =',initial_spf)
     print('S =',S)
-    print('iseed =',iseed)
     print('param =',param)
     print('center_min =',center_min)
     print('center_max =',center_max)
@@ -577,8 +566,6 @@ def check_input_values():
     print('t0_time =',t0_time)
     print('t1_time =',t1_time)
     print('d_threshold =',d_threshold)
-    print('initial_sampling =',initial_sampling)
-    print('allowed_initial_sampling =',allowed_initial_sampling)
     print('##############################')
     print('# T2 exploration parameters')
     print('##############################')
@@ -640,7 +627,7 @@ def check_input_values():
     print("\n",flush=True)
 
 # Function that explores the SPF map to generate research landscapes
-def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_explore,X0,y0):
+def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_explore,X0,y0):
     walker_x       = []
     path_x         = [[] for i in range(param)]
     path_G         = []
@@ -660,7 +647,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
         f_out.write("Adventurousness: %f \n" % (adven[w]))
         f_out.write("############# \n")
         f_out.write("Number of points per dimension: %i \n" %Nx)
-        f_out.write("Testing w: %i, iseed: %i \n" % (w,iseed))
+        f_out.write("Testing w: %i\n" % (w))
         f_out.flush()
     ### Perform t0 exploration ###
     if verbosity_level>=1 and t0 !=0: 
@@ -669,9 +656,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
     if t0 != 0:
         for t in range(t0):
             for i in range(param):
-                if initial_sampling=='different': iseed=iseed+w+l+i+t
-                if initial_sampling=='same': iseed=iseed+1
-                random.seed(iseed)
+                random.seed(a=None)
                 num=int(round(random.randint(0,Ngrid-1)))
                 if t==0:
                     walker_x.append(dim_list[i][num])
@@ -1086,13 +1071,13 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
             if verbosity_level>=1:
                 f_out.write("Number of points in bubble after removing duplicates: %i\n" %(len(y_bubble)))
                 f_out.write("Explore landscape ML. time: %i. Before ML took %0.4f seconds \n" %(t,time_taken2-time_taken0))
-            if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
+            if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
             if t2_ML=='GPR':
                 hyperparams=[GPR_alpha,GPR_length_scale]
                 if optimize_GPR_hyperparams == False:
-                    min_point=GPR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
+                    min_point=GPR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
                 else:
-                    mini_args=(path_x,path_G,iseed,l,w,f_out,None,None,1,t) # get rmse fitting previous points
+                    mini_args=(path_x,path_G,l,w,f_out,None,None,1,t) # get rmse fitting previous points
                     bounds = [GPR_alpha_lim]+[GPR_length_scale_lim]
                     solver=differential_evolution(GPR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
@@ -1102,13 +1087,13 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         f_out.write("Best rmse: %f \n" %best_rmse)
                         f_out.flush()
                     hyperparams=[best_hyperparams[0],best_hyperparams[1]]
-                    min_point=GPR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
+                    min_point=GPR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
             if t2_ML=='KRR':
                 hyperparams=[KRR_alpha,KRR_gamma]
                 if optimize_KRR_hyperparams == False:
-                    min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
+                    min_point=KRR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
                 else:
-                    mini_args=(path_x,path_G,iseed,l,w,f_out,None,None,1,t) # get rmse fitting previous points
+                    mini_args=(path_x,path_G,l,w,f_out,None,None,1,t) # get rmse fitting previous points
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
@@ -1118,7 +1103,7 @@ def explore_landscape(iseed,l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi
                         f_out.write("Best rmse: %f \n" %best_rmse)
                         f_out.flush()
                     hyperparams=[best_hyperparams[0],best_hyperparams[1]]
-                    min_point=KRR(hyperparams,x_bubble,y_bubble,iseed,l,w,f_out,path_x,path_G,2,t)
+                    min_point=KRR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
             # print x_bubble corresponding to min(y_bubble)
             if verbosity_level>=1: 
                 f_out.write("## At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
@@ -1161,9 +1146,8 @@ def create_X_and_y(f_out,x_param,y):
     return X,y
 
 # Function to do kNN regression
-def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
+def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
     # initialize values
-    iseed=iseed+1
     average_r=0.0
     average_r_pearson=0.0
     average_rmse=0.0
@@ -1182,12 +1166,11 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
                 f_out.write('k= %i \n' % (n_neighbor[n]))
                 f_out.write('cross_validation %i - fold \n' % (k_fold))
                 f_out.write('weights %s \n' % (weights))
-                f_out.write('iseed %s \n' % (iseed))
                 f_out.write('-------- \n')
                 f_out.flush()
             # assign splits to kf or and loo
             if CV=='kf':
-                kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+                kf = KFold(n_splits=k_fold,shuffle=True,random_state=None)
                 validation=kf.split(X)
             if CV=='loo':
                 loo = LeaveOneOut()
@@ -1236,7 +1219,7 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
             # For data sorted from old to new
             elif CV=='sort':
                 # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
-                X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
+                X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=None,shuffle=False)
                 # scale data
                 scaler = preprocessing.StandardScaler().fit(X_train)
                 X_train_scaled = scaler.transform(X_train)
@@ -1278,7 +1261,6 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
                 f_out.write('Perform k-NN \n')
                 f_out.write('k= %i \n' % (n_neighbor[n]))
                 f_out.write('weights %s \n' % (weights))
-                f_out.write('iseed %s \n' % (iseed))
                 f_out.write('-------- \n')
                 f_out.flush()
             # assign train and test data
@@ -1362,7 +1344,7 @@ def kNN(X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
     return result
 
 # Function to do GBR regression
-def GBR(X,y,iseed,l,w,f_out):
+def GBR(X,y,l,w,f_out):
     prev_total_rmse = 0
     gbr_counter = 0
     for gbr1 in range(len(GBR_n_estimators)):
@@ -1370,7 +1352,6 @@ def GBR(X,y,iseed,l,w,f_out):
             for gbr3 in range(len(GBR_max_depth)):
                 for gbr4 in range(len(GBR_min_samples_split)):
                     for gbr5 in range(len(GBR_min_samples_leaf)):
-                        iseed=iseed+1
                         if verbosity_level>=1: 
                             f_out.write('## Start: "GBR" function \n')
                             f_out.write('-------- \n')
@@ -1385,12 +1366,12 @@ def GBR(X,y,iseed,l,w,f_out):
                             f_out.write('--------\n')
                             f_out.flush()
                     
-                        kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+                        kf = KFold(n_splits=k_fold,shuffle=True,random_state=None)
                         average_r=0.0
                         average_r_pearson=0.0
                         average_rmse=0.0
                         if CV=='kf':
-                            kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+                            kf = KFold(n_splits=k_fold,shuffle=True,random_state=None)
                             validation=kf.split(X)
                         if CV=='loo':
                             loo = LeaveOneOut()
@@ -1430,7 +1411,7 @@ def GBR(X,y,iseed,l,w,f_out):
                             total_mse = mean_squared_error(real_y, predicted_y)
                             total_rmse = np.sqrt(total_mse)
                         elif CV=='sort':
-                            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
+                            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=None,shuffle=False)
                             GBR = GradientBoostingRegressor(criterion=GBR_criterion,n_estimators=GBR_n_estimators[gbr1],learning_rate=GBR_learning_rate[gbr2],max_depth=GBR_max_depth[gbr3],min_samples_split=GBR_min_samples_split[gbr4],min_samples_leaf=GBR_min_samples_leaf[gbr5])
                             y_pred = GBR.fit(X_train, y_train).predict(X_test)
                             total_r_pearson,_=pearsonr(y_test,y_pred)
@@ -1457,11 +1438,10 @@ def GBR(X,y,iseed,l,w,f_out):
     return result
 
 # CALCULATE GPR #
-def GPR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
+def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
     # assign hyperparameters
     GPR_alpha,GPR_length_scale = hyperparams
     # initialize values
-    iseed=iseed+1
     average_r=0.0
     average_r_pearson=0.0
     average_rmse=0.0
@@ -1482,7 +1462,7 @@ def GPR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
             f_out.flush()
         # assign splits for kf and loo
         if CV=='kf':
-            kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+            kf = KFold(n_splits=k_fold,shuffle=True,random_state=None)
             validation=kf.split(X)
         if CV=='loo':
             loo = LeaveOneOut()
@@ -1549,7 +1529,7 @@ def GPR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
         # For data sorted from old to new
         elif CV=='sort':
             # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
-            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
+            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=None,shuffle=False)
             # scale data
             scaler = preprocessing.StandardScaler().fit(X_train)
             X_train_scaled = scaler.transform(X_train)
@@ -1655,11 +1635,10 @@ def GPR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
 
 
 # Function to do kernel ridge regression (KRR)
-def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
+def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
     # assign hyperparameters
     KRR_alpha,KRR_gamma = hyperparams
     # initialize values
-    iseed=iseed+1
     average_r=0.0
     average_r_pearson=0.0
     average_rmse=0.0
@@ -1681,7 +1660,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
             f_out.flush()
         # assign splits for kf and loo
         if CV=='kf':
-            kf = KFold(n_splits=k_fold,shuffle=True,random_state=iseed)
+            kf = KFold(n_splits=k_fold,shuffle=True,random_state=None)
             validation=kf.split(X)
         if CV=='loo':
             loo = LeaveOneOut()
@@ -1747,7 +1726,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
         # For data sorted from old to new
         elif CV=='sort':
             # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
-            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=iseed,shuffle=False)
+            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=None,shuffle=False)
             # scale data
             scaler = preprocessing.StandardScaler().fit(X_train)
             X_train_scaled = scaler.transform(X_train)
@@ -1851,7 +1830,7 @@ def KRR(hyperparams,X,y,iseed,l,w,f_out,Xtr,ytr,mode,t):
     return result
 
 # Function to do different plots
-def plot(flag,l,w,iseed,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
+def plot(flag,l,w,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
     # Plot contour maps
     if flag=='contour':
         print('Start: "plot(contour)"')
@@ -1866,7 +1845,7 @@ def plot(flag,l,w,iseed,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
         plt.axis([center_min,center_max,center_min,center_max])
         plt.xticks(fontsize=10)
         plt.yticks(fontsize=10)
-        plt.title('$S = %.2f$, $a = %s %s$. Seed: %i' %(float(S),adven[0],'\%',iseed),fontsize=15)
+        plt.title('$S = %.2f$, $a = %s %s$' %(float(S),adven[0],'\%'),fontsize=15)
         nfile='_landscape'+str(l)
         file1='contour_2d' + nfile + '.png'
         plt.savefig(file1,format='png',dpi=600)
@@ -1885,10 +1864,8 @@ def plot(flag,l,w,iseed,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
         pnt3d_3=plt.scatter(X1[0][:],X1[1][:],c=tim,cmap='inferno',s=50,linewidth=1,zorder=4,alpha=0.8)
         pnt3d_4=plt.scatter(X0[0][:],X0[1][:],c='black',s=50,linewidth=1,zorder=4,alpha=0.8)
         cbar_2=plt.colorbar(pnt3d_3,pad=0.06)
-        #cbar_2=plt.colorbar(pnt3d_3)
         cbar_2.set_label("Time step \n", fontsize=12)
         cbar=plt.colorbar(pnt3d_2,pad=0.01)
-        #cbar=plt.colorbar(pnt3d_2)
         cbar.set_label("$G(\mathbf{x})$ (a.u.)",fontsize=12,labelpad=0)
         plt.xlabel('$x_1$ (a.u.)',fontsize=12)
         plt.ylabel('$x_2$ (a.u.)',fontsize=12)
@@ -1931,9 +1908,9 @@ def plot(flag,l,w,iseed,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(dask_parallel, NCPU, verbosity_level, log_name,Nspf, S, iseed, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, initial_sampling, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim, GPR_length_scale_lim, KRR_alpha, KRR_kernel,  KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_initial_sampling, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf) = read_initial_values(input_file_name)
+(dask_parallel, NCPU, verbosity_level, log_name,Nspf, S, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim, GPR_length_scale_lim, KRR_alpha, KRR_kernel,  KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf) = read_initial_values(input_file_name)
 # Run main program
-main(iseed)
+main()
 # Measure and print final time
 time_taken = time()-start
 print ('Process took %0.4f seconds' %time_taken)
