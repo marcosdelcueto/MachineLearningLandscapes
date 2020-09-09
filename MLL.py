@@ -61,13 +61,12 @@ def main():
         # Calculate results for each landscape (may use dask to run each landscape in a CPU in parallel)
         if dask_parallel==True:
             for l in range(initial_spf,initial_spf+Nspf):
-                (provi_result_t1,provi_result_t2)=delayed(MLL,nout=2)(l)
-                results_t1_per_Nspf.append(provi_result_t1)
-                results_t2_per_Nspf.append(provi_result_t2)
-            results_t1_per_Nspf=dask.compute(results_t1_per_Nspf,scheduler='processes',num_workers=NCPU)
-            results_t2_per_Nspf=dask.compute(results_t2_per_Nspf,scheduler='processes',num_workers=NCPU)
-            results_t1_per_Nspf=results_t1_per_Nspf[0]
-            results_t2_per_Nspf=results_t2_per_Nspf[0]
+                results_dask=delayed(MLL)(l)
+                results_t1_per_Nspf.append(results_dask[0])
+                results_t2_per_Nspf.append(results_dask[1])
+            results_per_Nspf=dask.compute(*(results_t1_per_Nspf,results_t2_per_Nspf),scheduler='processes',num_workers=NCPU)
+            results_t1_per_Nspf=results_per_Nspf[0]
+            results_t2_per_Nspf=results_per_Nspf[1]
         elif dask_parallel==False:
             for l in range(initial_spf,initial_spf+Nspf):
                 (provi_result_t1,provi_result_t2)=MLL(l)
