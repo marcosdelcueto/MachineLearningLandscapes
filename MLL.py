@@ -22,12 +22,11 @@ from scipy.stats import pearsonr, spearmanr
 from sklearn import neighbors, preprocessing
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import LeaveOneOut
 from scipy.optimize import differential_evolution
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, RBF
+from sklearn.model_selection import LeaveOneOut, train_test_split
 
 #################################################################################
 ######   START CUSTOMIZABLE PARAMETERS ########
@@ -192,10 +191,6 @@ def read_initial_values(inp):
     Amplitude_min=0.0                               # Minimum amplitude of each Gaussian function
     Amplitude_max=1.0                               # Maximum amplitude of each Gaussian function
     N=int(round((1/(S**param))))                    # Number of Gaussian functions of a specific landscape
-    ############# TESTING #############
-    #width_min=0.05
-    #N=2
-    ###################################
 
     return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, S, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf)
 
@@ -222,6 +217,7 @@ def MLL(l):
     with open(filename) as file_in:
         for line in file_in:
             counter_word=-1
+            # read only lines that start with an integer (i). The rest are ignored
             try:
                 if isinstance(int(line.split()[0]),int):
                     for word in line.split():
@@ -242,15 +238,7 @@ def MLL(l):
         # Step 1) Perform t1 exploration
         time_taken1 = time()-start
         X0,y0,unique_t0 = explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,0,0,None,None,False,None,None)
-        #print('TEST X0:')
-        #print(X0)
-        #print('TEST y0:')
-        #print(y0)
         X1,y1,unique_t1 = explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,0,t1_time,0,None,None,False,X0,y0)
-        #print('TEST X1:')
-        #print(X1)
-        #print('TEST y1:')
-        #print(y1)
         time_taken2 = time()-start
         if verbosity_level>=1:
             f_out.write("t1 exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
@@ -470,10 +458,6 @@ def generate_grid(l):
     max_G=max(G_list)
     min_G=min(G_list)
     if verbosity_level>=1:
-        #print('TEST1',np.where(G_list == np.max(G_list))[0][0])
-        #print('TEST2',np.where(G_list == np.min(G_list))[0][0])
-        #max_G_index=int(round(np.where(G_list == np.max(G_list))[0]))
-        #min_G_index=int(round(np.where(G_list == np.min(G_list))[0]))
         max_G_index=int(round(np.where(G_list == np.max(G_list))[0][0]))
         min_G_index=int(round(np.where(G_list == np.min(G_list))[0][0]))
         f_out.write("Number of grid points: %i \n" %Ngrid)
@@ -649,6 +633,7 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
         f_out.write("Testing w: %i\n" % (w))
         f_out.flush()
     ### Perform t0 exploration ###
+    # could be simplified by just chosing a random number from 0 to Ngrid-1 per N0 step
     if verbosity_level>=1 and t0 !=0: 
         f_out.write("## Start random biased exploration\n" %())
         f_out.flush()
@@ -723,21 +708,12 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
             #####################################################################################
             # Added fix to select correct draw_in_grid value from list, when several points in grid have same G value
             if len(draw_in_grid_list) > 1:
-                #f_out.write("ALERT: MORE THAN ONE POINT WITH SAME G POSSIBLE\n")
-                #f_out.write("Target:\n")
-                #for j in range(param):
-                    #f_out.write("%f   " %(minimum_path_x[j][draw]))
-                #f_out.write("\n")
                 for i in range(len(draw_in_grid_list)):
                     counter_select_from_list=0
-                    #f_out.write("Possibility: dim_list[:][draw_in_grid_list[i]]:\n")
                     for j in range(param):
-                        #f_out.write("%f   " %(dim_list[j][draw_in_grid_list[i]]))
                         if dim_list[j][draw_in_grid_list[i]] == minimum_path_x[j][draw]:
                             counter_select_from_list = counter_select_from_list+1
-                    #f_out.write("\n")
                     if counter_select_from_list == param:
-                        #f_out.write("From list, we should select: %i th term \n" %(i))
                         draw_in_grid = draw_in_grid_list[i]
             #####################################################################################
             # Verbosity
@@ -765,7 +741,6 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
                     if minimum_path_x[i][draw] == dim_list[i][draw_in_grid_list[k]]:
                         counter_param=counter_param+1
                 if counter_param==param:
-                    #print('I am in point #:', k)
                     draw_in_grid=draw_in_grid_list[k]
                     break
             # initialize prob and neighbor_XX values
@@ -820,13 +795,13 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
                 counter3=counter3+1
             # Check for inconsistencies
             if prob_sum==0.0: 
-                print("STOP - ERROR: No new candidate points found within threshold",flush=True)
-                print("STOP - ERROR: At Nspf:", l, ". Walker:", w, ". Time:", t,flush=True)
+                print("STOP - ERROR: No new candidate points found within threshold")
+                print("STOP - ERROR: At Nspf:", l, ". Walker:", w, ". Time:", t)
                 f_out.write("STOP - ERROR: No new candidate points found within threshold\n")
                 sys.exit()
 
             if len(range((P*2+1)**param)) != len(prob):
-                print("STOP - ERROR: Problem with number of nearby points considered for next step",flush=True)
+                print("STOP - ERROR: Problem with number of nearby points considered for next step")
                 sys.exit()
             if verbosity_level>=2: 
                 f_out.write("Number of points considered: %i \n" % (len(range(((P-1)*2+1)**param))))
@@ -1589,7 +1564,6 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
             time_taken2 = time()-start
         else:
             if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
-            #KRR=load(open('KRR.pkl', 'rb'))
             GPR=load(open('GPR_%i.pkl' %(l), 'rb'))
             time_taken2 = time()-start
         if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
@@ -1626,12 +1600,12 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
         if verbosity_level>=2:
             f_out.write("At index %i, predicted minimum value: %f\n" %(min_index, min(predicted_y)))
             f_out.write("At index %i, real minimum value: %f\n" %(min_index, min(real_y)))
+            f_out.flush()
         # add predicted value to result
         for j in range(param):
             result.append(X_test[min_index][j])
         result.append(min(predicted_y))
     return result
-
 
 # Function to do kernel ridge regression (KRR)
 def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
@@ -1780,12 +1754,10 @@ def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
         if t%t2_train_time==0:
             if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
             KRR.fit(X_train_scaled, y_train)
-            #dump(KRR, open('KRR.pkl', 'wb'))
             dump(KRR, open('KRR_%i.pkl' %(l), 'wb'))
             time_taken2 = time()-start
         else:
             if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
-            #KRR=load(open('KRR.pkl', 'rb'))
             KRR=load(open('KRR_%i.pkl' %(l), 'rb'))
             time_taken2 = time()-start
         if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
@@ -1854,9 +1826,7 @@ def plot(flag,l,w,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
     # Plot contour map and points of t1 exploration
     elif flag=='t1_exploration':
         X1 = list(map(list, zip(*X1)))
-        #tim=np.arange(t1_time)
         tim=np.arange(len(X1[0]))
-        #tim_initial=np.arange(t0_time)
         pnt3d_1=plt.tricontour(dim_list[0],dim_list[1],G_list,20,linewidths=1,colors='k')
         plt.clabel(pnt3d_1,inline=1,fontsize=5)
         pnt3d_2=plt.tricontourf(dim_list[0],dim_list[1],G_list,100,cmap='Greys')
