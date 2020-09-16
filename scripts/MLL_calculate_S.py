@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 ######   START CUSTOMIZABLE PARAMETERS ########
 data_file_name = 'data_x_G'      # prefix of input file name
 Nspf = 100                      # number of landscapes
-adven = [80]           # array with adventurousness values
+adven = [10,40,70,100]           # array with adventurousness values
 ######   END CUSTOMIZABLE PARAMETERS   ######
 #################################################################################
 for a in adven:
