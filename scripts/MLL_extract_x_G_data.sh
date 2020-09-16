@@ -1,21 +1,26 @@
 #!/bin/bash
 # Marcos del Cueto
 # Department of Chemistry and MIF, University of Liverpool
-# Script to extract {x},G data from logs
-t0=15
-t1=200
-t2=15
-
-number_lines=$((${t0}+${t1}+${t2}))
-remove_head=$((-1*${t0}))
-remove_tail=$((${t2}+1))
-for l in `seq 0 99`
-do 
-	counter_a=1
-	for a in `echo "10 20 30 40 50 60 70 80 90 100"`
-	do
-		lines=$((${number_lines}*${counter_a}))
-		grep "timestep " log_grid_l_${l}.log | head -n ${lines} | tail -n ${number_lines} | awk '{ for(i=3; i<NF; i++) printf "%s",$i OFS; if(NF) printf "%s",$NF; printf ORS}' | tail -n +${remove_tail} | head -n ${remove_head} > data_x_G_${a}_${l}.dat
-		counter_a=$((${counter_a}+1))
-	done
+#################################################################################
+# Simple script to extract {{x},G} data from MLL, and create files with format that can be analized separately by MLL_calculate_a.py and MLL_calculate_S.py
+#################################################################################
+### START CUSTOMIZABLE DATA ###
+data_file_name='data_x_G'		# prefix of data files taht will be created
+t1=200								# number of t1 points
+t0=15 								# number of t0 points (ignored)
+Nspf=100								# number of datasets
+adv=(10 20 30 40 50 60 70 80 90 100)		# array with values of adventurousness values
+#### END CUSTOMIZABLE DATA ####
+N=$((${t0}+${t1}))
+# Loop for all datasets
+for l in `seq 0 $((Nspf-1))`
+do
+   counter=0
+	# Loop for all adventurousness values
+   for i in `seq ${#adv[@]}`
+   do 
+		a=${adv[counter]}
+    	grep "timestep " log_grid_l_${l}.log | awk 'NR>'"${N}"'*'"${counter}"'&&NR<='"${N}"'*'"${counter}"'+'"${N}"' {$1=$2=""; print $0}'  | sed -e 's/^[[:space:]]*//' > ${data_file_name}_${a}_${l}.dat
+      counter=$((counter+1))
+   done
 done

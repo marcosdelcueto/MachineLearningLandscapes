@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # Marcos del Cueto
 # Department of Chemistry and MIF, University of Liverpool
+#################################################################################
 # This script plots boxplots of rmse read from stdout (obtained either directly from program or mimicked with 'get_log_results.py' from logs)
-################################################################################
+#################################################################################
 import re
 import ast
 import sys
 import statistics
 import matplotlib.pyplot as plt
-
 #######################################
 ### START CUSTOMIZABLE INPUT VALUES ###
 Nwalkers = 10                                        # Number of walkers per landscape
@@ -30,10 +30,6 @@ def main(Nwalkers,adven,out_file,pattern):
                 line=line[0].split(',')
                 for item in line:
                     rmse.append(float(item))
-                #print('-- a = ',adven[counter])
-                #print(rmse)
-                #print(len(rmse))
-                #plot_rmse('rmse',rmse)
                 counter=counter+1
                 results_per_walker_t1.append(rmse)
         plot_rmse('rmse',results_per_walker_t1)
@@ -59,8 +55,5 @@ def plot_rmse(flag,results_per_walker_t1):
         plt.savefig(file1,format='png',dpi=600)
         print('save rmse box plot to %s' %file1,flush=True)
         plt.close()
-
-
-
 ########################
 main(Nwalkers,adven,out_file,pattern)

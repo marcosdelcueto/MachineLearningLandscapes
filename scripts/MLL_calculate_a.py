@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Marcos del Cueto
 # Department of Chemistry and MIF, University of Liverpool
+#################################################################################
 # Script to estimate adventurousness 'a' from datasets
 #################################################################################
 import ast
@@ -93,10 +94,10 @@ for a in adven:
         predictions_a_new.append(chosen_a_new)
         #print('Chosen "gradient" values %.3f' %(chosen_a_new)) # debug
     if Nspf > 1:
-        print('a = %4i . Median: %8.4f . Stdev: %8.4f' % (a, statistics.median(predictions_a_new), statistics.stdev(predictions_a_new)))
         # Transform to percentage
         for i in range(len(predictions_a_new)):
             predictions_a_new[i] = predictions_a_new[i] *100
+        print('a = %4i . Median: %8.4f . Stdev: %8.4f' % (a, statistics.median(predictions_a_new), statistics.stdev(predictions_a_new)))
         # Append to final arrays for plots
         final_predictions_a.append(predictions_a_new)
         final_median.append(statistics.median(predictions_a_new))

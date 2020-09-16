@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Marcos del Cueto
 # Department of Chemistry and MIF, University of Liverpool
+#################################################################################
 # Script to estimate smoothness 'S' from datasets
 #################################################################################
 import ast
@@ -13,7 +14,7 @@ import matplotlib.pyplot as plt
 data_file_name = 'data_x_G'                 # prefix of input file name
 Nspf = 100                                  # number of landscapes
 adven = [10,40,70,100]                      # array with adventurousness values
-scaling_factor = 0.5                        # scaling factor to transform G corrugation to our arbitrary S scale
+scaling_factor = 0.45                       # scaling factor to transform G corrugation to our arbitrary S scale
 ######   END CUSTOMIZABLE PARAMETERS   ######
 #################################################################################
 # Loop for each a values

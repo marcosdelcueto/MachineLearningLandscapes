@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # Marcos del Cueto
 # Department of Chemistry and MIF, University of Liverpool
+#################################################################################
 # This script gets final results from log files and print results in standard format
-################################################################################
+#################################################################################
 import re
 import ast
 import statistics
 import numpy
 from scipy.stats import iqr
-
 #######################################
 ### START CUSTOMIZABLE INPUT VALUES ###
 Nspf = 100                                           # Number of different landscapes generate
@@ -42,23 +42,9 @@ for i in range(Nspf):
                 if t2_exploration == True: 
                     provi_result_t2=list_line[1]
                     results_t2_per_Nspf.append(provi_result_t2)
-                #print('-----------')
-                #print(list_line)
-                #print(type(list_line))
-                #print(list_line[0])
-                #print(list_line[1])
 # transpose to get final results per walker
 if t1_analysis    == True: results_per_walker_t1=[list(i) for i in zip(*results_t1_per_Nspf)]
 if t2_exploration == True: results_per_walker_t2=[list(i) for i in zip(*results_t2_per_Nspf)]
-# print final results per SPF and per walker
-#print('-----------')
-#print('Results per Nspf:')
-#print(results_t1_per_Nspf)
-#print(results_t2_per_Nspf)
-#print('-----------')
-#print('Results per walker:')
-#print(results_per_walker_t1)
-#print(results_per_walker_t2)
 print('Number of SPFs checked:', Nspf)
 print('Number of SPFs finished:', counter_finished)
 # Print final results
@@ -79,33 +65,18 @@ for i in range(Nwalkers):
         min_standard = [item[3] for item in results_per_walker_t2[i]]
         min_ML       = [item[4] for item in results_per_walker_t2[i]]
         ML_gain_real_relative = [item[5] for item in results_per_walker_t2[i]]
-        print('- ML_gain_pred Mean: %f' %(statistics.mean(ML_gain_pred)),flush=True)
-        print('- ML_gain_pred Median: %f' %(statistics.median(ML_gain_pred)),flush=True)
-        print('- ML_gain_real Mean: %f' %(statistics.mean(ML_gain_real)),flush=True)
+        #print('- ML_gain_pred Mean: %f' %(statistics.mean(ML_gain_pred)),flush=True)
+        #print('- ML_gain_pred Median: %f' %(statistics.median(ML_gain_pred)),flush=True)
+        #print('- ML_gain_real Mean: %f' %(statistics.mean(ML_gain_real)),flush=True)
         print('- ML_gain_real Median: %f' %(statistics.median(ML_gain_real)),flush=True)
-        print('- error_rel_ML Mean: %f' %(statistics.mean(error_rel_ML)),flush=True)
+        #print('- error_rel_ML Mean: %f' %(statistics.mean(error_rel_ML)),flush=True)
         print('- error_rel_ML Median: %f' %(statistics.median(error_rel_ML)),flush=True)
-        print('- min_standard Mean: %f' %(statistics.mean(min_standard)),flush=True)
+        #print('- min_standard Mean: %f' %(statistics.mean(min_standard)),flush=True)
         print('- min_standard Median: %f' %(statistics.median(min_standard)),flush=True)
-        print('- min_ML Mean: %f' %(statistics.mean(min_ML)),flush=True)
+        #print('- min_ML Mean: %f' %(statistics.mean(min_ML)),flush=True)
         print('- min_ML Median: %f' %(statistics.median(min_ML)),flush=True)
-        print('- ML_gain_real_relative Mean: %f' %(statistics.mean(ML_gain_real_relative)),flush=True)
+        #print('- ML_gain_real_relative Mean: %f' %(statistics.mean(ML_gain_real_relative)),flush=True)
         print('- ML_gain_real_relative Median: %f' %(statistics.median(ML_gain_real_relative)),flush=True)
-        print('- ML_gain_real_relative Stdev: %f' %(statistics.stdev(ML_gain_real_relative)),flush=True)
-        print('- ML_gain_real_relative All:', ML_gain_real_relative)
-        print('- ML_gain_real_relative IQR:',iqr(ML_gain_real_relative))
-######################
-#####################
-        MLgain_median = statistics.median(ML_gain_real_relative)
-        MLgain_iqr = iqr(ML_gain_real_relative)
-        new_MLgain = []
-        for i in ML_gain_real_relative:
-            if (abs(i-MLgain_median)) <= 1.5*MLgain_iqr:
-                new_MLgain.append(i)
-            else:
-                print('I am ignoring:', i,'diff:', abs(i-MLgain_median), '1.5IQR:', 1.5*MLgain_iqr)
-        print('FINAL RESULTS:')
-        print('Median:', statistics.median(new_MLgain))
-        print('Stdev:', statistics.stdev(new_MLgain))
-        print('All:',new_MLgain)
-    print('')
+        #print('- ML_gain_real_relative Stdev: %f' %(statistics.stdev(ML_gain_real_relative)),flush=True)
+        #print('- ML_gain_real_relative All:', ML_gain_real_relative)
+        #print('- ML_gain_real_relative IQR:',iqr(ML_gain_real_relative))
