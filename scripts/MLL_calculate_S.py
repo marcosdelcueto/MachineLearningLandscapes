@@ -13,16 +13,19 @@ import matplotlib.pyplot as plt
 data_file_name = 'data_x_G'                 # prefix of input file name
 Nspf = 100                                  # number of landscapes
 adven = [10,40,70,100]                      # array with adventurousness values
+scaling_factor = 0.5                        # scaling factor to transform G corrugation to our arbitrary S scale
 ######   END CUSTOMIZABLE PARAMETERS   ######
 #################################################################################
+# Loop for each a values
 for a in adven:
     prediction_C = []
-    F1 = []
+    # Loop for each dataset
     for l in range(Nspf):
+        corrugation = []
         X  = []
         G  = []
-        #F1 = []
         f_data = open('%s_%i_%s.dat' % (data_file_name,a,l), 'r')
+        # Read data
         for line in f_data:
             provi_X = []
             line = ast.literal_eval(line)
@@ -31,13 +34,9 @@ for a in adven:
             provi_G = line[i+1]
             X.append(provi_X)
             G.append(provi_G)
-        #print(X)
-        #print(G)
-        #print('#################')
-        #for i in range(len(G)):
-            #for j in range(len(G)):
-        for i in range(20):
-            for j in range(20):
+        # Calculate list with all corrugation values, as Delta_G/Delta_x, for each dataset
+        for i in range(len(G)):
+            for j in range(len(G)):
                 if j>i:
                     Delta_x = 0.0
                     Delta_G = np.sqrt((G[i] - G[j])**2)
@@ -45,25 +44,14 @@ for a in adven:
                         Delta_x = Delta_x + (X[i][k]-X[j][k])**2
                     Delta_x = np.sqrt(Delta_x)
                     if Delta_G > 0.0:
-                        F1.append(Delta_G/Delta_x**1.0)
-                        #F1.append(Delta_x/(2.0*Delta_G))
-
-                    #print(i,j,Delta_G/Delta_x**1.0)
-
-        av_f1 = statistics.mean(F1)
-        prediction_C.append(av_f1)
-        stdev_f1 = statistics.stdev(F1)
-        #print('average F1:')
-        #print(av_f1,'+/-', stdev_f1)
-        #print(len(F1))
-    final_pred_C_mean   = statistics.mean(prediction_C)
+                        corrugation.append(Delta_G/Delta_x)
+        # Calculate average corrigation for each dataset
+        av_corrugation = statistics.mean(corrugation)
+        prediction_C.append(av_corrugation)
+    # Calculate final averaged corrugation values
     final_pred_C_median = statistics.median(prediction_C)
     final_pred_C_stdev  = statistics.stdev(prediction_C)
-    print('At a %i:' %(a))
-    print('C:',final_pred_C_mean,final_pred_C_median,final_pred_C_stdev)
-    final_pred_S_mean = 1/(2.0*final_pred_C_mean)
-    final_pred_S_mean_error = final_pred_C_stdev/(2.0*final_pred_C_mean**2)
-    final_pred_S_median = 1/(2.0*final_pred_C_median)
-    final_pred_S_median_error = final_pred_C_stdev/(2.0*final_pred_C_median**2)
-    print('S mean:', final_pred_S_mean,'+/-',final_pred_S_mean_error)
-    print('S median:', final_pred_S_median,'+/-',final_pred_S_median_error)
+    # Calculate Smoothness (S) as inverse of corrugation, times a scaling factor
+    final_pred_S_median = 1/(final_pred_C_median) * scaling_factor
+    final_pred_S_median_error = final_pred_C_stdev/(final_pred_C_median**2) * scaling_factor
+    print('At a = %4i - S Median: %7.4f. S Stdev: %7.4f' % (a,final_pred_S_median,final_pred_S_median_error))
