@@ -37,7 +37,9 @@ input_file_name = 'input_MLL.inp'      # name of input file
 #################################################################################
 ###### START MAIN ######
 def main():
-
+    print('#############################')
+    print('### CALLING MAIN FUNCTION ###')
+    print('#############################')
     # Calculation just to generate SPF grid
     if calculate_grid == True:
         # Use paralellization: a SPF per CPU
@@ -178,7 +180,14 @@ def read_initial_values(inp):
     plot_t1_error_metric = ast.literal_eval(var_value[var_name.index('plot_t1_error_metric')])
     plot_contour_map = ast.literal_eval(var_value[var_name.index('plot_contour_map')])
     grid_name = ast.literal_eval(var_value[var_name.index('grid_name')])
-
+    # Calculate intermediate values 
+    width_min=S                                     # Minimum width of each Gaussian function
+    width_max=1.0/3.0                               # Maximum width of each Gaussian function
+    Amplitude_min=0.0                               # Minimum amplitude of each Gaussian function
+    Amplitude_max=1.0                               # Maximum amplitude of each Gaussian function
+    N=int(round((1/(S**param))))                    # Number of Gaussian functions of a specific landscape
+    adven_per_SPF = len(adven)                      # Number of different adventurousness per SPF
+    # Assign variables to a dictionary to check their types and values
     inp_val = {
       "dask_parallel": dask_parallel,
       "NCPU": NCPU,
@@ -234,17 +243,8 @@ def read_initial_values(inp):
       "plot_contour_map":plot_contour_map,
       "grid_name":grid_name,
     }
-
     # Check that input values are OK
-    check_input_values(inp_val)
-
-    width_min=S                                     # Minimum width of each Gaussian function
-    width_max=1.0/3.0                               # Maximum width of each Gaussian function
-    Amplitude_min=0.0                               # Minimum amplitude of each Gaussian function
-    Amplitude_max=1.0                               # Maximum amplitude of each Gaussian function
-    N=int(round((1/(S**param))))                    # Number of Gaussian functions of a specific landscape
-    adven_per_SPF = len(adven)                           # Number of different adventurousness per SPF
-
+    check_input_values(inp_val,width_min,width_max,Amplitude_min,Amplitude_max,N,adven_per_SPF)
 
     return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, 
             S, param, center_min, center_max, grid_min, grid_max, 
@@ -259,6 +259,185 @@ def read_initial_values(inp):
             Amplitude_max, N, t2_time, t2_ML, t2_exploration, t1_analysis, 
             diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,
             plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf)
+
+# Function to serve as a sanity check of input values
+def check_input_values(inp_val,width_min,width_max,Amplitude_min,Amplitude_max,N,adven_per_SPF):
+    # Double check boolean variables
+    for value in ["calculate_grid","plot_contour_map","dask_parallel","plot_t1_exploration","plot_t1_error_metric","t1_analysis","t2_exploration","optimize_GPR_hyperparams","optimize_KRR_hyperparams"]:
+        if type(inp_val[value]) != bool:
+            print ('INPUT ERROR: %s should be boolean, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    # Double check integer variables
+    for value in ["NCPU","Nspf","initial_spf","param","verbosity_level","t0_time","t1_time","t2_time","t2_train_time","k_fold","diff_popsize"]:
+        if type(inp_val[value]) != int:
+            print ('INPUT ERROR: %s should be integer, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    # Double check float variables
+    for value in ["S","center_min","center_max","grid_min","grid_max","grid_Delta","d_threshold","test_last_proportion","GPR_alpha","GPR_length_scale","KRR_alpha","KRR_gamma","diff_tol"]:
+        if type(inp_val[value]) != float:
+            print ('INPUT ERROR: %s should be float, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    # Double check string variables
+    for value in ["grid_name","log_name","ML","error_metric","t2_ML","CV","weights","GBR_criterion","KRR_kernel"]:
+        if type(inp_val[value]) != str:
+            print ('INPUT ERROR: %s should be string, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    # Double check lists of integers OR lists of floats
+    for value in ["adven","GBR_learning_rate"]:
+        if type(inp_val[value]) != list:
+            print ('INPUT ERROR: %s should be a list, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+        for term in inp_val[value]:
+            if type(term) != int and type(term) != float:
+                print ('INPUT ERROR: %s should be a list of integers or reals, but is: %s - %s' %(value, str(inp_val[value]), term, type(term)))
+                sys.exit()
+    # Double check lists of integers 
+    for value in ["n_neighbor","GBR_n_estimators","GBR_max_depth","GBR_min_samples_split","GBR_min_samples_leaf"]:
+        if type(inp_val[value]) != list:
+            print ('INPUT ERROR: %s should be a list, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+        for term in inp_val[value]:
+            if type(term) != int:
+                print ('INPUT ERROR: %s should be a list of integers, but is: %s - %s' %(value, str(inp_val[value]), term, type(term)))
+                sys.exit()
+    # Double check tuples of integers OR tuples of floats
+    for value in ["GPR_alpha_lim","GPR_length_scale_lim","KRR_alpha_lim","KRR_gamma_lim"]:
+        if type(inp_val[value]) != tuple:
+            print ('INPUT ERROR: %s should be a tuple, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+        for term in inp_val[value]:
+            if type(term) != int and type(term) != float:
+                print ('INPUT ERROR: %s should be a tuple of integers or reals, but is: %s - %s' %(value, str(inp_val[value]), term, type(term)))
+                sys.exit()
+    # Check that specific varialbes are within allowed ranges
+    if inp_val["S"] <=0 or inp_val["S"] >= width_max:
+        print ('INPUT ERROR: S should be in range (%f,%f), but it is: %f' %(0.0,width_max,S))
+        sys.exit()
+    allowed_verbosity_level = [0,1,2]
+    if inp_val["verbosity_level"] not in allowed_verbosity_level:
+        print ('INPUT ERROR: verbosity_level should be in %s, but it is: %i' %(str(allowed_verbosity_level),verbosity_level))
+        sys.exit()
+    allowed_ML=[None,'kNN','GBR','GPR','KRR']
+    if inp_val["ML"] not in allowed_ML:
+        print ('INPUT ERROR: ML should be in %s, but it is: %s' %(str(allowed_ML),ML))
+        sys.exit()
+    allowed_error_metric=[None,'rmse']
+    if inp_val["error_metric"] not in allowed_error_metric:
+        print ('INPUT ERROR: error_metric should be in %s, but it is: %s' %(str(allowed_error_metric),error_metric))
+        sys.exit()
+    allowed_t2_ML = [None,'kNN','GPR','KRR']
+    if inp_val["t2_ML"] not in allowed_t2_ML:
+        print ('INPUT ERROR: t2_ML should be in %s, but it is: %s' %(str(allowed_t2_ML),t2_ML))
+        sys.exit()
+    allowed_CV=['kf','loo','time-sorted']
+    if inp_val["CV"] not in allowed_CV:
+        print ('INPUT ERROR: CV should be in %s, but it is: %s' %(str(allowed_CV),CV))
+        sys.exit()
+    # Print read input values to standard output
+    print('# Printing input values:')
+    for var in inp_val:
+        print(var, "=", inp_val[var])
+    print('# Intermediate values:')
+    print('width_min =',width_min)
+    print('width_max =',width_max)
+    print('Amplitude_min =',Amplitude_min)
+    print('Amplitude_max =',Amplitude_max)
+    print('N =',N)
+    print('adven_per_SPF =',adven_per_SPF)
+    print('########################')
+    print('### INPUT CHECKED OK ###')
+    print('########################')
+
+### Function to calculate SPF grid
+def generate_grid(l):
+    time_taken1 = time()-start
+    Amplitude      = []
+    center_N       = [[] for i in range(N)]
+    width_N        = [[] for i in range(N)]
+    dim_list       = [[] for i in range(param)]
+    G_list         = []
+    f_out = open('%s_%s.log' % (grid_name,l), 'w')
+    if verbosity_level>=1: 
+        f_out.write("################################## \n")
+        f_out.write('## Start: "generate_grid" function \n')
+        f_out.write("################################## \n")
+        f_out.write("########################### \n")
+        f_out.write("###### Landscape %i ####### \n" % (l))
+        f_out.write("########################### \n")
+        f_out.write("%s %6.2f \n" % ('Verbosity level:', verbosity_level))
+        f_out.flush()
+    # Assign Gaussian values
+    for i in range(N):
+        random.seed(a=None)
+        Amplitude.append(random.uniform(Amplitude_min,Amplitude_max))
+        random.seed(a=None)
+        am_i_negative=random.randint(0,1)
+        if am_i_negative==0: Amplitude[i]=-Amplitude[i]
+        for dim in range(param):
+            random.seed(a=None)
+            center_N[i].append(random.uniform(center_min,center_max))
+            random.seed(a=None)
+            width_N[i].append(random.uniform(width_min,width_max))
+    if verbosity_level>=2:
+        #f_out.write("%4s %14s %22s %34s \n" % ("N","Amplitude","Center","Width"))
+        for i in range(len(Amplitude)):
+            line1 = []
+            line2 = []
+            for j in range(param):
+                line1.append((center_N[i][j]))
+                line2.append((width_N[i][j]))
+            #f_out.write("%4i %2s %10.6f %2s %s %2s %s \n" % (i, "", Amplitude[i],"",str(line1),"",str(line2)))
+        f_out.flush()
+    # Calculate G grid
+    counter=0
+    if verbosity_level>=1: f_out.write("%8s %11s %15s \n" % ("i","x","G"))
+    Nlen=(int(round((grid_max-grid_min)/(grid_Delta)+1)))
+    for index_i in itertools.product(range(Nlen), repeat=param):
+        for j in range(param):
+            dim_list[j].append(index_i[j]*grid_Delta)
+        G=0.0
+        for i in range(N):
+            gauss=0.0
+            for dim in range(param):
+                gauss=gauss+((dim_list[dim][counter]-center_N[i][dim])**2/(2.0*width_N[i][dim]**2))
+            G = G + Amplitude[i] * math.exp(-gauss)
+        G_list.append(G)
+        line = []
+        for j in range(param):
+            line.append((dim_list[j][counter]))
+        line.append(G_list[counter])
+        if verbosity_level>=1: 
+            f_out.write("%8i  " %(counter))
+            for i in range(param+1):
+                f_out.write("%f   " %(line[i]))
+            f_out.write("\n")
+            f_out.flush()
+        counter=counter+1
+
+    Ngrid=int(round((grid_max/grid_Delta+1)**param))   # calculate number of grid points
+    max_G=max(G_list)
+    min_G=min(G_list)
+    if verbosity_level>=1:
+        max_G_index=int(round(np.where(G_list == np.max(G_list))[0][0]))
+        min_G_index=int(round(np.where(G_list == np.min(G_list))[0][0]))
+        f_out.write("Number of grid points: %i \n" %Ngrid)
+        line1 = []
+        line2 = []
+        for j in range(param):
+            line1.append(dim_list[j][max_G_index])
+            line2.append(dim_list[j][min_G_index])
+        line1.append(max_G)
+        line2.append(min_G)
+        f_out.write("Maximum value of grid: %s \n" %(str(line1)))
+        f_out.write("Minimum value of grid: %s \n" %(str(line2)))
+        f_out.flush()
+
+    if plot_contour_map == True and param == 2:
+        plot('contour',l,None,dim_list,G_list,None,None,None,None,None)
+    #return dim_list, G_list, Ngrid, max_G # not needed as we write grid to file now
+    time_taken2 = time()-start
+    f_out.write("Generate grid took %0.4f seconds\n" %(time_taken2-time_taken1))
+    return None
 
 ### Function doing most of the heavy lifting
 def MLL(l):
@@ -451,245 +630,6 @@ def MLL(l):
         f_out.write("I am returning these values: %s, %s\n" %(str(result1), str(result2)))
         f_out.close()
     return (result1, result2)
-
-### Function to calculate SPF grid
-def generate_grid(l):
-    time_taken1 = time()-start
-    Amplitude      = []
-    center_N       = [[] for i in range(N)]
-    width_N        = [[] for i in range(N)]
-    dim_list       = [[] for i in range(param)]
-    G_list         = []
-    f_out = open('%s_%s.log' % (grid_name,l), 'w')
-    if verbosity_level>=1: 
-        f_out.write("################################## \n")
-        f_out.write('## Start: "generate_grid" function \n')
-        f_out.write("################################## \n")
-        f_out.write("########################### \n")
-        f_out.write("###### Landscape %i ####### \n" % (l))
-        f_out.write("########################### \n")
-        f_out.write("%s %6.2f \n" % ('Verbosity level:', verbosity_level))
-        f_out.flush()
-    # Assign Gaussian values
-    for i in range(N):
-        random.seed(a=None)
-        Amplitude.append(random.uniform(Amplitude_min,Amplitude_max))
-        random.seed(a=None)
-        am_i_negative=random.randint(0,1)
-        if am_i_negative==0: Amplitude[i]=-Amplitude[i]
-        for dim in range(param):
-            random.seed(a=None)
-            center_N[i].append(random.uniform(center_min,center_max))
-            random.seed(a=None)
-            width_N[i].append(random.uniform(width_min,width_max))
-    if verbosity_level>=2:
-        #f_out.write("%4s %14s %22s %34s \n" % ("N","Amplitude","Center","Width"))
-        for i in range(len(Amplitude)):
-            line1 = []
-            line2 = []
-            for j in range(param):
-                line1.append((center_N[i][j]))
-                line2.append((width_N[i][j]))
-            #f_out.write("%4i %2s %10.6f %2s %s %2s %s \n" % (i, "", Amplitude[i],"",str(line1),"",str(line2)))
-        f_out.flush()
-    # Calculate G grid
-    counter=0
-    if verbosity_level>=1: f_out.write("%8s %11s %15s \n" % ("i","x","G"))
-    Nlen=(int(round((grid_max-grid_min)/(grid_Delta)+1)))
-    for index_i in itertools.product(range(Nlen), repeat=param):
-        for j in range(param):
-            dim_list[j].append(index_i[j]*grid_Delta)
-        G=0.0
-        for i in range(N):
-            gauss=0.0
-            for dim in range(param):
-                gauss=gauss+((dim_list[dim][counter]-center_N[i][dim])**2/(2.0*width_N[i][dim]**2))
-            G = G + Amplitude[i] * math.exp(-gauss)
-        G_list.append(G)
-        line = []
-        for j in range(param):
-            line.append((dim_list[j][counter]))
-        line.append(G_list[counter])
-        if verbosity_level>=1: 
-            f_out.write("%8i  " %(counter))
-            for i in range(param+1):
-                f_out.write("%f   " %(line[i]))
-            f_out.write("\n")
-            f_out.flush()
-        counter=counter+1
-
-    Ngrid=int(round((grid_max/grid_Delta+1)**param))   # calculate number of grid points
-    max_G=max(G_list)
-    min_G=min(G_list)
-    if verbosity_level>=1:
-        max_G_index=int(round(np.where(G_list == np.max(G_list))[0][0]))
-        min_G_index=int(round(np.where(G_list == np.min(G_list))[0][0]))
-        f_out.write("Number of grid points: %i \n" %Ngrid)
-        line1 = []
-        line2 = []
-        for j in range(param):
-            line1.append(dim_list[j][max_G_index])
-            line2.append(dim_list[j][min_G_index])
-        line1.append(max_G)
-        line2.append(min_G)
-        f_out.write("Maximum value of grid: %s \n" %(str(line1)))
-        f_out.write("Minimum value of grid: %s \n" %(str(line2)))
-        f_out.flush()
-
-    if plot_contour_map == True and param == 2:
-        plot('contour',l,None,dim_list,G_list,None,None,None,None,None)
-    #return dim_list, G_list, Ngrid, max_G # not needed as we write grid to file now
-    time_taken2 = time()-start
-    f_out.write("Generate grid took %0.4f seconds\n" %(time_taken2-time_taken1))
-    return None
-
-# Function to serve as a sanity check of input values
-def check_input_values(inp_val):
-    print('TEST inp_val')
-    for x in inp_val:
-        print(x,inp_val[x],type(inp_val[x]))
-    print('##############################')
-    allowed_verbosity_level = [0,1,2]
-    allowed_ML=[None,'kNN','GBR','GPR','KRR']
-    allowed_error_metric=[None,'rmse']
-    allowed_t2_ML = [None,'kNN','GPR','KRR']
-    allowed_CV=['kf','loo','time-sorted']
-    for value in ["calculate_grid","plot_contour_map","dask_parallel","plot_t1_exploration","plot_t1_error_metric","t1_analysis","t2_exploration","optimize_GPR_hyperparams","optimize_KRR_hyperparams"]:
-        if type(inp_val[value]) != bool:
-            print ('INPUT ERROR: %s should be boolean, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
-            sys.exit()
-    for value in ["NCPU","Nspf","initial_spf","param","verbosity_level","t0_time","t1_time","t2_time","t2_train_time","k_fold","diff_popsize"]:
-        if type(inp_val[value]) != int:
-            print ('INPUT ERROR: %s should be integer, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
-            sys.exit()
-    for value in ["S","center_min","center_max","grid_min","grid_max","grid_Delta","d_threshold","test_last_proportion","GPR_alpha","GPR_length_scale","KRR_alpha","KRR_gamma","diff_tol"]:
-        if type(inp_val[value]) != float:
-            print ('INPUT ERROR: %s should be float, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
-            sys.exit()
-    for value in ["grid_name","log_name","ML","error_metric","t2_ML","CV","weights","GBR_criterion","KRR_kernel"]:
-        if type(inp_val[value]) != str:
-            print ('INPUT ERROR: %s should be string, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
-            sys.exit()
-    for value in ["adven","n_neighbor","GBR_n_estimators","GBR_learning_rate","GBR_max_depth","GBR_min_samples_split","GBR_min_samples_leaf"]:
-        if type(inp_val[value]) != list:
-            print ('INPUT ERROR: %s should be a list, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
-            sys.exit()
-    for value in ["GPR_alpha_lim","GPR_length_scale_lim","KRR_alpha_lim","KRR_gamma_lim"]:
-        if type(inp_val[value]) != tuple:
-            print ('INPUT ERROR: %s should be a tuple, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
-            sys.exit()
-    print('INPUT CHECKED OK')
-    #if ML not in allowed_ML:
-        #print ('INPUT ERROR: ML needs to be in',allowed_ML, ', but is:', ML)
-        #sys.exit()
-    #if error_metric not in allowed_error_metric:
-        #print ('INPUT ERROR: error_metric needs to be in',allowed_error_metric, ', but is:', error_metric)
-        #sys.exit()
-    #if CV not in allowed_CV:
-        #print ('INPUT ERROR: ML needs to be in',allowed_CV, ', but is:', CV)
-        #sys.exit()
-    #if verbosity_level not in allowed_verbosity_level:
-        #print ('INPUT ERROR: verbosity_level needs to be in',allowed_verbosity_level, ', but is:', verbosity_level)
-    #if t2_ML not in allowed_t2_ML:
-        #print ('INPUT ERROR: ML needs to be in',allowed_t2_ML, ', but is:', t2_ML)
-        #sys.exit()
-    #if d_threshold < grid_Delta:
-        #print ('INPUT ERROR: d_threshold is %f, but needs to be larger than grid_Delta: %f' %(d_threshold,grid_Delta))
-        #sys.exit()
-    #if CV=='kf' and k_fold>t1_time and t1_analysis == True:
-        #print ('INPUT ERROR: cross-validation for t1 analysis is set to %i-fold, but number of t1 points is smaller: %i' %(k_fold, t1_time))
-        #sys.exit()
-    #print('')
-    #print("\n")
-    #print('##### START PRINT INPUT  #####')
-    #print('##############################')
-    #print('# General Landscape parameters')
-    #print('##############################')
-    #print('### Parallel computing ###')
-    #print('dask_parallel =',dask_parallel)
-    #print('NCPU',NCPU)
-    #print('### Verbose ###')
-    #print('verbosity_level =',verbosity_level)
-    #print('log_name',log_name)
-    #print('### Landscape parameters ###')
-    #print('Nspf =',Nspf)
-    #print('initial_spf =',initial_spf)
-    #print('S =',S)
-    #print('param =',param)
-    #print('center_min =',center_min)
-    #print('center_max =',center_max)
-    #print('### Grid parameters ###')
-    #print('grid_min =',grid_min)
-    #print('grid_max =',grid_max)
-    #print('grid_Delta =',grid_Delta)
-    #print('calculate_grid =',calculate_grid)
-    #print('grid_name =',grid_name)
-    #print('plot_t1_exploration =',plot_t1_exploration)
-    #print('plot_t1_error_metric =',plot_t1_error_metric)
-    #print('plot_contour_map =',plot_contour_map)
-    #print('##############################')
-    #print('# T1 exploration parameters')
-    #print('##############################')
-    #print('adven =',adven)
-    #print('t0_time =',t0_time)
-    #print('t1_time =',t1_time)
-    #print('d_threshold =',d_threshold)
-    #print('##############################')
-    #print('# T2 exploration parameters')
-    #print('##############################')
-    #print('t2_exploration =',t2_exploration)
-    #print('t2_time =',t2_time)
-    #print('t2_train_time =',t2_train_time)
-    #print('t2_ML =',t2_ML)
-    #print('##############################')
-    #print('# Error metric parameters')
-    #print('##############################')
-    #print('t1_analysis =',t1_analysis)
-    #print('error_metric =',error_metric)
-    #print('ML =',ML)
-    #print('CV =',CV)
-    #print('k_fold =',k_fold)
-    #print('test_last_proportion =',test_last_proportion)
-    #if ML=='kNN':
-        #print('### kNN parameters ###')
-        #print('n_neighbor =',n_neighbor)
-        #print('weights =',weights)
-    #if ML=='GBR':
-        #print('### GBR parameters ###')
-        #print('GBR_criterion =',GBR_criterion)
-        #print('GBR_n_estimators =',GBR_n_estimators)
-        #print('GBR_learning_rate =',GBR_learning_rate)
-        #print('GBR_max_depth =',GBR_max_depth)
-        #print('GBR_min_samples_split =',GBR_min_samples_split)
-        #print('GBR_min_samples_leaf =',GBR_min_samples_leaf)
-    #if ML=='GPR':
-        #print('### GPR parameters ###')
-        #print('GPR_alpha =',GPR_alpha)
-        #print('GPR_length_scale =',GPR_length_scale)
-        #print('GPR_alpha_lim =',GPR_alpha_lim)
-        #print('GPR_length_scale_lim =',GPR_length_scale_lim)
-    #if ML=='KRR':
-        #print('### KRR parameters ###')
-        #print('KRR_alpha =',KRR_alpha)
-        #print('KRR_kernel =',KRR_kernel)
-        #print('KRR_gamma =',KRR_gamma)
-        #print('optimize_KRR_hyperparams =',optimize_KRR_hyperparams)
-        #print('KRR_alpha_lim =',KRR_alpha_lim)
-        #print('KRR_gamma_lim =',KRR_gamma_lim)
-    #print('##############################')
-    #print('# Differential evolution parameters')
-    #print('diff_popsize =', diff_popsize)
-    #print('diff_tol =', diff_tol)
-    #print('##############################')
-    #print('### Calculated parameters ###')
-    #print('width_min =',width_min)
-    #print('width_max =',width_max)
-    #print('Amplitude_min =',Amplitude_min)
-    #print('Amplitude_max =',Amplitude_max)
-    #print('N =',N)
-    #print('adven_per_SPF =',adven_per_SPF)
-    #print('#####   END PRINT INPUT  #####')
-    #print("\n",flush=True)
 
 # Function that explores the SPF map to generate research landscapes
 def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_explore,X0,y0):
