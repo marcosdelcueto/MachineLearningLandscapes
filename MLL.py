@@ -258,8 +258,7 @@ def MLL(l):
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
                     if verbosity_level>=1: 
-                        f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
-                        f_out.write("Best rmse: %f \n"  %best_rmse)
+                        f_out.write("Best hyperparameters: %s . Best rmse: %f \n" %(str(best_hyperparams),best_rmse))
                         f_out.flush()
                     error_metric_result = best_rmse
             if ML=='KRR':
@@ -273,8 +272,7 @@ def MLL(l):
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
                     if verbosity_level>=1: 
-                        f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
-                        f_out.write("Best rmse: %f \n"  %best_rmse)
+                        f_out.write("Best hyperparameters: %s . Best rmse: %f \n" %(str(best_hyperparams),best_rmse))
                         f_out.flush()
                     error_metric_result = best_rmse
             error_metric_list.append(error_metric_result)
@@ -332,10 +330,11 @@ def MLL(l):
             MLgain_real_relative = (min_standard -  y_real )/abs(min_standard)
             # Print t2 exploration results
             if verbosity_level>=1: 
-                f_out.write("################ \n")
+                f_out.write("#####################\n")
+                f_out.write("## SUMMARY RESULTS ##\n")
+                f_out.write("#####################\n")
                 f_out.write("## Initial random exploration: \n")
                 f_out.write("t0 = %i \n" %(t0_time))
-                f_out.write("################ \n")
                 f_out.write("################ \n")
                 f_out.write("## t1 exploration: \n")
                 f_out.write("t1 = %i \n" %(t1_time))
@@ -344,14 +343,12 @@ def MLL(l):
                 f_out.write("Minimum value: X1 index (unique timestep): %s\n" %(str(np.where(y1 == np.min(y1))[0][0])))
                 f_out.write("Minimum value: X1: %s, y: %s\n" %(str(X1[np.where(y1 == np.min(y1))][0]),str(min(y1))))
                 f_out.write("################ \n")
-                f_out.write("################ \n")
                 f_out.write("## t2 standard exploration: \n")
                 f_out.write("t2 = %i \n" %(t2_time))
                 f_out.write("Last value: X2a index (unique timestep): %i\n" %(len(y2a)-1))
                 f_out.write("Last value: X2a: %s, y2a: %s\n" %(str(X2a[-1]),str(y2a[-1])))
                 f_out.write("Minimum value: X2a index (unique timestep): %s\n" %(str(np.where(y2a == np.min(y2a))[0][0])))
                 f_out.write("Minimum value: X2a: %s, y2a: %s\n" %(str(X2a[np.where(y2a == np.min(y2a))][0]),str(min(y2a))))
-                f_out.write("################ \n")
                 f_out.write("################ \n")
                 f_out.write("## t2 ML exploration: \n")
                 f_out.write("t2 = %i \n" %(t2_time))
@@ -361,7 +358,6 @@ def MLL(l):
                 f_out.write("Minimum predicted value: X2b: %s, y2b: %s\n" %(str(X2b[np.where(y2b == np.min(y2b))][0]),str(min(y2b))))
                 f_out.write("Minimum real value: X2b: %s, y2b: %s\n" %(str(x_real),str(y_real)))
     
-                f_out.write("################ \n")
                 f_out.write("################ \n")
                 f_out.write("## ML benefits: \n")
                 f_out.write("Predicted MLgain: %.3f \n" %(MLgain_pred))
@@ -400,7 +396,9 @@ def generate_grid(l):
     G_list         = []
     f_out = open('%s_%s.log' % (grid_name,l), 'w')
     if verbosity_level>=1: 
+        f_out.write("################################## \n")
         f_out.write('## Start: "generate_grid" function \n')
+        f_out.write("################################## \n")
         f_out.write("########################### \n")
         f_out.write("###### Landscape %i ####### \n" % (l))
         f_out.write("########################### \n")
@@ -623,19 +621,22 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
     P              = int(round(d_threshold/grid_Delta + 1))
     Nx             = ((grid_max-grid_min)/grid_Delta)+1
     # print header
-    if verbosity_level>=1: 
+    if verbosity_level>=2: 
+        f_out.write("###################################### \n")
         f_out.write('## Start: "explore_landscape" function \n')
-        f_out.write("############# \n")
-        f_out.write("Start explorer %i \n" % (w))
+        f_out.write("###################################### \n")
         f_out.write("Adventurousness: %f \n" % (adven[w]))
-        f_out.write("############# \n")
         f_out.write("Number of points per dimension: %i \n" %Nx)
-        f_out.write("Testing w: %i\n" % (w))
+        f_out.write("###################################### \n")
         f_out.flush()
     ### Perform t0 exploration ###
     # could be simplified by just chosing a random number from 0 to Ngrid-1 per N0 step
     if verbosity_level>=1 and t0 !=0: 
-        f_out.write("## Start random biased exploration\n" %())
+        f_out.write("################################## \n")
+        f_out.write("## Start initial random exploration\n" %())
+        f_out.write("# New Adventurousness: %.2f \n" % (adven[w]))
+        f_out.write("# Number of grid points per dimension: %i \n" %Nx)
+        f_out.write("################################## \n")
         f_out.flush()
     if t0 != 0:
         for t in range(t0):
@@ -660,7 +661,7 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
                 for j in range(param):
                     line.append((walker_x[j]))
                 line.append((G_list[num_in_grid]))
-                f_out.write("timestep %4i %2s %s \n" %(t,"",str(line)))
+                f_out.write("timestep %6i %2s %s\n" % (t,"",str(line)))
                 f_out.flush()
         if t1 == 0:
             X = path_x
@@ -686,6 +687,11 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
             walker_x.append(Xi[-1][i])
     ### Perform t1 and t2 standard exploration ###
     if ML_explore == False:
+        if verbosity_level>=1: 
+            f_out.write("############################## \n")
+            f_out.write("## Start a-weighted exploration\n" %())
+            f_out.write("############################## \n")
+            f_out.flush()
         for t in range(t_ini,t_fin):
             del prob[:]
             del neighbor_walker[:][:]
@@ -827,7 +833,10 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
                 for j in range(param):
                     line.append(walker_x[j])
                 line.append(neighbor_G[draw])
-                f_out.write("timestep %6i %2s %s\n" % (t,"",str(line)))
+                if t2==0:
+                    f_out.write("timestep %6i %2s %s\n" % (t,"",str(line)))
+                else:
+                    f_out.write("timestep-N2 a-weighted %6i %2s %s\n" % (t,"",str(line)))
                 f_out.flush()
             # update x_param and y with new values
             for i in range(param):
@@ -837,12 +846,14 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
         X,y = create_X_and_y(f_out,x_param,y)
     ### Perform t2 ML exploration
     else:
+        if verbosity_level>=1: 
+            f_out.write("############################# \n")
+            f_out.write("## Start ML-guided exploration\n" %())
+            f_out.write("############################# \n")
+            f_out.flush()
         for t in range(t_ini,t_fin):
             time_taken0 = time()-start
             time_taken1 = time()-start
-            if verbosity_level>=1: 
-                f_out.write("## Start ML Exploration\n" %())
-                f_out.flush()
             # For t2=0, calculate bubble for all points previously visited (slow process)
             if t==0:
                 # initialize values
@@ -1030,7 +1041,6 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
                     except:
                         pass
                     counter3=counter3+1
-
             if verbosity_level>=1:
                 f_out.write("Number of points in bubble before removing duplicates: %i\n" %(len(y_bubble)))
             if verbosity_level>=2:
@@ -1057,8 +1067,7 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
                     if verbosity_level>=1: 
-                        f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
-                        f_out.write("Best rmse: %f \n" %best_rmse)
+                        f_out.write("Best hyperparameters: %s . Best rmse: %f \n" %(str(best_hyperparams),best_rmse))
                         f_out.flush()
                     hyperparams=[best_hyperparams[0],best_hyperparams[1]]
                     min_point=GPR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
@@ -1073,14 +1082,14 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
                     if verbosity_level>=1: 
-                        f_out.write("Best hyperparameters: %s \n" %str(best_hyperparams))
-                        f_out.write("Best rmse: %f \n" %best_rmse)
+                        f_out.write("Best hyperparameters: %s . Best rmse: %f \n" %(str(best_hyperparams),best_rmse))
                         f_out.flush()
                     hyperparams=[best_hyperparams[0],best_hyperparams[1]]
                     min_point=KRR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
             # print x_bubble corresponding to min(y_bubble)
             if verbosity_level>=1: 
-                f_out.write("## At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
+                #f_out.write("## At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
+                f_out.write("timestep-N2 ML-guided %i: %s\n" %(t, str(min_point)))
                 f_out.flush()
             # prepare for next timestep
             path_x=path_x.tolist()
@@ -1111,11 +1120,16 @@ def create_X_and_y(f_out,x_param,y):
     y=df_y.to_numpy()
 
     if verbosity_level>=1: 
-        f_out.write("## Unique points: %i\n" % (len(y)))
-        f_out.write("## X: \n")
-        f_out.write("%s \n" % (str(X)))
-        f_out.write("## y: \n")
-        f_out.write("%s \n" % (str(y)))
+        f_out.write("# Unique points: %i\n" % (len(y)))
+        if len(y) < 20:
+            for i in range(len(y)):
+                f_out.write("%s %f\n" %(str(X[i]),y[i]))
+        else:
+            for i in range(10):
+                f_out.write("%s %f\n" %(str(X[i]),y[i]))
+            f_out.write("    [...]  \n")
+            for i in range(len(y)-10,len(y)):
+                f_out.write("%s %f\n" %(str(X[i]),y[i]))
         f_out.flush()
     return X,y
 
@@ -1133,7 +1147,7 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
     if mode==1:
         for n in range(len(n_neighbor)):
             # verbose info
-            if verbosity_level>=1: 
+            if verbosity_level>=2: 
                 f_out.write('## Start: "kNN" function \n')
                 f_out.write('-------- \n')
                 f_out.write('Perform k-NN \n')
@@ -1149,7 +1163,6 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
             if CV=='loo':
                 loo = LeaveOneOut()
                 validation=loo.split(X)
-    
             # For kf and loo
             if CV=='kf' or CV=='loo':
                 # calculate r and rmse for each split
@@ -1213,7 +1226,7 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
                     f_out.write("%s \n" % (str(X_test)))
                     f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
             # Print last verbose info for kNN
-            if verbosity_level>=1:
+            if verbosity_level>=2:
                 f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson,total_rmse))
                 f_out.flush()
             if n==0 or total_rmse<prev_total_rmse:
@@ -1229,7 +1242,7 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
             predicted_y=[]
             provi_result = []
             # verbose info
-            if verbosity_level>=1:
+            if verbosity_level>=2:
                 f_out.write('## Start: "kNN" function \n')
                 f_out.write('-------- \n')
                 f_out.write('Perform k-NN \n')
@@ -1249,12 +1262,12 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
             # Train only at some steps
             time_taken1 = time()-start
             if t%t2_train_time==0:
-                if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
+                if verbosity_level>=1: f_out.write("# At time N2=%i, I am training new model\n" %(t))
                 knn.fit(X_train_scaled, y_train)
                 dump(knn, open('knn_%i.pkl' %(l), 'wb'))
                 time_taken2 = time()-start
             else:
-                if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
+                if verbosity_level>=1: f_out.write("# At time N2=%i, I am reading previous trained model\n" %(t))
                 knn=load(open('knn_%i.pkl' %(l), 'rb'))
                 time_taken2 = time()-start
             if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
@@ -1326,7 +1339,7 @@ def GBR(X,y,l,w,f_out):
             for gbr3 in range(len(GBR_max_depth)):
                 for gbr4 in range(len(GBR_min_samples_split)):
                     for gbr5 in range(len(GBR_min_samples_leaf)):
-                        if verbosity_level>=1: 
+                        if verbosity_level>=2: 
                             f_out.write('## Start: "GBR" function \n')
                             f_out.write('-------- \n')
                             f_out.write('Perform GBR\n')
@@ -1397,7 +1410,7 @@ def GBR(X,y,l,w,f_out):
                                 f_out.write("Test with last %i points \n" % (len(X_test)))
                                 f_out.write("%s \n" % (str(X_test)))
                                 f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
-                        if verbosity_level>=1: 
+                        if verbosity_level>=2: 
                             f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson,total_rmse))
                             f_out.flush()
                         if gbr_counter==0 or total_rmse<prev_total_rmse:
@@ -1425,7 +1438,7 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
     # CASE1: Calculate error metric
     if mode==1:
         # verbose info
-        if verbosity_level>=1: 
+        if verbosity_level>=2: 
             f_out.write('## Start: "GPR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform GPR\n')
@@ -1524,7 +1537,7 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
                 f_out.write("%s \n" % (str(X_test)))
                 f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
         # Print last verbose info for GPR
-        if verbosity_level>=1: 
+        if verbosity_level>=2: 
             f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson, total_rmse))
             f_out.flush()
         if error_metric=='rmse': result=total_rmse
@@ -1535,7 +1548,7 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
         predicted_y=[]
         result = []
         # verbose info
-        if verbosity_level>=1:
+        if verbosity_level>=2:
             f_out.write('## Start: "GPR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform GPR\n')
@@ -1557,13 +1570,13 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
         # Train only at some steps
         time_taken1 = time()-start
         if t%t2_train_time==0:
-            if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
+            if verbosity_level>=1: f_out.write("# At time N2=%i, I am training new model\n" %(t))
             GPR.fit(X_train_scaled, y_train)
             #dump(KRR, open('KRR.pkl', 'wb'))
             dump(GPR, open('GPR_%i.pkl' %(l), 'wb'))
             time_taken2 = time()-start
         else:
-            if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
+            if verbosity_level>=1: f_out.write("# At time N2=%i, I am reading previous trained model\n" %(t))
             GPR=load(open('GPR_%i.pkl' %(l), 'rb'))
             time_taken2 = time()-start
         if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
@@ -1621,7 +1634,7 @@ def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
     # CASE1: Calculate error metric
     if mode==1:
         # verbose info
-        if verbosity_level>=1: 
+        if verbosity_level>=2: 
             f_out.write('## Start: "KRR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform KRR\n')
@@ -1719,7 +1732,7 @@ def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
                 f_out.write("%s \n" % (str(X_test)))
                 f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
         # Print last verbose info for KRR
-        if verbosity_level>=1: 
+        if verbosity_level>=2: 
             f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson, total_rmse))
             f_out.flush()
         if error_metric=='rmse': result=total_rmse
@@ -1730,7 +1743,7 @@ def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
         predicted_y=[]
         result = []
         # verbose info
-        if verbosity_level>=1:
+        if verbosity_level>=2:
             f_out.write('## Start: "KRR" function \n')
             f_out.write('-------- \n')
             f_out.write('Perform KRR\n')
@@ -1752,12 +1765,12 @@ def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
         # Train only at some steps
         time_taken1 = time()-start
         if t%t2_train_time==0:
-            if verbosity_level>=1: f_out.write("At time %i, I am training new model\n" %(t))
+            if verbosity_level>=1: f_out.write("# At time N2=%i, I am training new model\n" %(t))
             KRR.fit(X_train_scaled, y_train)
             dump(KRR, open('KRR_%i.pkl' %(l), 'wb'))
             time_taken2 = time()-start
         else:
-            if verbosity_level>=1: f_out.write("At time %i, I am reading previous trained model\n" %(t))
+            if verbosity_level>=1: f_out.write("# At time N2=%i, I am reading previous trained model\n" %(t))
             KRR=load(open('KRR_%i.pkl' %(l), 'rb'))
             time_taken2 = time()-start
         if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))

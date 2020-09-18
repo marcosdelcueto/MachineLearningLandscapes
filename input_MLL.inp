@@ -2,14 +2,14 @@
 # General Landscape parameters
 #################################################
 ### Type of calculation #########################
-calculate_grid = False                          # Decide whether to calculate or read SPF
+calculate_grid = True                          # Decide whether to calculate or read SPF
 plot_contour_map = False                        # Decide whether to make 2D plot of grid
 ### Parallel Computing ##########################
-dask_parallel = True                            # Decide if dask is used
-NCPU    = 6      	                              # Choose number of CPUs used by dask
+dask_parallel = False                            # Decide if dask is used
+NCPU    = 1      	                              # Choose number of CPUs used by dask
 ### SPF parameters ##############################
 iseed = None                                    # Seed for random number to generate landscape. Default: None
-Nspf = 6                                        # Number of different landscapes generate
+Nspf = 1                                        # Number of different landscapes generate
 initial_spf = 0                                 # When reading SPF, from which one do we start. Default: 0
 grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read
 ### Gaussian parameters #########################
@@ -20,7 +20,7 @@ center_max = 1.00                               # Maximum value for center of ea
 ### Grid parameters #############################
 grid_min = 0.00                                 # Start point of grid in each DOF
 grid_max = 1.00                                 # End point of grid in each DOF
-grid_Delta = 0.001                              # Increment of grid in each DOF
+grid_Delta = 0.01                              # Increment of grid in each DOF
 ### Verbose #####################################
 verbosity_level = 1                             # Level of verbosity to print at 'log_name' file (Recommended:1)
 allowed_verbosity_level = [0,1,2]   				# possible values of verbosity
@@ -32,8 +32,8 @@ plot_t1_exploration = False                     # Decide whether to make 2D plot
 plot_t1_error_metric = True                     # Decide whether to make box plot of error metric for t1 exploration
 Nwalkers = 1                                    # Number of walkers per landscape
 adven = [10]		   # percentage of special points per walker
-t0_time = 15 		                              # Number of initial unbiased steps
-t1_time = 50                                    # Number of time steps for the walker
+t0_time = 2   		                              # Number of initial unbiased steps
+t1_time = 10                                    # Number of time steps for the walker
 d_threshold = 0.04                              # Threshold maximum distance that at each time step
 initial_sampling = 'different'                  # Initial points in a grid for different walkers
 allowed_initial_sampling = ['same','different'] # possible values of 'initial_sampling'
@@ -41,17 +41,17 @@ allowed_initial_sampling = ['same','different'] # possible values of 'initial_sa
 # t1 error metric analysis
 #################################################
 t1_analysis = True                              # Whether t1 analysis is performed
-ML='kNN'                                        # Choose what ML algorithm is used
+ML='GPR'                                        # Choose what ML algorithm is used
 allowed_ML=[None,'kNN','GBR','GPR','KRR']       # possible ML algorithms
 error_metric='rmse'                             # Choose which error metric to analyze
 allowed_error_metric=[None,'rmse']              # possible error metrics to analyze
 #################################################
 # t2 exploration parameters
 #################################################
-t2_exploration = False                           # Whether t2 exploration is performed
-t2_ML = 'kNN'												# Choose what ML algorithm is used
+t2_exploration = True                           # Whether t2 exploration is performed
+t2_ML = 'GPR'												# Choose what ML algorithm is used
 allowed_t2_ML = [None,'kNN','GBR','GPR','KRR']  # possible ML algorithms
-t2_time = 15                                    # Number of time steps for the walker
+t2_time = 4                                     # Number of time steps for the walker
 t2_train_time = 1                               # ML is re-trained every 't2_train_time' steps
 #################################################
 # Machine Learning parameters
