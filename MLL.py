@@ -37,8 +37,7 @@ input_file_name = 'input_MLL.inp'      # name of input file
 #################################################################################
 ###### START MAIN ######
 def main():
-    # Check that input values are OK
-    check_input_values()
+
     # Calculation just to generate SPF grid
     if calculate_grid == True:
         # Use paralellization: a SPF per CPU
@@ -76,7 +75,7 @@ def main():
         if t2_exploration == True: results_per_walker_t2=[list(i) for i in zip(*results_t2_per_Nspf)]
         # Print final results
         print('--- Final results ---')
-        for i in range(Nwalkers):
+        for i in range(adven_per_SPF):
             print('-- Adventurousness: %6.1f --' %(adven[i]))
             if t1_analysis == True:
                 print('-- t1 analysis')
@@ -139,7 +138,6 @@ def read_initial_values(inp):
     grid_min = ast.literal_eval(var_value[var_name.index('grid_min')])
     grid_max = ast.literal_eval(var_value[var_name.index('grid_max')])
     grid_Delta = ast.literal_eval(var_value[var_name.index('grid_Delta')])
-    Nwalkers = ast.literal_eval(var_value[var_name.index('Nwalkers')])
     adven = ast.literal_eval(var_value[var_name.index('adven')])
     t1_time = ast.literal_eval(var_value[var_name.index('t1_time')])
     d_threshold = ast.literal_eval(var_value[var_name.index('d_threshold')])
@@ -148,7 +146,7 @@ def read_initial_values(inp):
     error_metric = ast.literal_eval(var_value[var_name.index('error_metric')])
     CV = ast.literal_eval(var_value[var_name.index('CV')])
     k_fold = ast.literal_eval(var_value[var_name.index('k_fold')])
-    test_last_percentage = ast.literal_eval(var_value[var_name.index('test_last_percentage')])
+    test_last_proportion = ast.literal_eval(var_value[var_name.index('test_last_proportion')])
     n_neighbor = ast.literal_eval(var_value[var_name.index('n_neighbor')])
     weights = ast.literal_eval(var_value[var_name.index('weights')])
     GBR_criterion = ast.literal_eval(var_value[var_name.index('GBR_criterion')])
@@ -168,13 +166,8 @@ def read_initial_values(inp):
     optimize_KRR_hyperparams = ast.literal_eval(var_value[var_name.index('optimize_KRR_hyperparams')])
     KRR_alpha_lim = ast.literal_eval(var_value[var_name.index('KRR_alpha_lim')])
     KRR_gamma_lim = ast.literal_eval(var_value[var_name.index('KRR_gamma_lim')])
-    allowed_CV = ast.literal_eval(var_value[var_name.index('allowed_CV')])
-    allowed_ML = ast.literal_eval(var_value[var_name.index('allowed_ML')])
-    allowed_error_metric = ast.literal_eval(var_value[var_name.index('allowed_error_metric')])
     t2_time = ast.literal_eval(var_value[var_name.index('t2_time')])
-    allowed_verbosity_level = ast.literal_eval(var_value[var_name.index('allowed_verbosity_level')])
     t2_ML = ast.literal_eval(var_value[var_name.index('t2_ML')])
-    allowed_t2_ML = ast.literal_eval(var_value[var_name.index('allowed_t2_ML')])
     t2_exploration = ast.literal_eval(var_value[var_name.index('t2_exploration')])
     t1_analysis = ast.literal_eval(var_value[var_name.index('t1_analysis')])
     diff_popsize = ast.literal_eval(var_value[var_name.index('diff_popsize')])
@@ -186,13 +179,86 @@ def read_initial_values(inp):
     plot_contour_map = ast.literal_eval(var_value[var_name.index('plot_contour_map')])
     grid_name = ast.literal_eval(var_value[var_name.index('grid_name')])
 
+    inp_val = {
+      "dask_parallel": dask_parallel,
+      "NCPU": NCPU,
+      "verbosity_level": verbosity_level,
+      "log_name": log_name,
+      "Nspf": Nspf,
+      "initial_spf":initial_spf,
+      "S":S,
+      "param":param,
+      "center_min":center_min,
+      "center_max":center_max,
+      "grid_min":grid_min,
+      "grid_max":grid_max,
+      "grid_Delta":grid_Delta,
+      "adven":adven,
+      "t1_time":t1_time,
+      "d_threshold":d_threshold,
+      "t0_time":t0_time,
+      "ML":ML,
+      "error_metric":error_metric,
+      "CV":CV,
+      "k_fold":k_fold,
+      "test_last_proportion":test_last_proportion,
+      "n_neighbor":n_neighbor,
+      "weights":weights,
+      "GBR_criterion":GBR_criterion,
+      "GBR_n_estimators":GBR_n_estimators,
+      "GBR_learning_rate":GBR_learning_rate,
+      "GBR_max_depth":GBR_max_depth,
+      "GBR_min_samples_split":GBR_min_samples_split,
+      "GBR_min_samples_leaf":GBR_min_samples_leaf,
+      "GPR_alpha":GPR_alpha,
+      "GPR_length_scale":GPR_length_scale,
+      "optimize_GPR_hyperparams":optimize_GPR_hyperparams,
+      "GPR_alpha_lim":GPR_alpha_lim,
+      "GPR_length_scale_lim":GPR_length_scale_lim,
+      "KRR_alpha":KRR_alpha,
+      "KRR_kernel":KRR_kernel,
+      "KRR_gamma":KRR_gamma,
+      "optimize_KRR_hyperparams":optimize_KRR_hyperparams,
+      "KRR_alpha_lim":KRR_alpha_lim,
+      "KRR_gamma_lim":KRR_gamma_lim,
+      "t2_time":t2_time,
+      "t2_ML":t2_ML,
+      "t2_exploration":t2_exploration,
+      "t1_analysis":t1_analysis,
+      "diff_popsize":diff_popsize,
+      "diff_tol":diff_tol,
+      "t2_train_time":t2_train_time,
+      "calculate_grid":calculate_grid,
+      "plot_t1_exploration":plot_t1_exploration,
+      "plot_t1_error_metric":plot_t1_error_metric,
+      "plot_contour_map":plot_contour_map,
+      "grid_name":grid_name,
+    }
+
+    # Check that input values are OK
+    check_input_values(inp_val)
+
     width_min=S                                     # Minimum width of each Gaussian function
     width_max=1.0/3.0                               # Maximum width of each Gaussian function
     Amplitude_min=0.0                               # Minimum amplitude of each Gaussian function
     Amplitude_max=1.0                               # Maximum amplitude of each Gaussian function
     N=int(round((1/(S**param))))                    # Number of Gaussian functions of a specific landscape
+    adven_per_SPF = len(adven)                           # Number of different adventurousness per SPF
 
-    return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, S, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf)
+
+    return (dask_parallel, NCPU, verbosity_level, log_name, Nspf, 
+            S, param, center_min, center_max, grid_min, grid_max, 
+            grid_Delta, adven_per_SPF, adven, t1_time, d_threshold, 
+            t0_time, ML, error_metric, CV, k_fold, test_last_proportion, 
+            n_neighbor, weights, GBR_criterion, GBR_n_estimators, 
+            GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, 
+            GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, 
+            GPR_alpha_lim , GPR_length_scale_lim, KRR_alpha, KRR_kernel, 
+            KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, 
+            KRR_alpha_lim, KRR_gamma_lim, width_min, width_max, Amplitude_min, 
+            Amplitude_max, N, t2_time, t2_ML, t2_exploration, t1_analysis, 
+            diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,
+            plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf)
 
 ### Function doing most of the heavy lifting
 def MLL(l):
@@ -234,7 +300,7 @@ def MLL(l):
     if verbosity_level>=1:
         f_out.write("Generate grid took %0.4f seconds\n" %(time_taken2-time_taken1))
     # For each walker
-    for w in range(Nwalkers):
+    for w in range(adven_per_SPF):
         # Step 1) Perform t1 exploration
         time_taken1 = time()-start
         X0,y0,unique_t0 = explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0_time,0,0,None,None,False,None,None)
@@ -478,134 +544,152 @@ def generate_grid(l):
     return None
 
 # Function to serve as a sanity check of input values
-def check_input_values():
-    if type(dask_parallel) != bool:
-        print ('INPUT ERROR: dask_parallel should be boolean, but is:', dask_parallel)
-        sys.exit()
-    if type(t1_analysis) != bool:
-        print ('INPUT ERROR: t1_analysis should be boolean, but is:', t1_analysis)
-    if type(t2_exploration) != bool:
-        print ('INPUT ERROR: t2_exploration should be boolean, but is:', t2_exploration)
-        sys.exit()
-    if Nwalkers != len(adven):
-        print ('INPUT ERROR: Nwalkers is %i, but adven has %i elements:' %(Nwalkers, len(adven)))
-        sys.exit()
-    if ML not in allowed_ML:
-        print ('INPUT ERROR: ML needs to be in',allowed_ML, ', but is:', ML)
-        sys.exit()
-    if error_metric not in allowed_error_metric:
-        print ('INPUT ERROR: error_metric needs to be in',allowed_error_metric, ', but is:', error_metric)
-        sys.exit()
-    if CV not in allowed_CV:
-        print ('INPUT ERROR: ML needs to be in',allowed_CV, ', but is:', CV)
-        sys.exit()
-    if verbosity_level not in allowed_verbosity_level:
-        print ('INPUT ERROR: verbosity_level needs to be in',allowed_verbosity_level, ', but is:', verbosity_level)
-    if t2_ML not in allowed_t2_ML:
-        print ('INPUT ERROR: ML needs to be in',allowed_t2_ML, ', but is:', t2_ML)
-        sys.exit()
-        sys.exit()
-    print('')
-    print('')
-    print('')
-    print('')
-    print('')
-    print('')
-    print("\n")
-    print('##### START PRINT INPUT  #####')
+def check_input_values(inp_val):
+    print('TEST inp_val')
+    for x in inp_val:
+        print(x,inp_val[x],type(inp_val[x]))
     print('##############################')
-    print('# General Landscape parameters')
-    print('##############################')
-    print('### Parallel computing ###')
-    print('dask_parallel =',dask_parallel)
-    print('NCPU',NCPU)
-    print('### Verbose ###')
-    print('verbosity_level =',verbosity_level)
-    print('allowed_verbosity_level =',allowed_verbosity_level)
-    print('log_name',log_name)
-    print('### Landscape parameters ###')
-    print('Nspf =',Nspf)
-    print('initial_spf =',initial_spf)
-    print('S =',S)
-    print('param =',param)
-    print('center_min =',center_min)
-    print('center_max =',center_max)
-    print('### Grid parameters ###')
-    print('grid_min =',grid_min)
-    print('grid_max =',grid_max)
-    print('grid_Delta =',grid_Delta)
-    print('calculate_grid =',calculate_grid)
-    print('grid_name =',grid_name)
-    print('plot_t1_exploration =',plot_t1_exploration)
-    print('plot_t1_error_metric =',plot_t1_error_metric)
-    print('plot_contour_map =',plot_contour_map)
-    print('##############################')
-    print('# T1 exploration parameters')
-    print('##############################')
-    print('Nwalkers =',Nwalkers)
-    print('adven =',adven)
-    print('t0_time =',t0_time)
-    print('t1_time =',t1_time)
-    print('d_threshold =',d_threshold)
-    print('##############################')
-    print('# T2 exploration parameters')
-    print('##############################')
-    print('t2_exploration =',t2_exploration)
-    print('t2_time =',t2_time)
-    print('t2_train_time =',t2_train_time)
-    print('t2_ML =',t2_ML)
-    print('allowed_t2_ML =',allowed_t2_ML)
-    print('##############################')
-    print('# Error metric parameters')
-    print('##############################')
-    print('t1_analysis =',t1_analysis)
-    print('error_metric =',error_metric)
-    print('allowed_error_metric =',allowed_error_metric)
-    print('ML =',ML)
-    print('allowed_ML =',allowed_ML)
-    print('CV =',CV)
-    print('allowed_CV =',allowed_CV)
-    print('k_fold =',k_fold)
-    print('test_last_percentage =',test_last_percentage)
-    if ML=='kNN':
-        print('### kNN parameters ###')
-        print('n_neighbor =',n_neighbor)
-        print('weights =',weights)
-    if ML=='GBR':
-        print('### GBR parameters ###')
-        print('GBR_criterion =',GBR_criterion)
-        print('GBR_n_estimators =',GBR_n_estimators)
-        print('GBR_learning_rate =',GBR_learning_rate)
-        print('GBR_max_depth =',GBR_max_depth)
-        print('GBR_min_samples_split =',GBR_min_samples_split)
-        print('GBR_min_samples_leaf =',GBR_min_samples_leaf)
-    if ML=='GPR':
-        print('### GPR parameters ###')
-        print('GPR_alpha =',GPR_alpha)
-        print('GPR_length_scale =',GPR_length_scale)
-        print('GPR_alpha_lim =',GPR_alpha_lim)
-        print('GPR_length_scale_lim =',GPR_length_scale_lim)
-    if ML=='KRR':
-        print('### KRR parameters ###')
-        print('KRR_alpha =',KRR_alpha)
-        print('KRR_kernel =',KRR_kernel)
-        print('KRR_gamma =',KRR_gamma)
-        print('optimize_KRR_hyperparams =',optimize_KRR_hyperparams)
-        print('KRR_alpha_lim =',KRR_alpha_lim)
-        print('KRR_gamma_lim =',KRR_gamma_lim)
-    print('##############################')
-    print('# Differential evolution parameters')
-    print('diff_popsize =', diff_popsize)
-    print('diff_tol =', diff_tol)
-    print('##############################')
-    print('### Calculated parameters ###')
-    print('width_min =',width_min)
-    print('width_max =',width_max)
-    print('Amplitude_min =',Amplitude_min)
-    print('Amplitude_max =',Amplitude_max)
-    print('N =',N)
-    print('#####   END PRINT INPUT  #####')
-    print("\n",flush=True)
+    allowed_verbosity_level = [0,1,2]
+    allowed_ML=[None,'kNN','GBR','GPR','KRR']
+    allowed_error_metric=[None,'rmse']
+    allowed_t2_ML = [None,'kNN','GPR','KRR']
+    allowed_CV=['kf','loo','time-sorted']
+    for value in ["calculate_grid","plot_contour_map","dask_parallel","plot_t1_exploration","plot_t1_error_metric","t1_analysis","t2_exploration","optimize_GPR_hyperparams","optimize_KRR_hyperparams"]:
+        if type(inp_val[value]) != bool:
+            print ('INPUT ERROR: %s should be boolean, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    for value in ["NCPU","Nspf","initial_spf","param","verbosity_level","t0_time","t1_time","t2_time","t2_train_time","k_fold","diff_popsize"]:
+        if type(inp_val[value]) != int:
+            print ('INPUT ERROR: %s should be integer, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    for value in ["S","center_min","center_max","grid_min","grid_max","grid_Delta","d_threshold","test_last_proportion","GPR_alpha","GPR_length_scale","KRR_alpha","KRR_gamma","diff_tol"]:
+        if type(inp_val[value]) != float:
+            print ('INPUT ERROR: %s should be float, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    for value in ["grid_name","log_name","ML","error_metric","t2_ML","CV","weights","GBR_criterion","KRR_kernel"]:
+        if type(inp_val[value]) != str:
+            print ('INPUT ERROR: %s should be string, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    for value in ["adven","n_neighbor","GBR_n_estimators","GBR_learning_rate","GBR_max_depth","GBR_min_samples_split","GBR_min_samples_leaf"]:
+        if type(inp_val[value]) != list:
+            print ('INPUT ERROR: %s should be a list, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    for value in ["GPR_alpha_lim","GPR_length_scale_lim","KRR_alpha_lim","KRR_gamma_lim"]:
+        if type(inp_val[value]) != tuple:
+            print ('INPUT ERROR: %s should be a tuple, but is: %s - %s' %(value, str(inp_val[value]), type(inp_val[value])))
+            sys.exit()
+    print('INPUT CHECKED OK')
+    #if ML not in allowed_ML:
+        #print ('INPUT ERROR: ML needs to be in',allowed_ML, ', but is:', ML)
+        #sys.exit()
+    #if error_metric not in allowed_error_metric:
+        #print ('INPUT ERROR: error_metric needs to be in',allowed_error_metric, ', but is:', error_metric)
+        #sys.exit()
+    #if CV not in allowed_CV:
+        #print ('INPUT ERROR: ML needs to be in',allowed_CV, ', but is:', CV)
+        #sys.exit()
+    #if verbosity_level not in allowed_verbosity_level:
+        #print ('INPUT ERROR: verbosity_level needs to be in',allowed_verbosity_level, ', but is:', verbosity_level)
+    #if t2_ML not in allowed_t2_ML:
+        #print ('INPUT ERROR: ML needs to be in',allowed_t2_ML, ', but is:', t2_ML)
+        #sys.exit()
+    #if d_threshold < grid_Delta:
+        #print ('INPUT ERROR: d_threshold is %f, but needs to be larger than grid_Delta: %f' %(d_threshold,grid_Delta))
+        #sys.exit()
+    #if CV=='kf' and k_fold>t1_time and t1_analysis == True:
+        #print ('INPUT ERROR: cross-validation for t1 analysis is set to %i-fold, but number of t1 points is smaller: %i' %(k_fold, t1_time))
+        #sys.exit()
+    #print('')
+    #print("\n")
+    #print('##### START PRINT INPUT  #####')
+    #print('##############################')
+    #print('# General Landscape parameters')
+    #print('##############################')
+    #print('### Parallel computing ###')
+    #print('dask_parallel =',dask_parallel)
+    #print('NCPU',NCPU)
+    #print('### Verbose ###')
+    #print('verbosity_level =',verbosity_level)
+    #print('log_name',log_name)
+    #print('### Landscape parameters ###')
+    #print('Nspf =',Nspf)
+    #print('initial_spf =',initial_spf)
+    #print('S =',S)
+    #print('param =',param)
+    #print('center_min =',center_min)
+    #print('center_max =',center_max)
+    #print('### Grid parameters ###')
+    #print('grid_min =',grid_min)
+    #print('grid_max =',grid_max)
+    #print('grid_Delta =',grid_Delta)
+    #print('calculate_grid =',calculate_grid)
+    #print('grid_name =',grid_name)
+    #print('plot_t1_exploration =',plot_t1_exploration)
+    #print('plot_t1_error_metric =',plot_t1_error_metric)
+    #print('plot_contour_map =',plot_contour_map)
+    #print('##############################')
+    #print('# T1 exploration parameters')
+    #print('##############################')
+    #print('adven =',adven)
+    #print('t0_time =',t0_time)
+    #print('t1_time =',t1_time)
+    #print('d_threshold =',d_threshold)
+    #print('##############################')
+    #print('# T2 exploration parameters')
+    #print('##############################')
+    #print('t2_exploration =',t2_exploration)
+    #print('t2_time =',t2_time)
+    #print('t2_train_time =',t2_train_time)
+    #print('t2_ML =',t2_ML)
+    #print('##############################')
+    #print('# Error metric parameters')
+    #print('##############################')
+    #print('t1_analysis =',t1_analysis)
+    #print('error_metric =',error_metric)
+    #print('ML =',ML)
+    #print('CV =',CV)
+    #print('k_fold =',k_fold)
+    #print('test_last_proportion =',test_last_proportion)
+    #if ML=='kNN':
+        #print('### kNN parameters ###')
+        #print('n_neighbor =',n_neighbor)
+        #print('weights =',weights)
+    #if ML=='GBR':
+        #print('### GBR parameters ###')
+        #print('GBR_criterion =',GBR_criterion)
+        #print('GBR_n_estimators =',GBR_n_estimators)
+        #print('GBR_learning_rate =',GBR_learning_rate)
+        #print('GBR_max_depth =',GBR_max_depth)
+        #print('GBR_min_samples_split =',GBR_min_samples_split)
+        #print('GBR_min_samples_leaf =',GBR_min_samples_leaf)
+    #if ML=='GPR':
+        #print('### GPR parameters ###')
+        #print('GPR_alpha =',GPR_alpha)
+        #print('GPR_length_scale =',GPR_length_scale)
+        #print('GPR_alpha_lim =',GPR_alpha_lim)
+        #print('GPR_length_scale_lim =',GPR_length_scale_lim)
+    #if ML=='KRR':
+        #print('### KRR parameters ###')
+        #print('KRR_alpha =',KRR_alpha)
+        #print('KRR_kernel =',KRR_kernel)
+        #print('KRR_gamma =',KRR_gamma)
+        #print('optimize_KRR_hyperparams =',optimize_KRR_hyperparams)
+        #print('KRR_alpha_lim =',KRR_alpha_lim)
+        #print('KRR_gamma_lim =',KRR_gamma_lim)
+    #print('##############################')
+    #print('# Differential evolution parameters')
+    #print('diff_popsize =', diff_popsize)
+    #print('diff_tol =', diff_tol)
+    #print('##############################')
+    #print('### Calculated parameters ###')
+    #print('width_min =',width_min)
+    #print('width_max =',width_max)
+    #print('Amplitude_min =',Amplitude_min)
+    #print('Amplitude_max =',Amplitude_max)
+    #print('N =',N)
+    #print('adven_per_SPF =',adven_per_SPF)
+    #print('#####   END PRINT INPUT  #####')
+    #print("\n",flush=True)
 
 # Function that explores the SPF map to generate research landscapes
 def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_explore,X0,y0):
@@ -1204,9 +1288,9 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
                 total_mse = mean_squared_error(real_y, predicted_y)
                 total_rmse = np.sqrt(total_mse)
             # For data sorted from old to new
-            elif CV=='sort':
-                # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
-                X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=None,shuffle=False)
+            elif CV=='time-sorted':
+                # Use (1-'test_last_proportion') as training, and 'test_last_proportion' as test data
+                X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
                 # scale data
                 scaler = preprocessing.StandardScaler().fit(X_train)
                 X_train_scaled = scaler.transform(X_train)
@@ -1397,8 +1481,8 @@ def GBR(X,y,l,w,f_out):
                             total_r_pearson,_ = pearsonr(real_y,predicted_y)
                             total_mse = mean_squared_error(real_y, predicted_y)
                             total_rmse = np.sqrt(total_mse)
-                        elif CV=='sort':
-                            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=None,shuffle=False)
+                        elif CV=='time-sorted':
+                            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
                             GBR = GradientBoostingRegressor(criterion=GBR_criterion,n_estimators=GBR_n_estimators[gbr1],learning_rate=GBR_learning_rate[gbr2],max_depth=GBR_max_depth[gbr3],min_samples_split=GBR_min_samples_split[gbr4],min_samples_leaf=GBR_min_samples_leaf[gbr5])
                             y_pred = GBR.fit(X_train, y_train).predict(X_test)
                             total_r_pearson,_=pearsonr(y_test,y_pred)
@@ -1514,9 +1598,9 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
             total_mse = mean_squared_error(real_y, predicted_y)
             total_rmse = np.sqrt(total_mse)
         # For data sorted from old to new
-        elif CV=='sort':
-            # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
-            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=None,shuffle=False)
+        elif CV=='time-sorted':
+            # Use (1-'test_last_proportion') as training, and 'test_last_proportion' as test data
+            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
             # scale data
             scaler = preprocessing.StandardScaler().fit(X_train)
             X_train_scaled = scaler.transform(X_train)
@@ -1710,9 +1794,9 @@ def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
             total_mse = mean_squared_error(real_y, predicted_y)
             total_rmse = np.sqrt(total_mse)
         # For data sorted from old to new
-        elif CV=='sort':
-            # Use (1-'test_last_percentage') as training, and 'test_last_percentage' as test data
-            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_percentage,random_state=None,shuffle=False)
+        elif CV=='time-sorted':
+            # Use (1-'test_last_proportion') as training, and 'test_last_proportion' as test data
+            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
             # scale data
             scaler = preprocessing.StandardScaler().fit(X_train)
             X_train_scaled = scaler.transform(X_train)
@@ -1859,7 +1943,7 @@ def plot(flag,l,w,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
         file1='t1_exploration' + nfile + '.png'
         plt.savefig(file1,format='png',dpi=600)
         print('save 2d plot to %s' %file1)
-        if w==Nwalkers-1:
+        if w==adven_per_SPF-1:
             cbar.remove()
             cbar_2.remove()
         plt.close()
@@ -1890,7 +1974,19 @@ def plot(flag,l,w,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
 # Measure initial time
 start = time()
 # Get initial values from input file
-(dask_parallel, NCPU, verbosity_level, log_name,Nspf, S, param, center_min, center_max, grid_min, grid_max, grid_Delta, Nwalkers, adven, t1_time, d_threshold, t0_time, ML, error_metric, CV, k_fold, test_last_percentage, n_neighbor, weights, GBR_criterion, GBR_n_estimators, GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, GPR_alpha_lim, GPR_length_scale_lim, KRR_alpha, KRR_kernel,  KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, KRR_alpha_lim, KRR_gamma_lim, allowed_CV, allowed_ML, allowed_ML, allowed_error_metric, width_min, width_max, Amplitude_min, Amplitude_max, N, t2_time, allowed_verbosity_level, t2_ML, allowed_t2_ML, t2_exploration, t1_analysis, diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf) = read_initial_values(input_file_name)
+(dask_parallel, NCPU, verbosity_level, log_name,Nspf, 
+        S, param, center_min, center_max, grid_min, grid_max, 
+        grid_Delta, adven_per_SPF, adven, t1_time, d_threshold, 
+        t0_time, ML, error_metric, CV, k_fold, test_last_proportion, 
+        n_neighbor, weights, GBR_criterion, GBR_n_estimators, 
+        GBR_learning_rate, GBR_max_depth, GBR_min_samples_split, 
+        GBR_min_samples_leaf, GPR_alpha, GPR_length_scale, 
+        GPR_alpha_lim, GPR_length_scale_lim, KRR_alpha, KRR_kernel,  
+        KRR_gamma, optimize_KRR_hyperparams, optimize_GPR_hyperparams, 
+        KRR_alpha_lim, KRR_gamma_lim, width_min, width_max, Amplitude_min, 
+        Amplitude_max, N, t2_time, t2_ML, t2_exploration, t1_analysis, 
+        diff_popsize, diff_tol, t2_train_time, calculate_grid, grid_name,
+        plot_t1_exploration,plot_contour_map,plot_t1_error_metric,initial_spf) = read_initial_values(input_file_name)
 # Run main program
 main()
 # Measure and print final time

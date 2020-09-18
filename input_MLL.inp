@@ -2,91 +2,85 @@
 # General Landscape parameters
 #################################################
 ### Type of calculation #########################
-calculate_grid = True                          # Decide whether to calculate or read SPF
-plot_contour_map = False                        # Decide whether to make 2D plot of grid
+calculate_grid = True                          	# Decide whether to calculate or read SPF {True | False}
+plot_contour_map = False                        # Decide whether to make 2D plot of grid {True | False}
 ### Parallel Computing ##########################
-dask_parallel = False                            # Decide if dask is used
-NCPU    = 1      	                              # Choose number of CPUs used by dask
+dask_parallel = False                           # Decide if dask is used {True | False}
+NCPU    = 1      	                              # Choose number of CPUs used by dask {integer}
 ### SPF parameters ##############################
-iseed = None                                    # Seed for random number to generate landscape. Default: None
-Nspf = 1                                        # Number of different landscapes generate
-initial_spf = 0                                 # When reading SPF, from which one do we start. Default: 0
-grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read
+Nspf = 1                                        # Number of different landscapes generate {integer}
+initial_spf = 0                                 # When reading SPF, from which one do we start. {integer}
+grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read {string}
 ### Gaussian parameters #########################
-S = 0.20                                        # Smoothness - minimum width of Gaussian functions
-param = 2                                       # Number of descriptors
-center_min = 0.00                               # Minimum value for center of each Gaussian in each DOF
-center_max = 1.00                               # Maximum value for center of each Gaussian in each DOF
+S = 0.20                                        # Smoothness - minimum width of Gaussian functions {real. (0,1/3)}
+param = 2                                       # Number of descriptors {integer}
+center_min = 0.00                               # Minimum value for center of each Gaussian in each DOF {real}
+center_max = 1.00                               # Maximum value for center of each Gaussian in each DOF {real}
 ### Grid parameters #############################
-grid_min = 0.00                                 # Start point of grid in each DOF
-grid_max = 1.00                                 # End point of grid in each DOF
-grid_Delta = 0.01                              # Increment of grid in each DOF
-### Verbose #####################################
-verbosity_level = 1                             # Level of verbosity to print at 'log_name' file (Recommended:1)
-allowed_verbosity_level = [0,1,2]   				# possible values of verbosity
-log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.log' is added automatically
+grid_min = 0.00                                 # Start point of grid in each DOF {real}
+grid_max = 1.00                                 # End point of grid in each DOF {real}
+grid_Delta = 0.01                               # Increment of grid in each DOF {real}
+### Verbosity ###################################
+verbosity_level = 1                             # Level of verbosity to print at 'log_name' file {integer. [0,2]. Recommended:1}
+log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.log' is added automatically {string}
+#################################################
+# Exploration general parameters
+#################################################
+adven = [10]		   									# List of afventurousness values per SPF {list of integers|reals}
+d_threshold = 0.04                              # Threshold maximum distance that at each time step {real}
 #################################################
 # t1 exploration parameters
 #################################################
-plot_t1_exploration = False                     # Decide whether to make 2D plot of t1 exploration
-plot_t1_error_metric = True                     # Decide whether to make box plot of error metric for t1 exploration
-Nwalkers = 1                                    # Number of walkers per landscape
-adven = [10]		   # percentage of special points per walker
-t0_time = 2   		                              # Number of initial unbiased steps
-t1_time = 10                                    # Number of time steps for the walker
-d_threshold = 0.04                              # Threshold maximum distance that at each time step
-initial_sampling = 'different'                  # Initial points in a grid for different walkers
-allowed_initial_sampling = ['same','different'] # possible values of 'initial_sampling'
+plot_t1_exploration = False                     # Decide whether to make 2D plot of t1 exploration {True | False}
+plot_t1_error_metric = True                     # Decide whether to make box plot of error metric for t1 exploration {True | False}
+t0_time = 2   		                              # Number of initial unbiased steps {integer}
+t1_time = 10                                    # Number of time steps for the walker {integer}
 #################################################
 # t1 error metric analysis
 #################################################
-t1_analysis = True                              # Whether t1 analysis is performed
-ML='GPR'                                        # Choose what ML algorithm is used
-allowed_ML=[None,'kNN','GBR','GPR','KRR']       # possible ML algorithms
-error_metric='rmse'                             # Choose which error metric to analyze
-allowed_error_metric=[None,'rmse']              # possible error metrics to analyze
+t1_analysis = True                              # Whether t1 analysis is performed {True | False}
+ML='GPR'                                        # Choose what ML algorithm is used {string. 'kNN' | 'GBR' | 'KRR' | 'GPR'}
+error_metric='rmse'                             # Choose which error metric to analyze {string. 'rmse' | None}
 #################################################
 # t2 exploration parameters
 #################################################
-t2_exploration = True                           # Whether t2 exploration is performed
-t2_ML = 'GPR'												# Choose what ML algorithm is used
-allowed_t2_ML = [None,'kNN','GBR','GPR','KRR']  # possible ML algorithms
-t2_time = 4                                     # Number of time steps for the walker
-t2_train_time = 1                               # ML is re-trained every 't2_train_time' steps
+t2_exploration = True                           # Whether t2 exploration is performed {True | False}
+t2_ML = 'GPR'												# Choose what ML algorithm is used {string. 'kNN' | 'KRR' | 'GPR'}
+t2_time = 4                                     # Number of time steps for the walker {integer}
+t2_train_time = 1                               # ML is re-trained every 't2_train_time' steps {integer}
 #################################################
 # Machine Learning parameters
 #################################################
 ### Cross-validation ############################
-CV='kf'                                         # Choose cross-validation: 'kf' or 'loo' or 'sort'
-allowed_CV=['kf','loo','sort']                  # possible types of cross-correlation
-k_fold=10                                       # If CV='kf': number of folds for k-fold cross validation
-test_last_percentage=0.1                        # If CV='sort': percentage of last points chosen as test
+CV='kf'                                         # Choose cross-validation {string. 'kf' | 'loo' | 'time-sorted'}
+k_fold=10                                       # If CV='kf': number of folds for k-fold cross validation {integer}
+test_last_proportion=0.1                        # If CV='time-sorted': proportion of last points chosen as test {real. (0,1)}
 ### k-Nearest Neighbors ('kNN') #################
-n_neighbor = [1,2,3,4,5,6,7]                    # Number of nearest neighbors consider for kNN regression
-weights = 'distance'                            # Type of weight used in kNN regression
+n_neighbor = [1,2,3,4,5,6,7]                    # Number of nearest neighbors consider for kNN regression {list of integers}
+weights = 'distance'                            # Type of weight used in kNN regression {string. 'uniform' OR 'distance'}
 ### Gradient Boosting Regression ('GBR') ########
-GBR_criterion = 'friedman_mse'                  # function to measure quality of a split
-GBR_n_estimators = [50,100,150]                 # number of boosting stages to perform
-GBR_learning_rate = [0.05,0.10,0.15]            # how much to shrink contribution of each tree
-GBR_max_depth = [2,4,6]                         # limits number of nodes in each tree
-GBR_min_samples_split = [2,3,4]                 # minimum number of samples required to split an internal node
-GBR_min_samples_leaf = [1,2,3]                  # minimum number of samples required to be at a leaf node
+GBR_criterion = 'friedman_mse'                  # function to measure quality of a split {string}
+GBR_n_estimators = [50,100,150]                 # number of boosting stages to perform {list of integers}
+GBR_learning_rate = [0.05,0.10,0.15]            # how much to shrink contribution of each tree {list of reals}
+GBR_max_depth = [2,4,6]                         # limits number of nodes in each tree {list of integers}
+GBR_min_samples_split = [2,3,4]                 # minimum number of samples required to split an internal node {list of integers}
+GBR_min_samples_leaf = [1,2,3]                  # minimum number of samples required to be at a leaf node {list of integers}
 ### Gaussian Process Regression ('GPR') #########
-GPR_alpha=0.001                                 # regularization hyperparameter
-GPR_length_scale=1.0                            # hyperparameter length scale of RBF kernel
-optimize_GPR_hyperparams=True                   # decide whether to optimize KRR_gamma
-GPR_alpha_lim = (0.00001,1.0)    			    	# interval in which KRR_alpha is allowed to vary
-GPR_length_scale_lim = (0.01,100.0)    			# interval in which KRR_gamma is allowed to vary
+GPR_alpha=0.001                                 # regularization hyperparameter {real}
+GPR_length_scale=1.0                            # hyperparameter length scale of RBF kernel {real}
+optimize_GPR_hyperparams=True                   # decide whether to optimize KRR_gamma {True|False}
+GPR_alpha_lim = (0.00001,1.0)    			    	# interval in which KRR_alpha is allowed to vary {tuple with two reals}
+GPR_length_scale_lim = (0.01,100.0)    			# interval in which KRR_gamma is allowed to vary {tuple with two reals}
 ### Kernel Ridge Regression ('KRR') #############
-KRR_kernel='rbf'                                # type of kernel (for now, jusr 'rbf' available)
-KRR_alpha=1.0                                   # regularization hyperparameter: 0 equals linear least square
-KRR_gamma=1.0                                   # hyperparameter controlling variance of kernel
-optimize_KRR_hyperparams=True                   # decide whether to optimize KRR_gamma
-KRR_alpha_lim = (0.000001,10.0)   			    	# interval in which KRR_alpha is allowed to vary
-KRR_gamma_lim = (0.01,100.0)   					   # interval in which KRR_gamma is allowed to vary
+KRR_kernel='rbf'                                # type of kernel {string. 'rbf'}
+KRR_alpha=1.0                                   # regularization hyperparameter: 0 equals linear least square {real}
+KRR_gamma=1.0                                   # hyperparameter controlling variance of kernel {real}
+optimize_KRR_hyperparams=True                   # decide whether to optimize KRR_gamma {True | False}
+KRR_alpha_lim = (0.000001,10.0)   			    	# interval in which KRR_alpha is allowed to vary {tuple with two reals}
+KRR_gamma_lim = (0.01,100.0)   					   # interval in which KRR_gamma is allowed to vary {tuple with two reals}
 #################################################
 # Differential evolution parameters
 #################################################
-diff_popsize = 15                               # population size
-diff_tol = 0.1                                  # relative tolerance for convergence
+diff_popsize = 15                               # population size {integer}
+diff_tol = 0.1                                  # relative tolerance for convergence {real}
 #################################################
