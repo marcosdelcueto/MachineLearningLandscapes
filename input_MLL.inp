@@ -6,9 +6,9 @@ calculate_grid = True                          	# Decide whether to calculate or
 plot_contour_map = False                        # Decide whether to make 2D plot of grid {True | False}
 ### Parallel Computing ##########################
 dask_parallel = False                           # Decide if dask is used {True | False}
-NCPU    = 1      	                              # Choose number of CPUs used by dask {integer}
+NCPU    = 3      	                              # Choose number of CPUs used by dask {integer}
 ### SPF parameters ##############################
-Nspf = 1                                        # Number of different landscapes generate {integer}
+Nspf = 3                                        # Number of different landscapes generate {integer}
 initial_spf = 0                                 # When reading SPF, from which one do we start. {integer}
 grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read {string}
 ### Gaussian parameters #########################
@@ -26,7 +26,7 @@ log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.
 #################################################
 # Exploration general parameters
 #################################################
-adven = [10]		   									# List of afventurousness values per SPF {list of integers|reals}
+adven = [10,50]		  									# List of afventurousness values per SPF {list of integers|reals}
 d_threshold = 0.04                              # Threshold maximum distance that at each time step {real}
 #################################################
 # t1 exploration parameters

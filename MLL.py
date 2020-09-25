@@ -732,6 +732,7 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
             minimum_path_E=[abs(E-max_G) for E in minimum_path_G]
             special_points=int(round(adven[w]/100*len(minimum_path_G)))
             if special_points<1: special_points=1
+            random.seed(a=None)
             draw=random.choice(range(special_points))
             draw_in_grid=G_list.index(minimum_path_G[draw])
             draw_in_grid_list=[i for i, e in enumerate(G_list) if e == minimum_path_G[draw] ]
