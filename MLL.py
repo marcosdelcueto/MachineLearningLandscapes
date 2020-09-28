@@ -434,6 +434,7 @@ def generate_grid(l):
 
     if plot_contour_map == True and param == 2:
         plot('contour',l,None,dim_list,G_list,None,None,None,None,None)
+        #plot('3d_landscape',l,None,dim_list,G_list,None,None,None,None,None)
     #return dim_list, G_list, Ngrid, max_G # not needed as we write grid to file now
     time_taken2 = time()-start
     f_out.write("Generate grid took %0.4f seconds\n" %(time_taken2-time_taken1))
@@ -1860,6 +1861,22 @@ def plot(flag,l,w,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
         plt.savefig(file1,format='png',dpi=600)
         print('save 2d map plot to %s' %file1)
         cbar.remove()
+        plt.close()
+    if flag=='3d_landscape':
+        print('Start: "plot(3d_landscape)"')
+        # 3D plot
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        pnt3d_1=ax.plot_trisurf(dim_list[0],dim_list[1],G_list,linewidth=0,alpha=1.0,cmap='Greys')
+        ax.set_axis_off()
+        #ax.grid(False)
+        #ax.set_xticks([])
+        #ax.set_yticks([])
+        #ax.set_zticks([])
+        nfile='_landscape'+str(l)
+        file1='3d_landscape' + nfile + '.png'
+        plt.savefig(file1,format='png',dpi=600,bbox_inches='tight')
+        print('save 3d map plot to %s' %file1)
         plt.close()
     # Plot contour map and points of t1 exploration
     elif flag=='t1_exploration':
