@@ -2,13 +2,13 @@
 # General Landscape parameters
 #################################################
 ### Type of calculation #########################
-calculate_grid = True                          	# Decide whether to calculate or read SPF {True | False}
+calculate_grid = False                          	# Decide whether to calculate or read SPF {True | False}
 plot_contour_map = False                        # Decide whether to make 2D plot of grid {True | False}
 ### Parallel Computing ##########################
 dask_parallel = False                           # Decide if dask is used {True | False}
 NCPU    = 1      	                              # Choose number of CPUs used by dask {integer}
 ### SPF parameters ##############################
-Nspf = 1                                        # Number of different landscapes generate {integer}
+Nspf = 1                                         # Number of different landscapes generate {integer}
 initial_spf = 0                                 # When reading SPF, from which one do we start. {integer}
 grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read {string}
 ### Gaussian parameters #########################
@@ -19,21 +19,21 @@ center_max = 1.00                               # Maximum value for center of ea
 ### Grid parameters #############################
 grid_min = 0.00                                 # Start point of grid in each DOF {real}
 grid_max = 1.00                                 # End point of grid in each DOF {real}
-grid_Delta = 0.01                                # Increment of grid in each DOF {real}
+grid_Delta = 0.01                               # Increment of grid in each DOF {real}
 ### Verbosity ###################################
 verbosity_level = 1                             # Level of verbosity to print at 'log_name' file {integer. [0,2]. Recommended:1}
 log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.log' is added automatically {string}
 #################################################
 # Exploration general parameters
 #################################################
-adven = [10,100]		  									# List of afventurousness values per SPF {list of integers|reals}
+adven = [10,100]		 	  									# List of afventurousness values per SPF {list of integers|reals}
 d_threshold = 0.08                              # Threshold maximum distance that at each time step {real}
 #################################################
 # t1 exploration parameters
 #################################################
 plot_t1_exploration = False                     # Decide whether to make 2D plot of t1 exploration {True | False}
 plot_t1_error_metric = True                     # Decide whether to make box plot of error metric for t1 exploration {True | False}
-t0_time = 10   		                              # Number of initial unbiased steps {integer}
+t0_time = 10   		                           # Number of initial unbiased steps {integer}
 t1_time = 20                                    # Number of time steps for the walker {integer}
 #################################################
 # t1 error metric analysis
@@ -44,7 +44,7 @@ error_metric='rmse'                             # Choose which error metric to a
 #################################################
 # t2 exploration parameters
 #################################################
-t2_exploration = False                           # Whether t2 exploration is performed {True | False}
+t2_exploration = False                          # Whether t2 exploration is performed {True | False}
 t2_ML = 'GPR'												# Choose what ML algorithm is used {string. 'kNN' | 'KRR' | 'GPR'}
 t2_time = 4                                     # Number of time steps for the walker {integer}
 t2_train_time = 1                               # ML is re-trained every 't2_train_time' steps {integer}
@@ -52,8 +52,8 @@ t2_train_time = 1                               # ML is re-trained every 't2_tra
 # Machine Learning parameters
 #################################################
 ### Cross-validation ############################
-CV='kf'                                         # Choose cross-validation {string. 'kf' | 'loo' | 'time-sorted'}
-k_fold=10                                       # If CV='kf': number of folds for k-fold cross validation {integer}
+CV='time-sorted'                                # Choose cross-validation {string. 'kf' | 'loo' | 'time-sorted'}
+k_fold=10                                       # If CV='kf' or CV='time-sorted': number of folds for k-fold cross validation {integer}
 test_last_proportion=0.1                        # If CV='time-sorted': proportion of last points chosen as test {real. (0,1)}
 ### k-Nearest Neighbors ('kNN') #################
 n_neighbor = [1,2,3,4,5,6,7]                    # Number of nearest neighbors consider for kNN regression {list of integers}
@@ -67,8 +67,8 @@ GBR_min_samples_split = [2,3,4]                 # minimum number of samples requ
 GBR_min_samples_leaf = [1,2,3]                  # minimum number of samples required to be at a leaf node {list of integers}
 ### Gaussian Process Regression ('GPR') #########
 GPR_alpha=0.001                                 # regularization hyperparameter {real}
-GPR_length_scale=1.0                            # hyperparameter length scale of RBF kernel {real}
-optimize_GPR_hyperparams=True                   # decide whether to optimize KRR_gamma {True|False}
+GPR_length_scale=1.5                            # hyperparameter length scale of RBF kernel {real}
+optimize_GPR_hyperparams=True                  # decide whether to optimize KRR_gamma {True|False}
 GPR_alpha_lim = (0.00001,1.0)    			    	# interval in which KRR_alpha is allowed to vary {tuple with two reals}
 GPR_length_scale_lim = (0.01,100.0)    			# interval in which KRR_gamma is allowed to vary {tuple with two reals}
 ### Kernel Ridge Regression ('KRR') #############
