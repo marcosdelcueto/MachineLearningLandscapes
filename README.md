@@ -16,22 +16,7 @@ pip3 install -r requirements.txt
 ## Contents
 - **input_MLL.inp**: input file containing options to control type of exploration and its parameters
 - **MLL.py**: main python code to create, explore and analyze the research landscapes
-- **raw_data**: directory containing main raw data of the manuscript (see below)
-- **scripts**: directory conraining several scripts used to handle and analyze intermediate data
-
----
-
-## Raw Data
-
-For reproducibility, we include several large .tar.gz files containing the following results for the main results discussed in the manuscript for n=3 and S=0.10:
-
-- The 100 structure-property functions: 100SPFs_S0_10_n3.tar.gz
-- 10-fold cross-validation, N1 exploration with N<sub>1</sub>=50: logs_N1_0050_kfold_10_CV.tar.gz
-- 10-fold cross-validation, N1 exploration with N<sub>1</sub>=200: logs_N1_0200_kfold_10_CV.tar.gz
-- 10-fold cross-validation, N1 exploration with N<sub>1</sub>=1000:logs_N1_1000_kfold_10_CV.tar.gz
-- Last-10% validation, N1 exploration with N<sub>1</sub>=50: logs_N1_0050_last_10percent_validation.tar.gz
-- Last-10% validation, N1 exploration with N<sub>1</sub>=200: logs_N1_0200_last_10percent_validation.tar.gz
-- Last-10% validation, N1 exploration with N<sub>1</sub>=1000: logs_N1_1000_last_10percent_validation.tar.gz
+- **scripts**: directory conraining several scripts used to handle and analyze intermediate data (see below)
 
 ---
 
