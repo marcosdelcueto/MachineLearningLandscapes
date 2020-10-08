@@ -2,13 +2,13 @@
 # General Landscape parameters
 #################################################
 ### Type of calculation #########################
-calculate_grid = False                          	# Decide whether to calculate or read SPF {True | False}
+calculate_grid = True                          	# Decide whether to calculate or read SPF {True | False}
 plot_contour_map = False                        # Decide whether to make 2D plot of grid {True | False}
 ### Parallel Computing ##########################
-dask_parallel = False                           # Decide if dask is used {True | False}
+dask_parallel = False                            # Decide if dask is used {True | False}
 NCPU    = 1      	                              # Choose number of CPUs used by dask {integer}
 ### SPF parameters ##############################
-Nspf = 1                                         # Number of different landscapes generate {integer}
+Nspf = 1                                          # Number of different landscapes generate {integer}
 initial_spf = 0                                 # When reading SPF, from which one do we start. {integer}
 grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read {string}
 ### Gaussian parameters #########################
@@ -44,7 +44,7 @@ error_metric='rmse'                             # Choose which error metric to a
 #################################################
 # t2 exploration parameters
 #################################################
-t2_exploration = False                          # Whether t2 exploration is performed {True | False}
+t2_exploration = True                          # Whether t2 exploration is performed {True | False}
 t2_ML = 'GPR'												# Choose what ML algorithm is used {string. 'kNN' | 'KRR' | 'GPR'}
 t2_time = 4                                     # Number of time steps for the walker {integer}
 t2_train_time = 1                               # ML is re-trained every 't2_train_time' steps {integer}
@@ -53,7 +53,7 @@ t2_train_time = 1                               # ML is re-trained every 't2_tra
 #################################################
 ### Cross-validation ############################
 CV='time-sorted'                                # Choose cross-validation {string. 'kf' | 'loo' | 'time-sorted'}
-k_fold=10                                       # If CV='kf' or CV='time-sorted': number of folds for k-fold cross validation {integer}
+k_fold=10                                       # Used for t1 analysis (if CV='kf' or CV='time-sorted') and t2 exploration: number of folds for k-fold cross validation {integer}
 test_last_proportion=0.1                        # If CV='time-sorted': proportion of last points chosen as test {real. (0,1)}
 ### k-Nearest Neighbors ('kNN') #################
 n_neighbor = [1,2,3,4,5,6,7]                    # Number of nearest neighbors consider for kNN regression {list of integers}
