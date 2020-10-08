@@ -26,7 +26,7 @@ log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.
 #################################################
 # Exploration general parameters
 #################################################
-adven = [10,100]		 	  									# List of afventurousness values per SPF {list of integers|reals}
+adven = [10,100]		 	  								# List of afventurousness values per SPF {list of integers|reals}
 d_threshold = 0.08                              # Threshold maximum distance that at each time step {real}
 #################################################
 # t1 exploration parameters
@@ -39,12 +39,12 @@ t1_time = 20                                    # Number of time steps for the w
 # t1 error metric analysis
 #################################################
 t1_analysis = True                              # Whether t1 analysis is performed {True | False}
-ML='GPR'                                        # Choose what ML algorithm is used {string. 'kNN' | 'GBR' | 'KRR' | 'GPR'}
+ML='KRR'                                        # Choose what ML algorithm is used {string. 'kNN' | 'GBR' | 'KRR' | 'GPR'}
 error_metric='rmse'                             # Choose which error metric to analyze {string. 'rmse' | None}
 #################################################
 # t2 exploration parameters
 #################################################
-t2_exploration = True                          # Whether t2 exploration is performed {True | False}
+t2_exploration = False                          # Whether t2 exploration is performed {True | False}
 t2_ML = 'GPR'												# Choose what ML algorithm is used {string. 'kNN' | 'KRR' | 'GPR'}
 t2_time = 4                                     # Number of time steps for the walker {integer}
 t2_train_time = 1                               # ML is re-trained every 't2_train_time' steps {integer}

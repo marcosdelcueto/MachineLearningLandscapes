@@ -508,16 +508,13 @@ def MLL(l):
                         f_out.flush()
                     error_metric_result = best_rmse
                     if CV=='time-sorted':
-                        #print('TEST best hyperparameters:', best_hyperparams)
-                        #print('TEST best rmse:', best_rmse)
-                        #print('NOW USE THIS HYPERPARAMERTS in last 10% validation')
                         error_metric_result=GPR(best_hyperparams,X1,y1,l,w,f_out,None,None,1,None,False)
             if ML=='KRR':
                 hyperparams=[KRR_alpha,KRR_gamma]
                 if optimize_KRR_hyperparams == False:
-                    error_metric_result=KRR(hyperparams,X1,y1,l,w,f_out,None,None,1,None)
+                    error_metric_result=KRR(hyperparams,X1,y1,l,w,f_out,None,None,1,None,False)
                 else:
-                    mini_args=(X1,y1,l,w,f_out,None,None,1,None)
+                    mini_args=(X1,y1,l,w,f_out,None,None,1,None,True)
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
@@ -526,6 +523,8 @@ def MLL(l):
                         f_out.write("Best hyperparameters: %s . Best rmse: %f \n" %(str(best_hyperparams),best_rmse))
                         f_out.flush()
                     error_metric_result = best_rmse
+                    if CV=='time-sorted':
+                        error_metric_result=KRR(best_hyperparams,X1,y1,l,w,f_out,None,None,1,None,False)
             error_metric_list.append(error_metric_result)
             result1 = error_metric_list
             time_taken2 = time()-start
@@ -1111,9 +1110,9 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
             if t2_ML=='KRR':
                 hyperparams=[KRR_alpha,KRR_gamma]
                 if optimize_KRR_hyperparams == False:
-                    min_point=KRR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
+                    min_point=KRR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t,False)
                 else:
-                    mini_args=(path_x,path_G,l,w,f_out,None,None,1,t) # get rmse fitting previous points
+                    mini_args=(path_x,path_G,l,w,f_out,None,None,1,t,False) # get rmse fitting previous points
                     bounds = [KRR_alpha_lim]+[KRR_gamma_lim]
                     solver=differential_evolution(KRR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
@@ -1122,7 +1121,7 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
                         f_out.write("Best hyperparameters: %s . Best rmse: %f \n" %(str(best_hyperparams),best_rmse))
                         f_out.flush()
                     hyperparams=[best_hyperparams[0],best_hyperparams[1]]
-                    min_point=KRR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
+                    min_point=KRR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t,False)
             # print x_bubble corresponding to min(y_bubble)
             if verbosity_level>=1: 
                 #f_out.write("## At time %i, minimum predicted point is: %s\n" %(t, str(min_point)))
@@ -1213,7 +1212,7 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
                     X_test_scaled = scaler.transform(X_test)
                     # fit kNN with (X_train_scaled, y_train) and predict X_test_scaled
                     knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor[n], weights=weights)
-                    y_pred = knn.fit(X_train, y_train).predict(X_test)
+                    y_pred = knn.fit(X_train_scaled, y_train).predict(X_test_scaled)
                     # add y_test and y_pred values to general real_y and predicted_y
                     for i in range(len(y_test)):
                         real_y.append(y_test[i])
@@ -1242,6 +1241,7 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
                 total_rmse = np.sqrt(total_mse)
             # For data sorted from old to new
             elif CV=='time-sorted':
+                #######################################################################
                 # Use (1-'test_last_proportion') as training, and 'test_last_proportion' as test data
                 X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
                 # scale data
@@ -1250,10 +1250,21 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
                 X_test_scaled = scaler.transform(X_test)
                 # fit kNN with (X_train, y_train), and predict X_test
                 knn = neighbors.KNeighborsRegressor(n_neighbors=n_neighbor[n], weights=weights)
-                y_pred = knn.fit(X_train, y_train).predict(X_test)
+                kf = KFold(n_splits=k_fold,shuffle=True,random_state=None)
+                validation=kf.split(X_train_scaled)
+                y_pred_final = []
+                y_valid_final  = []
+                for train_index, valid_index in validation:
+                    X_new_train,X_new_valid=X_train_scaled[train_index],X_train_scaled[valid_index]
+                    y_new_train,y_new_valid=y_train[train_index],y_train[valid_index]
+                    # fit GPR with (X_train, y_train), and predict X_test
+                    y_pred = knn.fit(X_new_train, y_new_train).predict(X_new_valid)
+                    for i in range(len(y_new_valid)):
+                        y_valid_final.append(y_new_valid[i])
+                        y_pred_final.append(y_pred[i])
                 # calculate final r and rmse
-                total_r_pearson,_=pearsonr(y_test,y_pred)
-                mse = mean_squared_error(y_test, y_pred)
+                total_r_pearson,_=pearsonr(y_valid_final,y_pred_final)
+                mse = mean_squared_error(y_valid_final,y_pred_final)
                 total_rmse = np.sqrt(mse)
                 # print verbose info
                 if verbosity_level>=2:
@@ -1270,6 +1281,16 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
                 if error_metric=='rmse': result=total_rmse
                 final_k = n_neighbor[n]
                 prev_total_rmse = total_rmse
+             #######################################################################
+        # After k is optimized, predict X-test
+        knn = neighbors.KNeighborsRegressor(n_neighbors=final_k, weights=weights)
+        y_pred = knn.fit(X_train_scaled, y_train).predict(X_test_scaled)
+        # calculate final r and rmse
+        total_r_pearson,_=pearsonr(y_test,y_pred)
+        mse = mean_squared_error(y_test, y_pred)
+        total_rmse = np.sqrt(mse)
+        result=total_rmse
+        #######################################################################
         f_out.write("---------- \n")
         f_out.write("Final Optimum k: %i, rmse: %f \n" % (final_k,result))
     elif mode==2:
@@ -1407,8 +1428,12 @@ def GBR(X,y,l,w,f_out):
                             for train_index, test_index in validation:
                                 X_train, X_test = X[train_index], X[test_index]
                                 y_train, y_test = y[train_index], y[test_index]
+                                # scale data
+                                scaler = preprocessing.StandardScaler().fit(X_train)
+                                X_train_scaled = scaler.transform(X_train)
+                                X_test_scaled = scaler.transform(X_test)
                                 GBR = GradientBoostingRegressor(criterion=GBR_criterion,n_estimators=GBR_n_estimators[gbr1],learning_rate=GBR_learning_rate[gbr2],max_depth=GBR_max_depth[gbr3],min_samples_split=GBR_min_samples_split[gbr4],min_samples_leaf=GBR_min_samples_leaf[gbr5])
-                                y_pred = GBR.fit(X_train, y_train).predict(X_test)
+                                y_pred = GBR.fit(X_train_scaled, y_train).predict(X_test_scaled)
                                 for i in range(len(y_test)):
                                     #f_out.write("y_test[i] %s \n" %(str(y_test[i])))
                                     real_y.append(y_test[i])
@@ -1436,17 +1461,35 @@ def GBR(X,y,l,w,f_out):
                             total_rmse = np.sqrt(total_mse)
                         elif CV=='time-sorted':
                             X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
+                            # scale data
+                            scaler = preprocessing.StandardScaler().fit(X_train)
+                            X_train_scaled = scaler.transform(X_train)
+                            X_test_scaled = scaler.transform(X_test)
                             GBR = GradientBoostingRegressor(criterion=GBR_criterion,n_estimators=GBR_n_estimators[gbr1],learning_rate=GBR_learning_rate[gbr2],max_depth=GBR_max_depth[gbr3],min_samples_split=GBR_min_samples_split[gbr4],min_samples_leaf=GBR_min_samples_leaf[gbr5])
-                            y_pred = GBR.fit(X_train, y_train).predict(X_test)
-                            total_r_pearson,_=pearsonr(y_test,y_pred)
-                            mse = mean_squared_error(y_test, y_pred)
+                            kf = KFold(n_splits=k_fold,shuffle=True,random_state=None)
+                            validation=kf.split(X_train_scaled)
+                            y_pred_final = [] 
+                            y_valid_final  = [] 
+                            for train_index, valid_index in validation:
+                                X_new_train,X_new_valid=X_train_scaled[train_index],X_train_scaled[valid_index]
+                                y_new_train,y_new_valid=y_train[train_index],y_train[valid_index]
+                                # fit GBR with (X_train, y_train), and predict X_test
+                                y_pred = GBR.fit(X_new_train, y_new_train).predict(X_new_valid)
+                                for i in range(len(y_new_valid)):
+                                    y_valid_final.append(y_new_valid[i])
+                                    y_pred_final.append(y_pred[i])
+                            # calculate final r and rmse
+                            total_r_pearson,_=pearsonr(y_valid_final,y_pred_final)
+                            mse = mean_squared_error(y_valid_final,y_pred_final)
                             total_rmse = np.sqrt(mse)
-                            if  verbosity_level>=1: 
+                            # print verbose info
+                            if verbosity_level>=2: 
                                 f_out.write("Train with first %i points \n" % (len(X_train)))
                                 f_out.write("%s \n" % (str(X_train)))
                                 f_out.write("Test with last %i points \n" % (len(X_test)))
                                 f_out.write("%s \n" % (str(X_test)))
                                 f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
+                        # Print last verbose info for GBR
                         if verbosity_level>=2: 
                             f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson,total_rmse))
                             f_out.flush()
@@ -1457,8 +1500,17 @@ def GBR(X,y,l,w,f_out):
                             f_out.write("New final_gbr: %s \n" % (str(final_gbr)))
                             prev_total_rmse = total_rmse
                         gbr_counter=gbr_counter+1
+    # Print optimized hyperparams
     f_out.write("---------- \n")
     f_out.write("Final Optimum GBR: %s, rmse: %f \n" % (str(final_gbr),result))
+    # After hyperparams are optimized, predict X_test
+    GBR = GradientBoostingRegressor(criterion=GBR_criterion,n_estimators=final_gbr[0],learning_rate=final_gbr[1],max_depth=final_gbr[2],min_samples_split=final_gbr[3],min_samples_leaf=final_gbr[4])
+    y_pred = GBR.fit(X_train_scaled, y_train).predict(X_test_scaled)
+    # calculate final r and rmse
+    total_r_pearson,_=pearsonr(y_test,y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    total_rmse = np.sqrt(mse)
+    result=total_rmse
     return result
 
 # CALCULATE GPR #
@@ -1688,7 +1740,7 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t,opt_train):
     return result
 
 # Function to do kernel ridge regression (KRR)
-def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
+def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t,opt_train):
     # assign hyperparameters
     KRR_alpha,KRR_gamma = hyperparams
     # initialize values
@@ -1778,26 +1830,54 @@ def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
             total_rmse = np.sqrt(total_mse)
         # For data sorted from old to new
         elif CV=='time-sorted':
-            # Use (1-'test_last_proportion') as training, and 'test_last_proportion' as test data
-            X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
-            # scale data
-            scaler = preprocessing.StandardScaler().fit(X_train)
-            X_train_scaled = scaler.transform(X_train)
-            X_test_scaled = scaler.transform(X_test)
-            # fit KRR with (X_train, y_train), and predict X_test
-            KRR = KernelRidge(alpha=KRR_alpha,kernel=KRR_kernel,gamma=KRR_gamma)
-            y_pred = KRR.fit(X_train_scaled, y_train).predict(X_test_scaled)
-            # calculate final r and rmse
-            total_r_pearson,_=pearsonr(y_test,y_pred)
-            mse = mean_squared_error(y_test, y_pred)
-            total_rmse = np.sqrt(mse)
-            # print verbose info
-            if  verbosity_level>=2: 
-                f_out.write("Train with first %i points \n" % (len(X_train)))
-                f_out.write("%s \n" % (str(X_train)))
-                f_out.write("Test with last %i points \n" % (len(X_test)))
-                f_out.write("%s \n" % (str(X_test)))
-                f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
+            if opt_train==True:
+                # Use (1-'test_last_proportion') as training, and 'test_last_proportion' as test data
+                X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
+                # scale data
+                scaler = preprocessing.StandardScaler().fit(X_train)
+                X_train_scaled = scaler.transform(X_train)
+                X_test_scaled = scaler.transform(X_test)
+                KRR = KernelRidge(alpha=KRR_alpha,kernel=KRR_kernel,gamma=KRR_gamma)
+                #######################################################
+                # Separate between new_train and new_valid
+                kf = KFold(n_splits=k_fold,shuffle=True,random_state=None)
+                validation=kf.split(X_train_scaled)
+                y_pred_final = []
+                y_valid_final  = []
+                for train_index, valid_index in validation:
+                    X_new_train,X_new_valid=X_train_scaled[train_index],X_train_scaled[valid_index]
+                    y_new_train,y_new_valid=y_train[train_index],y_train[valid_index]
+                    #######################################################
+                    # fit KRR with (X_train, y_train), and predict X_test
+                    y_pred = KRR.fit(X_new_train, y_new_train).predict(X_new_valid)
+                    for i in range(len(y_new_valid)):
+                        y_valid_final.append(y_new_valid[i])
+                        y_pred_final.append(y_pred[i])
+                # calculate final r and rmse
+                total_r_pearson,_=pearsonr(y_valid_final,y_pred_final)
+                mse = mean_squared_error(y_valid_final,y_pred_final)
+                total_rmse = np.sqrt(mse)
+                # print verbose info
+                if  verbosity_level>=2: 
+                    f_out.write("Train with first %i points \n" % (len(X_train)))
+                    f_out.write("%s \n" % (str(X_train)))
+                    f_out.write("Test with last %i points \n" % (len(X_test)))
+                    f_out.write("%s \n" % (str(X_test)))
+                    f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
+            if opt_train==False:
+                # Use (1-'test_last_proportion') as training, and 'test_last_proportion' as test data
+                X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
+                # scale data
+                scaler = preprocessing.StandardScaler().fit(X_train)
+                X_train_scaled = scaler.transform(X_train)
+                X_test_scaled = scaler.transform(X_test)
+                # fit KRR with (X_train, y_train), and predict X_test
+                KRR = KernelRidge(alpha=KRR_alpha,kernel=KRR_kernel,gamma=KRR_gamma)
+                y_pred = KRR.fit(X_train_scaled, y_train).predict(X_test_scaled)
+                # calculate final r and rmse
+                total_r_pearson,_=pearsonr(y_test,y_pred)
+                mse = mean_squared_error(y_test, y_pred)
+                total_rmse = np.sqrt(mse)
         # Print last verbose info for KRR
         if verbosity_level>=2: 
             f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson, total_rmse))
@@ -1832,14 +1912,13 @@ def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t):
         # Train only at some steps
         time_taken1 = time()-start
         if t%t2_train_time==0:
-            if verbosity_level>=1: f_out.write("# At time N2=%i, I am training new model\n" %(t))
+            f_out.write("# At time N2=%i, I am training new model\n" %(t))
             KRR.fit(X_train_scaled, y_train)
-            dump(KRR, open('KRR_%i.pkl' %(l), 'wb'))
-            time_taken2 = time()-start
+            if t2_train_time !=1: dump(KRR, open('KRR_%i.pkl' %(l), 'wb'))
         else:
-            if verbosity_level>=1: f_out.write("# At time N2=%i, I am reading previous trained model\n" %(t))
+            f_out.write("# At time N2=%i, I am reading previous trained model\n" %(t))
             KRR=load(open('KRR_%i.pkl' %(l), 'rb'))
-            time_taken2 = time()-start
+        time_taken2 = time()-start
         if verbosity_level>=1: f_out.write("ML train took %0.4f seconds \n" %(time_taken2-time_taken1))
         ###############################################
         y_pred = KRR.predict(X_test_scaled)
