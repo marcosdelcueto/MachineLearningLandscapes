@@ -1,10 +1,15 @@
 #!/bin/bash
+# Marcos del Cueto
+# Department of Chemistry and MIF, University of Liverpool
+#################################################################################
+# Script to delete verbose info from old-format output files, so they have same information as new verbosity=1 output
+#################################################################################
 first_log=0
 last_log=99
 fine_format=true
 ML='GPR'												# IMPORTANT: update to ML method, so verbose lines are identified properly
 adven=( 10 20 30 40 50 60 70 80 90 100 )  # Only used for fine_format=true. Which adventurousness are used in each file
-# If fine_format=true: update labels to new nomenclature. Also remove ML verbose info
+# If fine_format=true: update labels to new format. Also remove ML verbose info
 # If fine_format=false: it will simply remove the verbose results of ML convergence cycles
 
 for i in `seq ${first_log} ${last_log}`

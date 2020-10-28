@@ -2,7 +2,7 @@
 # Marcos del Cueto
 # Department of Chemistry and MIF, University of Liverpool
 #################################################################################
-# This script plots boxplots of rmse read from stdout (obtained either directly from program or mimicked with 'get_log_results.py' from logs)
+# This script plots boxplots of rmse read from stdout (obtained either directly from program or mimicked with MLL_get_stdout_from_logs.py from logs)
 #################################################################################
 import re
 import ast
@@ -13,12 +13,11 @@ import matplotlib.pyplot as plt
 ### START CUSTOMIZABLE INPUT VALUES ###
 Nwalkers = 10                                        # Number of walkers per landscape
 adven = [10,20,30,40,50,60,70,80,90,100]             # percentage of special points per walker
-#out_file = 'slurm-27819080.out'                       # Name of stdout file
-out_file = str(sys.argv[1])                       # Name of stdout file
-print('Out file:', out_file)
-pattern = re.compile(r'RMSE:') # Flag used to identify results in .log file
+pattern = re.compile(r'RMSE:')                       # Flag used to identify results in .log file
 #### END CUSTOMIZABLE INPUT VALUES ####
 #######################################
+out_file = str(sys.argv[1])                          # Name of stdout file
+print('Out file:', out_file)
 def main(Nwalkers,adven,out_file,pattern):
     counter = 0
     results_per_walker_t1 = []

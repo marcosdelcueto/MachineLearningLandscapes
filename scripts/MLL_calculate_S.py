@@ -3,6 +3,7 @@
 # Department of Chemistry and MIF, University of Liverpool
 #################################################################################
 # Script to estimate smoothness 'S' from datasets
+# Requires {{x},G} data from 'data_file_name' files. These can be created with MLL_extract_x_G_data.sh script
 #################################################################################
 import ast
 import math

@@ -1087,26 +1087,20 @@ def explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,t0,t1,t2,Xi,yi,ML_ex
                 f_out.write("Explore landscape ML. time: %i. Before ML took %0.4f seconds \n" %(t,time_taken2-time_taken0))
             if t2_ML=='kNN': min_point=kNN(x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t)
             if t2_ML=='GPR':
-                print('NEW TEST OF PATH_G AT t2 ')
-                print(path_G)
                 hyperparams=[GPR_alpha,GPR_length_scale]
                 if optimize_GPR_hyperparams == False:
                     min_point=GPR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t,False)
                 else:
-                    print('TEST BEFORE FITTING RMSE')
                     mini_args=(path_x,path_G,l,w,f_out,None,None,1,t,False) # get rmse fitting previous points
                     bounds = [GPR_alpha_lim]+[GPR_length_scale_lim]
                     solver=differential_evolution(GPR,bounds,args=mini_args,popsize=diff_popsize,tol=diff_tol)
                     best_hyperparams = solver.x
                     best_rmse = solver.fun
-                    print('TEST AFTER FITTING RMSE')
                     if verbosity_level>=1: 
                         f_out.write("Best hyperparameters: %s . Best rmse: %f \n" %(str(best_hyperparams),best_rmse))
                         f_out.flush()
                     hyperparams=[best_hyperparams[0],best_hyperparams[1]]
-                    print('TEST BEFORE PREDICT MINIMUM')
                     min_point=GPR(hyperparams,x_bubble,y_bubble,l,w,f_out,path_x,path_G,2,t,False)
-                    print('TEST AFTER PREDICT MINIMUM')
             if t2_ML=='KRR':
                 hyperparams=[KRR_alpha,KRR_gamma]
                 if optimize_KRR_hyperparams == False:
@@ -1257,7 +1251,7 @@ def kNN(X,y,l,w,f_out,Xtr,ytr,mode,t):
                 for train_index, valid_index in validation:
                     X_new_train,X_new_valid=X_train_scaled[train_index],X_train_scaled[valid_index]
                     y_new_train,y_new_valid=y_train[train_index],y_train[valid_index]
-                    # fit GPR with (X_train, y_train), and predict X_test
+                    # fit GPR with (X_new_train, y_new_train), and predict X_new_valid
                     y_pred = knn.fit(X_new_train, y_new_train).predict(X_new_valid)
                     for i in range(len(y_new_valid)):
                         y_valid_final.append(y_new_valid[i])
@@ -1473,7 +1467,7 @@ def GBR(X,y,l,w,f_out):
                             for train_index, valid_index in validation:
                                 X_new_train,X_new_valid=X_train_scaled[train_index],X_train_scaled[valid_index]
                                 y_new_train,y_new_valid=y_train[train_index],y_train[valid_index]
-                                # fit GBR with (X_train, y_train), and predict X_test
+                                # fit GBR with (X_new_train, y_new_train), and predict X_new_valid
                                 y_pred = GBR.fit(X_new_train, y_new_train).predict(X_new_valid)
                                 for i in range(len(y_new_valid)):
                                     y_valid_final.append(y_new_valid[i])
@@ -1623,7 +1617,7 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t,opt_train):
                     X_new_train,X_new_valid=X_train_scaled[train_index],X_train_scaled[valid_index]
                     y_new_train,y_new_valid=y_train[train_index],y_train[valid_index]
                     #######################################################
-                    # fit GPR with (X_train, y_train), and predict X_test
+                    # fit GPR with (X_new_train, y_new_train), and predict X_new_valid
                     y_pred = GPR.fit(X_new_train, y_new_train).predict(X_new_valid)
                     for i in range(len(y_new_valid)):
                         y_valid_final.append(y_new_valid[i])
@@ -1640,7 +1634,7 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t,opt_train):
                     f_out.write("%s \n" % (str(X_test)))
                     f_out.write('Landscape %i . Adventurousness: %i . r_pearson: %f . rmse: %f \n' % (l,adven[w],total_r_pearson,total_rmse))
             if opt_train==False:
-                # CASE 3: Test 10% with hyperparams optimized in first 90%
+                # Test last-10% with hyperparams optimized in first 90%
                 # Use (1-'test_last_proportion') as training, and 'test_last_proportion' as test data
                 X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_last_proportion,random_state=None,shuffle=False)
                 # scale data
@@ -1655,7 +1649,6 @@ def GPR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t,opt_train):
                 total_r_pearson,_=pearsonr(y_test,y_pred)
                 mse = mean_squared_error(y_test, y_pred)
                 total_rmse = np.sqrt(mse)
-                #print('TEST in CASE 3', 'GPR_alpha:', GPR_alpha, 'GPR_length_scale:', GPR_length_scale, 'rmse:', total_rmse)
         # Print last verbose info for GPR
         if verbosity_level>=2: 
             f_out.write('Final r_pearson, rmse: %f, %f \n' % (total_r_pearson, total_rmse))
@@ -1848,7 +1841,7 @@ def KRR(hyperparams,X,y,l,w,f_out,Xtr,ytr,mode,t,opt_train):
                     X_new_train,X_new_valid=X_train_scaled[train_index],X_train_scaled[valid_index]
                     y_new_train,y_new_valid=y_train[train_index],y_train[valid_index]
                     #######################################################
-                    # fit KRR with (X_train, y_train), and predict X_test
+                    # fit KRR with (X_new_train, y_new_train), and predict X_new_valid
                     y_pred = KRR.fit(X_new_train, y_new_train).predict(X_new_valid)
                     for i in range(len(y_new_valid)):
                         y_valid_final.append(y_new_valid[i])

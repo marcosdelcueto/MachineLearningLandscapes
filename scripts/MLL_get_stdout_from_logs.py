@@ -13,7 +13,7 @@ from scipy.stats import iqr
 ### START CUSTOMIZABLE INPUT VALUES ###
 Nspf = 100                                           # Number of different landscapes generate
 Nwalkers = 4                                         # Number of walkers per landscape
-adven = [10,40,70,100]             # percentage of special points per walker
+adven = [10,40,70,100]                               # percentage of special points per walker
 t1_analysis    = True                                # Whether t1 analysis is performed 
 t2_exploration = True                                # Whether t2 exploration is performed
 log_name = 'log_grid_l'                              # Name of log file. Suffix '_XX.log' is added automatically
@@ -65,18 +65,8 @@ for i in range(Nwalkers):
         min_standard = [item[3] for item in results_per_walker_t2[i]]
         min_ML       = [item[4] for item in results_per_walker_t2[i]]
         ML_gain_real_relative = [item[5] for item in results_per_walker_t2[i]]
-        #print('- ML_gain_pred Mean: %f' %(statistics.mean(ML_gain_pred)),flush=True)
-        #print('- ML_gain_pred Median: %f' %(statistics.median(ML_gain_pred)),flush=True)
-        #print('- ML_gain_real Mean: %f' %(statistics.mean(ML_gain_real)),flush=True)
         print('- ML_gain_real Median: %f' %(statistics.median(ML_gain_real)),flush=True)
-        #print('- error_rel_ML Mean: %f' %(statistics.mean(error_rel_ML)),flush=True)
         print('- error_rel_ML Median: %f' %(statistics.median(error_rel_ML)),flush=True)
-        #print('- min_standard Mean: %f' %(statistics.mean(min_standard)),flush=True)
         print('- min_standard Median: %f' %(statistics.median(min_standard)),flush=True)
-        #print('- min_ML Mean: %f' %(statistics.mean(min_ML)),flush=True)
         print('- min_ML Median: %f' %(statistics.median(min_ML)),flush=True)
-        #print('- ML_gain_real_relative Mean: %f' %(statistics.mean(ML_gain_real_relative)),flush=True)
         print('- ML_gain_real_relative Median: %f' %(statistics.median(ML_gain_real_relative)),flush=True)
-        #print('- ML_gain_real_relative Stdev: %f' %(statistics.stdev(ML_gain_real_relative)),flush=True)
-        #print('- ML_gain_real_relative All:', ML_gain_real_relative)
-        #print('- ML_gain_real_relative IQR:',iqr(ML_gain_real_relative))

@@ -2,7 +2,7 @@
 # Marcos del Cueto
 # Department of Chemistry and MIF, University of Liverpool
 #################################################################################
-# Script similar to MLL_consolidate.sh, but deals correctly with log files when they have 4 or 10 adven values
+# Script similar to MLL_consolidate_logs.sh, but deals correctly with log files when they have 4 or 10 adven values
 #################################################################################
 # Initialize counters
 counter_adven4=0

@@ -3,6 +3,7 @@
 # Department of Chemistry and MIF, University of Liverpool
 #################################################################################
 # Script to estimate adventurousness 'a' from datasets
+# Requires {{x},G} data from 'data_file_name' files. These can be created with MLL_extract_x_G_data.sh script
 #################################################################################
 import ast
 import math
@@ -103,17 +104,6 @@ for a in adven:
         final_median.append(statistics.median(predictions_a_new))
         final_stdev.append(statistics.stdev(predictions_a_new))
 print('########################################')
-# Box plot
-#pntbox=plt.boxplot(final_predictions_a,patch_artist=True,labels=adven,showfliers=False)
-#plt.xticks(fontsize=10)
-#plt.yticks(fontsize=10)
-#plt.xlabel('Real $a$ (%)',fontsize=15)
-#plt.ylabel('Estimated $a$ (%)',fontsize=15)
-#file1='estimation_a_boxplot.png'
-#plt.savefig(file1,format='png',dpi=600)
-#print('save box plot to %s' %file1,flush=True)
-#plt.close()
-
 # Errorbar plot
 x = adven
 y = final_median
