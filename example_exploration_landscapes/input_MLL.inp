@@ -3,17 +3,17 @@
 #################################################
 ### Type of calculation #########################
 calculate_grid = True                          	# Decide whether to calculate or read SPF {True | False}
-plot_contour_map = False                        # Decide whether to make 2D plot of grid {True | False}
+plot_contour_map = True                         # Decide whether to make 2D plot of grid {True | False}
 ### Parallel Computing ##########################
 dask_parallel = False                           # Decide if dask is used {True | False}
 NCPU    = 1      	                              # Choose number of CPUs used by dask {integer}
 ### SPF parameters ##############################
-Nspf = 100                                      # Number of different landscapes generate {integer}
+Nspf = 3                                        # Number of different landscapes generate {integer}
 initial_spf = 0                                 # When reading SPF, from which one do we start. {integer}
 grid_name = 'SPF_values'                        # File name where SPF coordinates are written/read {string}
 ### Gaussian parameters #########################
 S = 0.10                                        # Smoothness - minimum width of Gaussian functions {real. (0,1/3)}
-param = 3                                       # Number of descriptors {integer}
+param = 2                                       # Number of descriptors {integer}
 center_min = 0.00                               # Minimum value for center of each Gaussian in each DOF {real}
 center_max = 1.00                               # Maximum value for center of each Gaussian in each DOF {real}
 ### Grid parameters #############################
@@ -26,13 +26,13 @@ log_name = 'log_grid_l'                         # Name of log file. Suffix '_XX.
 #################################################
 # Exploration general parameters
 #################################################
-adven = [10,20,30,40,50,60,70,80,90,100]			# List of afventurousness values per SPF {list of integers|reals}
+adven = [10,100]			      						# List of afventurousness values per SPF {list of integers|reals}
 d_threshold = 0.08                              # Threshold maximum distance that at each time step {real}
 #################################################
 # N1 exploration parameters
 #################################################
 t1_analysis = True                              # Whether t1 analysis is performed {True | False}
-plot_t1_exploration = False                     # Decide whether to make 2D plot of t1 exploration {True | False}
+plot_t1_exploration = True                      # Decide whether to make 2D plot of t1 exploration {True | False}
 ML='GPR'                                        # Choose what ML algorithm is used {string. 'kNN' | 'GBR' | 'KRR' | 'GPR'}
 t0_time = 15   		                           # Number of initial unbiased steps {integer}
 t1_time = 100                                   # Number of time steps for the walker {integer}
@@ -44,9 +44,9 @@ error_metric='rmse'                             # Choose which error metric to a
 #################################################
 # N2 exploration parameters
 #################################################
-t2_exploration = True                           # Whether t2 exploration is performed {True | False}
+t2_exploration = True                          # Whether t2 exploration is performed {True | False}
 t2_ML = 'GPR'												# Choose what ML algorithm is used {string. 'kNN' | 'KRR' | 'GPR'}
-t2_time = 15                                    # Number of time steps for the walker {integer}
+t2_time = 5                                     # Number of time steps for the walker {integer}
 t2_train_time = 1                               # ML is re-trained every 't2_train_time' steps {integer}
 #################################################
 # Machine Learning parameters

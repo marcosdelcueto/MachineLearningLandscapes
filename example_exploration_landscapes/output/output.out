@@ -1,0 +1,108 @@
+# Printing input values:
+dask_parallel = False
+NCPU = 1
+verbosity_level = 1
+log_name = log_grid_l
+Nspf = 3
+initial_spf = 0
+S = 0.1
+param = 2
+center_min = 0.0
+center_max = 1.0
+grid_min = 0.0
+grid_max = 1.0
+grid_Delta = 0.01
+adven = [10, 100]
+t1_time = 100
+d_threshold = 0.08
+t0_time = 15
+ML = GPR
+error_metric = rmse
+CV = kf
+k_fold = 10
+test_last_proportion = 0.1
+n_neighbor = [1, 2, 3, 4, 5, 6, 7]
+weights = distance
+GBR_criterion = friedman_mse
+GBR_n_estimators = [50, 100, 150]
+GBR_learning_rate = [0.05, 0.1, 0.15]
+GBR_max_depth = [2, 4, 6]
+GBR_min_samples_split = [2, 3, 4]
+GBR_min_samples_leaf = [1, 2, 3]
+GPR_alpha = 0.001
+GPR_length_scale = 1.5
+optimize_GPR_hyperparams = True
+GPR_alpha_lim = (1e-05, 1.0)
+GPR_length_scale_lim = (0.01, 100.0)
+KRR_alpha = 1.0
+KRR_kernel = rbf
+KRR_gamma = 1.0
+optimize_KRR_hyperparams = True
+KRR_alpha_lim = (1e-06, 10.0)
+KRR_gamma_lim = (0.01, 100.0)
+t2_time = 5
+t2_ML = GPR
+t2_exploration = True
+t1_analysis = True
+diff_popsize = 15
+diff_tol = 0.1
+t2_train_time = 1
+calculate_grid = True
+plot_t1_exploration = True
+plot_t1_error_metric = True
+plot_contour_map = True
+grid_name = SPF_values
+# Intermediate values:
+width_min = 0.1
+width_max = 0.3333333333333333
+Amplitude_min = 0.0
+Amplitude_max = 1.0
+N = 100
+adven_per_SPF = 2
+########################
+### INPUT CHECKED OK ###
+########################
+#############################
+### CALLING MAIN FUNCTION ###
+#############################
+Start: "plot(contour)"
+save 2d map plot to contour_2d_landscape0.png
+Start: "plot(contour)"
+save 2d map plot to contour_2d_landscape1.png
+Start: "plot(contour)"
+save 2d map plot to contour_2d_landscape2.png
+save 2d plot to t1_exploration_landscape0_walker0.png
+save 2d plot to t1_exploration_landscape0_walker1.png
+save 2d plot to t1_exploration_landscape1_walker0.png
+save 2d plot to t1_exploration_landscape1_walker1.png
+save 2d plot to t1_exploration_landscape2_walker0.png
+save 2d plot to t1_exploration_landscape2_walker1.png
+--- Final results ---
+-- Adventurousness:   10.0 --
+-- N1 analysis
+- RMSE: [0.0005603527952892317, 0.00037530595010992, 0.0003245016037015335]
+- RMSE Median: 0.000375
+-- N2 exploration
+- [ML_gain_pred, ML_gain_real, error_rel_ML, min_standard, min_ML,ML_gain_real_relative]: [[-0.00014924019858764126, 0.0, 3.4050179134560146e-05, -4.382949, -4.382949, 0.0], [1.1660965324900019e-05, 0.0, 2.7254778890887815e-06, -4.278503, -4.278503, 0.0], [-1.2210139544333032e-05, 0.0, 3.170153114395273e-06, -3.851593, -3.851593, 0.0]]
+- ML_gain_pred Median: -0.000012
+- ML_gain_real Median: 0.000000
+- error_rel_ML Median: 0.000003
+- min_standard Median: -4.278503
+- min_ML Median: -4.278503
+- ML_gain_real_relative Median: 0.000000
+
+-- Adventurousness:  100.0 --
+-- N1 analysis
+- RMSE: [0.05554617441343621, 0.01847863897911617, 0.029001952032424273]
+- RMSE Median: 0.029002
+-- N2 exploration
+- [ML_gain_pred, ML_gain_real, error_rel_ML, min_standard, min_ML,ML_gain_real_relative]: [[0.030423382529565224, 0.023467000000000127, 0.0015923389109204723, -4.34519, -4.368657, 0.005400684434972954], [0.7040988277657294, 0.7631809999999999, 0.013833933859057458, -3.507634, -4.270815, 0.21757714744468776], [0.008467296490300313, 0.009283999999999626, 0.00021204304548775338, -3.842309, -3.851593, 0.002416255433906962]]
+- ML_gain_pred Median: 0.030423
+- ML_gain_real Median: 0.023467
+- error_rel_ML Median: 0.001592
+- min_standard Median: -3.842309
+- min_ML Median: -4.270815
+- ML_gain_real_relative Median: 0.005401
+
+save rmse box plot to rmse.png
+Process took 1402.8705 seconds

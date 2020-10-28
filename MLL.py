@@ -80,11 +80,11 @@ def main():
         for i in range(adven_per_SPF):
             print('-- Adventurousness: %6.1f --' %(adven[i]))
             if t1_analysis == True:
-                print('-- t1 analysis')
+                print('-- N1 analysis')
                 print('- RMSE:',results_per_walker_t1[i][:])
                 print('- RMSE Median: %f' %(statistics.median(results_per_walker_t1[i])))
             if t2_exploration == True:
-                print('-- t2 exploration')
+                print('-- N2 exploration')
                 print('- [ML_gain_pred, ML_gain_real, error_rel_ML, min_standard, min_ML,ML_gain_real_relative]: %s' %(str(results_per_walker_t2[i])))
                 ML_gain_pred          = [item[0] for item in results_per_walker_t2[i]]
                 ML_gain_real          = [item[1] for item in results_per_walker_t2[i]]
@@ -487,7 +487,7 @@ def MLL(l):
         X1,y1,unique_t1 = explore_landscape(l,w,dim_list,G_list,f_out,Ngrid,max_G,0,t1_time,0,None,None,False,X0,y0)
         time_taken2 = time()-start
         if verbosity_level>=1:
-            f_out.write("t1 exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
+            f_out.write("N1 exploration took %0.4f seconds\n" %(time_taken2-time_taken1))
         if t1_analysis == True:
         # Step 2A) Calculate error_metric
             time_taken1 = time()-start
@@ -532,7 +532,7 @@ def MLL(l):
             if plot_t1_exploration == True and param == 2:
                 plot('t1_exploration',l,w,dim_list,G_list,X0,y0,X1,y1,None)
             if verbosity_level>=1:
-                f_out.write("t1 analysis took %0.4f seconds\n" %(time_taken2-time_taken1))
+                f_out.write("N1 analysis took %0.4f seconds\n" %(time_taken2-time_taken1))
         # Step 2B) Perform t2 exploration
         if t2_exploration == True:
             # Step 2.B.1) Perform t2 exploration with weighted random explorer
@@ -584,24 +584,24 @@ def MLL(l):
                 f_out.write("## SUMMARY RESULTS ##\n")
                 f_out.write("#####################\n")
                 f_out.write("## Initial random exploration: \n")
-                f_out.write("t0 = %i \n" %(t0_time))
+                f_out.write("N0 = %i \n" %(t0_time))
                 f_out.write("################ \n")
-                f_out.write("## t1 exploration: \n")
-                f_out.write("t1 = %i \n" %(t1_time))
+                f_out.write("## N1 exploration: \n")
+                f_out.write("N1 = %i \n" %(t1_time))
                 f_out.write("Last value: X1 index (unique timestep): %i\n" %(len(y1)-1))
                 f_out.write("Last value: X1: %s, y: %s\n" %(str(X1[-1]),str(y1[-1])))
                 f_out.write("Minimum value: X1 index (unique timestep): %s\n" %(str(np.where(y1 == np.min(y1))[0][0])))
                 f_out.write("Minimum value: X1: %s, y: %s\n" %(str(X1[np.where(y1 == np.min(y1))][0]),str(min(y1))))
                 f_out.write("################ \n")
-                f_out.write("## t2 standard exploration: \n")
-                f_out.write("t2 = %i \n" %(t2_time))
+                f_out.write("## N2 standard exploration: \n")
+                f_out.write("N2 = %i \n" %(t2_time))
                 f_out.write("Last value: X2a index (unique timestep): %i\n" %(len(y2a)-1))
                 f_out.write("Last value: X2a: %s, y2a: %s\n" %(str(X2a[-1]),str(y2a[-1])))
                 f_out.write("Minimum value: X2a index (unique timestep): %s\n" %(str(np.where(y2a == np.min(y2a))[0][0])))
                 f_out.write("Minimum value: X2a: %s, y2a: %s\n" %(str(X2a[np.where(y2a == np.min(y2a))][0]),str(min(y2a))))
                 f_out.write("################ \n")
-                f_out.write("## t2 ML exploration: \n")
-                f_out.write("t2 = %i \n" %(t2_time))
+                f_out.write("## N2 ML exploration: \n")
+                f_out.write("N2 = %i \n" %(t2_time))
                 f_out.write("Last value: X2b index (unique timestep): %i\n" %(len(y2b)-1))
                 f_out.write("Last value: X2b: %s, y2b: %s\n" %(str(X2b[-1]),str(y2b[-1])))
                 f_out.write("Minimum value: X2b index (unique timestep): %s\n" %(str(np.where(y2b == np.min(y2b))[0][0])))
@@ -1968,7 +1968,7 @@ def plot(flag,l,w,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
         plt.axis([center_min,center_max,center_min,center_max])
         plt.xticks(fontsize=10)
         plt.yticks(fontsize=10)
-        plt.title('$S = %.2f$, $a = %s %s$' %(float(S),adven[0],'\%'),fontsize=15)
+        plt.title('$S = %.2f$' %(float(S)),fontsize=15)
         nfile='_landscape'+str(l)
         file1='contour_2d' + nfile + '.png'
         plt.savefig(file1,format='png',dpi=600)
@@ -1982,10 +1982,6 @@ def plot(flag,l,w,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
         ax = fig.gca(projection='3d')
         pnt3d_1=ax.plot_trisurf(dim_list[0],dim_list[1],G_list,linewidth=0,alpha=1.0,cmap='Greys')
         ax.set_axis_off()
-        #ax.grid(False)
-        #ax.set_xticks([])
-        #ax.set_yticks([])
-        #ax.set_zticks([])
         nfile='_landscape'+str(l)
         file1='3d_landscape' + nfile + '.png'
         plt.savefig(file1,format='png',dpi=600,bbox_inches='tight')
@@ -2026,16 +2022,6 @@ def plot(flag,l,w,dim_list,G_list,X0,y0,X1,y1,results_per_walker_t1):
         plt.xlabel('Adventurousness (%)',fontsize=15)
         plt.ylabel('RMSE (a.u.)',fontsize=15)
         file1='rmse.png'
-        plt.savefig(file1,format='png',dpi=600)
-        print('save rmse box plot to %s' %file1,flush=True)
-        plt.close()
-
-        pntbox=plt.boxplot(results_per_walker_t1,patch_artist=True,labels=adven,showfliers=True)
-        plt.xticks(fontsize=10)
-        plt.yticks(fontsize=10)
-        plt.xlabel('Adventurousness (%)',fontsize=15)
-        plt.ylabel('RMSE (a.u.)',fontsize=15)
-        file1='rmse_with_outliers.png'
         plt.savefig(file1,format='png',dpi=600)
         print('save rmse box plot to %s' %file1,flush=True)
         plt.close()
