@@ -19,6 +19,17 @@ A description on how to use Simulated Research Landscapes to assess ML is given 
 
 ---
 
+## Contents
+- **input_MLL.inp**: input file containing options to control type of exploration and its parameters
+
+- **MLL.py**: main python code to create, explore and analyze the research landscapes
+
+- **scripts**: directory containing several scripts used to handle and analyze intermediate data (brief description in each file)
+
+- **example_exploration_landscapes**: directory containing minimalistic example run to generate three 2D Structure Property Functions, and explore them with N<sub>0</sub>=15, N<sub>1</sub>=100 and N<sub>2</sub>=5, with adventurousness a = {10,100}. The corresponding output files are also provided.
+
+---
+
 ## Prerequisites
 
 The necessary packages (with the tested versions with Python 3.7.6) are specified in the file _requirements.txt_. These packages can be installed with pip:
@@ -28,14 +39,9 @@ pip3 install -r requirements.txt
 ```
 ---
 
-## Contents
-- **input_MLL.inp**: input file containing options to control type of exploration and its parameters
+## Usage
 
-- **MLL.py**: main python code to create, explore and analyze the research landscapes
-
-- **scripts**: directory containing several scripts used to handle and analyze intermediate data (brief description in each file)
-
-- **example_exploration_landscapes**: directory containing minimalistic example run to generate three 2D Structure Property Functions, and explore them with N<sub>0</sub>=15, N<sub>1</sub>=100 and N<sub>2</sub>=5, with adventurousness a = {10,100}. Output files are provided, and can be reproduced simply by running:
+To execute program, make sure that you have all necessary python packages installed, and that the input file (**input_MLL.inp**) is present. Finally, simply run:
 
 ```
 python MLL.py
