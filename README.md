@@ -38,7 +38,7 @@ pip3 install -r requirements.txt
 - **example_exploration_landscapes**: directory containing minimalistic example run to generate three 2D Structure Property Functions, and explore them with N<sub>0</sub>=15, N<sub>1</sub>=100 and N<sub>2</sub>=5, with adventurousness a = {10,100}. Output files are provided, and can be reproduced simply by running:
 
 ```
-./MLL.py
+python MLL.py
 ```
 
 ---
