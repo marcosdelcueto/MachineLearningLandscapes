@@ -1,5 +1,5 @@
 # MachineLearningLandscapes
-This repository contains the code for **Determining Usefulness of Machine Learning in Materials Discovery Using Simulated Research Landscapes** by _M del Cueto_ and _A Troisi_.
+This repository contains the code for [Determining Usefulness of Machine Learning in Materials Discovery Using Simulated Research Landscapes](https://doi.org/10.1039/D1CP01761F) by _M del Cueto_ and _A Troisi_.
 
 A description on how to use Simulated Research Landscapes to assess ML is given in the manuscript. Calculation parameters can be changed in **input_MLL.inp** file:
 
